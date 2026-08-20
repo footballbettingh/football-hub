@@ -5,66 +5,119 @@
  * dark mode. Status colours always ship with an icon and a label, so meaning
  * never rides on hue alone.
  */
+/* ---------------------------------------------------------------------
+   Brand: Pine / Emerald / Bone. Taken from the identity sheet in the design
+   folder, in the same oklch it was drawn in, so the site and the channel
+   avatar are the same green rather than two greens that nearly match.
+
+     Pine        oklch(0.20 0.035 165)   the dark ground
+     Night Pine  oklch(0.16 0.025 165)   one step below it, for dark mode
+     Emerald     oklch(0.68 0.14  158)   the one accent
+     Bone        oklch(0.95 0.016 95)    the light ground
+
+   Emerald is stated twice on purpose. The drawn value sits at L=0.68, which
+   is right against Pine and much too light to read against Bone, so the light
+   theme uses a deeper L=0.50 cut of the same hue for anything carrying text.
+   --------------------------------------------------------------------- */
 :root {
   color-scheme: light;
-  --surface-1: #fcfcfb;
-  --page: #f9f9f7;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --muted: #898781;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --border: rgba(11,11,11,0.10);
-  --series-1: #2a78d6;
-  --pos: #2a78d6;
-  --neg: #e34948;
-  --good: #0ca30c;
-  --warning: #fab219;
-  --critical: #d03b3b;
-  --losing: #d03b3b;
-  --neutral: #52514e;
-  --neutral-mid: #f0efec;
+  --pine: oklch(0.20 0.035 165);
+  --emerald: oklch(0.68 0.14 158);
+  --bone: oklch(0.95 0.016 95);
+
+  --page: var(--bone);
+  --surface-1: oklch(0.99 0.008 95);
+  --text-primary: oklch(0.21 0.03 165);
+  /* Measured against BOTH grounds, and the page is the binding one: Bone sits
+     at L=0.95, so anything lighter than about L=0.53 fails AA for the 11.5px
+     hints these two are used for. Secondary is pushed down with muted rather
+     than left where it was, or the two would land on top of each other and
+     the hierarchy would vanish to buy the contrast. */
+  --text-secondary: oklch(0.44 0.025 165);
+  --muted: oklch(0.52 0.02 160);
+  --grid: oklch(0.91 0.012 100);
+  --axis: oklch(0.83 0.016 100);
+  --border: oklch(0.89 0.014 100);
+  --brand: oklch(0.50 0.12 158);
+  --series-1: oklch(0.50 0.12 158);
+  --pos: oklch(0.50 0.12 158);
+  --neg: oklch(0.55 0.17 25);
+  --good: oklch(0.50 0.12 158);
+  --warning: oklch(0.52 0.13 75);
+  --critical: oklch(0.55 0.17 25);
+  --losing: oklch(0.55 0.17 25);
+  --neutral: oklch(0.50 0.025 165);
+  --neutral-mid: oklch(0.93 0.012 100);
+  --shadow: 0 1px 2px oklch(0.20 0.035 165 / 0.05),
+            0 8px 24px oklch(0.20 0.035 165 / 0.06);
+
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system,
+               "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo,
+               Consolas, monospace;
 }
+
+/* Dark mode is Night Pine, not grey: the brand has a dark ground of its own
+   and borrowing a neutral one would throw the accent off. */
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255,255,255,0.10);
-    --series-1: #3987e5;
-    --pos: #3987e5;
-    --neg: #e66767;
-    --neutral: #c3c2b7;
-    --neutral-mid: #383835;
+    --page: oklch(0.16 0.025 165);
+    --surface-1: oklch(0.20 0.035 165);
+    --text-primary: oklch(0.97 0.012 100);
+    --text-secondary: oklch(0.76 0.02 150);
+    --muted: oklch(0.60 0.02 160);
+    --grid: oklch(0.27 0.03 165);
+    --axis: oklch(0.36 0.03 165);
+    --border: oklch(0.30 0.03 165);
+    --brand: var(--emerald);
+    --series-1: var(--emerald);
+    --pos: var(--emerald);
+    --neg: oklch(0.68 0.16 25);
+    --good: var(--emerald);
+    --warning: oklch(0.80 0.14 78);
+    --critical: oklch(0.68 0.16 25);
+    --losing: oklch(0.68 0.16 25);
+    --neutral: oklch(0.76 0.02 150);
+    --neutral-mid: oklch(0.27 0.03 165);
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.30), 0 8px 24px oklch(0 0 0 / 0.28);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --muted: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgba(255,255,255,0.10);
-  --series-1: #3987e5;
-  --pos: #3987e5;
-  --neg: #e66767;
-  --neutral: #c3c2b7;
-  --neutral-mid: #383835;
+  --page: oklch(0.16 0.025 165);
+  --surface-1: oklch(0.20 0.035 165);
+  --text-primary: oklch(0.97 0.012 100);
+  --text-secondary: oklch(0.76 0.02 150);
+  --muted: oklch(0.60 0.02 160);
+  --grid: oklch(0.27 0.03 165);
+  --axis: oklch(0.36 0.03 165);
+  --border: oklch(0.30 0.03 165);
+  --brand: var(--emerald);
+  --series-1: var(--emerald);
+  --pos: var(--emerald);
+  --neg: oklch(0.68 0.16 25);
+  --good: var(--emerald);
+  --warning: oklch(0.80 0.14 78);
+  --critical: oklch(0.68 0.16 25);
+  --losing: oklch(0.68 0.16 25);
+  --neutral: oklch(0.76 0.02 150);
+  --neutral-mid: oklch(0.27 0.03 165);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.30), 0 8px 24px oklch(0 0 0 / 0.28);
 }
 
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--page); color: var(--text-primary);
-  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 15px/1.65 var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* Every figure on this site is meant to be compared with the one under it. */
+.hero, .kpi .v, .picknums .n .v, .accanums .n .v, .acca .nums .v,
+td.num, th.num, .stat, .chip .v, td.conf {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 a { color: inherit; }
 /* One number for both the page and the topbar, so the brand stays lined up
@@ -78,10 +131,14 @@ a { color: inherit; }
   position: sticky; top: 0; z-index: 30; }
 .topbar .inner { max-width: var(--page-width); margin: 0 auto; padding: 0 20px;
   display: flex; align-items: center; gap: 22px; flex-wrap: wrap; min-height: 56px; }
-.brand { font-weight: 650; font-size: 15px; letter-spacing: -0.01em;
-  text-decoration: none; white-space: nowrap; }
-.brand .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-  background: var(--series-1); margin-right: 8px; vertical-align: middle; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none;
+  white-space: nowrap; color: var(--text-primary); }
+.logomark { width: 46px; height: 19px; flex: none; }
+.wordmark { display: flex; flex-direction: column; line-height: 1; }
+.wordmark .w1 { font-size: 14px; font-weight: 700; letter-spacing: -0.015em; }
+.wordmark .w2 { font-family: var(--font-mono); font-size: 8.5px; font-weight: 500;
+  letter-spacing: 0.19em; color: var(--brand); margin-top: 4px; }
+@media (max-width: 560px) { .wordmark { display: none; } }
 nav.main { display: flex; gap: 2px; flex-wrap: wrap; margin-right: auto; }
 nav.main a { text-decoration: none; font-size: 13.5px; color: var(--text-secondary);
   padding: 7px 11px; border-radius: 7px; white-space: nowrap; }
@@ -101,8 +158,13 @@ button.theme:hover { color: var(--text-primary); }
   border: 1px solid var(--border); color: var(--text-secondary);
   background: var(--surface-1); white-space: nowrap; }
 
+/* Hairline, not shadow. A 1px border already separates a card from the
+   ground; stacking a drop shadow on top of it is the look both of the design
+   guides this was checked against call the giveaway of a generated interface.
+   --shadow survives for the two things that genuinely float above the page:
+   the tooltip and the accumulator tray. */
 .card { background: var(--surface-1); border: 1px solid var(--border);
-  border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  border-radius: 12px; padding: 24px 26px; margin-bottom: 20px; }
 .card > h2 { font-size: 15px; font-weight: 620; margin: 0 0 3px; letter-spacing: -0.005em; }
 .card > .note { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 18px; max-width: 72ch; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; }
@@ -159,7 +221,7 @@ button.theme:hover { color: var(--text-primary); }
 /* ---- charts ---- */
 .chart { width: 100%; overflow-x: auto; }
 svg { display: block; max-width: 100%; }
-svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+svg text { font-family: var(--font-sans); }
 .tick { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
 .gridline { stroke: var(--grid); stroke-width: 1; }
 .baseline { stroke: var(--axis); stroke-width: 1; }
@@ -216,8 +278,7 @@ tr.muted td { color: var(--muted); }
 footer.site { color: var(--text-secondary); font-size: 12.5px; line-height: 1.65;
   border-top: 1px solid var(--border); padding-top: 18px; margin-top: 10px; }
 footer.site code, .mono { background: var(--neutral-mid); padding: 1px 5px;
-  border-radius: 4px; font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  border-radius: 4px; font-size: 12px; font-family: var(--font-mono); }
 footer.site p { max-width: 76ch; }
 .next { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .next a { text-decoration: none; font-size: 13px; padding: 9px 14px; border-radius: 9px;
@@ -255,7 +316,7 @@ button.run[disabled] { opacity: .45; cursor: not-allowed; }
 @keyframes pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
 .joblog { max-height: 240px; overflow-y: auto; margin: 10px 0 0; padding: 10px 12px;
   background: var(--page); border: 1px solid var(--border); border-radius: 9px;
-  font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: 11.5px/1.5 var(--font-mono);
   /* pre-wrap alone breaks at spaces only, and every job log ends with a long
      Windows path that has none. */
   white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-secondary); }
@@ -329,3 +390,140 @@ table.cardtable td:nth-child(5), table.cardtable th:nth-child(5) { width: 22%; }
   .topbar { position: static; }
   .control .actions { display: grid; grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ======================================================================
+   Landing page
+   ----------------------------------------------------------------------
+   The front door for someone who has never seen this before, so it has to
+   answer three things above the fold: what it says, what it has been worth,
+   and that it is a measurement rather than a tip. Every number on it is read
+   from the same artifacts the rest of the site reads — there is no marketing
+   copy here quoting a figure nothing generated.
+   ====================================================================== */
+
+.lhero { background: var(--pine); color: oklch(0.97 0.012 100);
+  border-radius: 20px; padding: 56px 48px; margin-top: 26px;
+  position: relative; overflow: hidden; }
+/* A single wash of the accent, off the top-right corner. */
+.lhero::after { content: ""; position: absolute; inset: -40% -20% auto auto;
+  width: 620px; height: 620px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, oklch(0.68 0.14 158 / 0.16), transparent 62%); }
+.lhero > * { position: relative; z-index: 1; }
+.lhero .eyebrow { font-family: var(--font-mono); font-size: 11.5px;
+  letter-spacing: 0.19em; color: var(--emerald); margin-bottom: 20px; }
+.lhero h1 { font-size: clamp(30px, 4.6vw, 52px); line-height: 1.06; margin: 0 0 18px;
+  font-weight: 700; letter-spacing: -0.03em; max-width: 19ch; }
+.lhero h1 em { font-style: normal; color: var(--emerald); }
+.lhero .lead { font-size: clamp(15px, 1.5vw, 18px); line-height: 1.6; margin: 0;
+  color: oklch(0.85 0.02 120); max-width: 58ch; }
+
+.lactions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 10px;
+  border: 1px solid transparent; transition: transform .12s ease, opacity .12s ease; }
+.btn:hover { transform: translateY(-1px); }
+.btn:focus-visible { outline: 2px solid var(--emerald); outline-offset: 3px; }
+.btn.primary { background: var(--emerald); color: oklch(0.17 0.03 165); }
+.btn.primary:hover { opacity: .92; }
+.btn.ghost { border-color: oklch(0.97 0.012 100 / 0.28); color: oklch(0.97 0.012 100); }
+.btn.ghost:hover { border-color: var(--emerald); color: var(--emerald); }
+
+/* The day's pick, inside the hero. Same numbers as the Card page. */
+.lpick { margin-top: 34px; border-radius: 14px; padding: 22px 24px;
+  background: oklch(0.97 0.012 100 / 0.06);
+  border: 1px solid oklch(0.97 0.012 100 / 0.14);
+  display: flex; gap: 30px; align-items: center; flex-wrap: wrap; }
+.lpick .band { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em;
+  color: var(--emerald); margin-bottom: 8px; }
+.lpick .fixture { font-size: 20px; font-weight: 650; letter-spacing: -0.018em; }
+.lpick .meta { font-size: 12.5px; color: oklch(0.82 0.02 120); margin-top: 3px; }
+.lpick .sel { font-size: 15px; font-weight: 600; margin-top: 12px; color: var(--emerald); }
+.lpick .nums { display: flex; gap: 28px; margin-left: auto; flex-wrap: wrap; }
+.lpick .nums .k { font-size: 11px; color: oklch(0.82 0.02 120); }
+.lpick .nums .v { font-size: 26px; font-weight: 650; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; }
+.lpick.none { display: block; color: oklch(0.85 0.02 120); font-size: 14px; }
+
+/* The record strip. Deliberately the first thing under the hero. */
+.lstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden; margin-top: 22px; }
+.lstat { background: var(--surface-1); padding: 20px 22px; }
+.lstat .v { font-size: 27px; font-weight: 650; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; line-height: 1.1; }
+.lstat .k { font-size: 11.5px; color: var(--text-secondary); margin-top: 6px; }
+.lstat .m { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+.lsection { margin-top: 56px; }
+.lsection > h2 { font-size: 12px; font-family: var(--font-mono); font-weight: 500;
+  letter-spacing: 0.19em; color: var(--brand); margin: 0 0 8px; }
+.lsection > .lead { font-size: clamp(20px, 2.4vw, 27px); font-weight: 650;
+  letter-spacing: -0.022em; margin: 0 0 26px; max-width: 30ch; line-height: 1.25; }
+
+.lgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px; }
+.lgrid .item { background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px; }
+.lgrid .item h3 { font-size: 15px; font-weight: 650; margin: 0 0 8px;
+  letter-spacing: -0.01em; }
+.lgrid .item p { font-size: 13.5px; color: var(--text-secondary); margin: 0;
+  line-height: 1.62; }
+.lgrid .item .n { font-family: var(--font-mono); font-size: 11px; color: var(--brand);
+  letter-spacing: 0.16em; margin-bottom: 12px; }
+
+/* The limits. Same visual weight as the claims, which is the point. */
+.llimits { background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 30px; }
+.llimits ul { margin: 0; padding-left: 20px; }
+.llimits li { font-size: 13.5px; color: var(--text-secondary); line-height: 1.65;
+  margin-bottom: 10px; }
+.llimits li:last-child { margin-bottom: 0; }
+.llimits li strong { color: var(--text-primary); font-weight: 600; }
+
+.lcta { margin-top: 56px; border: 1px solid var(--border); border-radius: 16px;
+  padding: 34px 36px; background: var(--surface-1);
+  display: flex; gap: 26px; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; }
+.lcta h2 { font-size: 21px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.02em; }
+.lcta p { font-size: 13.5px; color: var(--text-secondary); margin: 0; max-width: 52ch; }
+.lcta .btn.primary { background: var(--brand); color: var(--surface-1); }
+.lcta .btn.ghost { border-color: var(--border); color: var(--text-primary); }
+
+@media (max-width: 760px) {
+  .lhero { padding: 38px 24px; border-radius: 16px; }
+  .lpick { gap: 20px; padding: 18px; }
+  .lpick .nums { margin-left: 0; gap: 22px; }
+  .lsection { margin-top: 42px; }
+  .lcta { padding: 26px 22px; }
+}
+
+/* Someone who asked for less motion gets none of the lift on hover. */
+@media (prefers-reduced-motion: reduce) {
+  .btn, .btn:hover { transition: none; transform: none; }
+}
+
+
+/* ---- keyboard use ----
+   Every interactive thing on the site is a link, a button or a form control,
+   and none of them said where the focus was beyond whatever the browser drew
+   by default — which on a bordered control against a bordered card is close
+   to nothing. `:focus-visible` rather than `:focus`, so a mouse click does not
+   leave a ring behind it. */
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, th.sortable:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Skipping straight to the content, for anyone who does not want to tab
+   through the whole nav on every page. */
+.skip { position: absolute; left: -9999px; top: 0; z-index: 60;
+  background: var(--surface-1); color: var(--text-primary); padding: 10px 16px;
+  border: 1px solid var(--border); border-radius: 0 0 8px 0; font-size: 13px; }
+.skip:focus { left: 0; }
+
+nav.main a:hover { background: color-mix(in srgb, var(--brand) 10%, transparent); }
+nav.main a[aria-current="page"] {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--brand); }

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hub",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["fb.py", "serve", "--no-open"],
+      "port": 8756
+    }
+  ]
+}

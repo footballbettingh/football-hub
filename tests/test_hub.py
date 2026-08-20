@@ -395,11 +395,13 @@ def test_every_page_renders_without_any_data(page):
     that fixes it — not an empty table that reads like a result."""
     html = pages.render(page, c.Links("server"), dict(EMPTY))
     assert html.startswith("<!doctype html>")
-    assert "Football Hub" in html
+    # The wordmark is drawn in two pieces, so the brand is checked the way the
+    # page actually spells it rather than as one string.
+    assert "FOOTBALL" in html and "BETTING HUB" in html
 
 
 @pytest.mark.parametrize("page,button", [
-    ("index", "Refresh the card"),
+    ("card", "Refresh the card"),
     ("fixtures", "Refresh the card"),
     ("history", "refresh the card"),
     ("reliability", "Recalibrate"),
@@ -430,10 +432,46 @@ def test_the_card_page_shows_the_selections_it_was_given():
              "new_team": False, "validated": True, "implied_resid": 0.0},
         ],
     }
-    html = pages.render("index", c.Links("server"), dict(EMPTY, picks=payload))
+    html = pages.render("card", c.Links("server"), dict(EMPTY, picks=payload))
     assert "Over 0.5 goals" in html
     # Below the floor, so it never reaches the browser at all.
     assert "Under 4.5 goals" not in html
+
+
+def test_the_root_is_the_landing_page_and_the_card_moved():
+    """A public site's front door introduces the thing; the card is one click
+    in. Pinning both directions so a future rename cannot silently swap them."""
+    landing = pages.render("index", c.Links("static"), dict(EMPTY))
+    assert "CALIBRATED FOOTBALL PROBABILITIES" in landing
+    assert 'href="card.html"' in landing
+    # One <h1> per page: the hero brings its own, so the standard head is off.
+    assert landing.count("<h1") == 1
+
+
+def test_the_landing_page_states_the_record_from_the_ledger():
+    """Not from prose. A landing page quoting a figure nothing generated is
+    how a site ends up advertising a record it no longer has."""
+    frame = pd.DataFrame([
+        {"day": "2026-08-14", "band": "main", "match": "a v b",
+         "selection": "Over 2.5 goals", "prob": 0.62, "fair_odds": 1.61,
+         "odds": 1.75, "outcome": "won", "pnl": 0.75, "competition": "PL",
+         "key": "ou2.5_over", "issued": "2026-08-13T10:00:00"},
+        {"day": "2026-08-15", "band": "main", "match": "c v d",
+         "selection": "Over 2.5 goals", "prob": 0.60, "fair_odds": 1.67,
+         "odds": None, "outcome": "lost", "pnl": None, "competition": "PL",
+         "key": "ou2.5_over", "issued": "2026-08-14T10:00:00"},
+    ])
+    html = pages.render("index", c.Links("static"), dict(EMPTY, ledger=frame))
+    assert "Settled record" in html
+    assert "1\u20131" in html or "1–1" in html
+
+
+def test_the_landing_page_survives_having_nothing_to_show():
+    """It is the first page a stranger loads, so it must not be the one that
+    explodes on a machine that has fetched nothing yet."""
+    html = pages.render("index", c.Links("static"), dict(EMPTY))
+    assert html.startswith("<!doctype html>")
+    assert "No pick on the board" in html
 
 
 def test_the_history_page_renders_a_mixed_ledger():

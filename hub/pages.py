@@ -194,6 +194,147 @@ def _card_payload(picks):
     }
 
 
+# -- 0. landing ------------------------------------------------------------
+
+def _landing_pick(picks):
+    """Today's headline pick, rendered for someone who arrived cold."""
+    best = (picks or {}).get("best_pick")
+    if not best:
+        return ('<div class="lpick none">No pick on the board right now — either '
+                'the next match day has nothing in the price range worth singling '
+                'one out in, or the fixtures need refreshing.</div>')
+    low, high = (picks or {}).get("best_band", [1.6, 2.2])
+    offered = (f'<div><div class="k">Offered</div><div class="v">'
+               f'{_num(best.get("odds"))}</div></div>' if best.get("odds") else "")
+    return f"""<div class="lpick">
+  <div>
+    <div class="band">BEST PICK · {c.e(best.get('day', ''))} · BAND {low:g}–{high:g}</div>
+    <div class="fixture">{c.e(best.get('match', ''))}</div>
+    <div class="meta">{c.e(best.get('competition_name') or best.get('competition', ''))}</div>
+    <div class="sel">{c.e(best.get('selection', ''))}</div>
+  </div>
+  <div class="nums">
+    <div><div class="k">Confidence</div><div class="v">{_pct(best.get('prob'))}</div></div>
+    <div><div class="k">Fair odds</div><div class="v">{_num(best.get('fair_odds'))}</div></div>
+    {offered}
+  </div>
+</div>"""
+
+
+def _landing_stats(ctx):
+    """The record, stated before any claim about the method.
+
+    Read from the ledger and the dataset rather than written down, so the page
+    cannot end up quoting a number nothing produced.
+    """
+    cells = []
+    frame = ctx.get("ledger")
+    if frame is not None and not frame.empty:
+        head = ledger.summary(frame)
+        cells.append((f"{head['wins']}\u2013{head['losses']}", "Settled record",
+                      f"{head['pending']} still pending"))
+        if head.get("hit_rate") is not None:
+            cells.append((_pct(head["hit_rate"]), "Actually landed",
+                          f"against {_pct(head['expected'])} claimed"))
+        cells.append((f"{head['recorded']:,}", "Picks written down",
+                      "each one before its match"))
+    data = ctx.get("data")
+    if data:
+        cells.append((f"{data['matches']:,}", "Matches behind it",
+                      f"{data['competitions']} competitions"))
+    if not cells:
+        return ""
+    return ('<div class="lstats">' + "".join(
+        f'<div class="lstat"><div class="v">{v}</div><div class="k">{k}</div>'
+        f'<div class="m">{m}</div></div>' for v, k, m in cells) + "</div>")
+
+
+def page_landing(links, ctx):
+    picks = ctx.get("picks") or {}
+    n_sel = picks.get("n_selections")
+    covered = (f"{picks.get('n_fixtures', 0):,} upcoming fixtures"
+               if picks.get("n_fixtures") else "the upcoming fixtures")
+
+    steps = [
+        ("01", "Closing prices, de-vigged",
+         "The closing line is the sharpest number a bookmaker publishes. Raw "
+         "<code>1/odds</code> sums to about 1.07, and counting that margin as "
+         "information is the easiest way to fool yourself — so it is removed first."),
+        ("02", "A Dixon-Coles model, walked forward",
+         "Team strengths are estimated from goals with a low-score correction, "
+         "refitted as the season moves, and every match is predicted using only "
+         "what was known before it kicked off."),
+        ("03", "Calibrated, out of sample",
+         "The raw number is fitted to what actually happened, on folds it never "
+         "saw. That is the step which makes \u201c62%\u201d mean 62% instead of "
+         "meaning \u201cconfident\u201d."),
+        ("04", "Written down, then graded",
+         "One pick per price band per match day goes into a ledger before kick-off "
+         "and is settled against the result afterwards. The record on this page "
+         "is that file, not a backtest."),
+    ]
+    step_html = "".join(
+        f'<div class="item"><div class="n">{n}</div><h3>{c.e(title)}</h3>'
+        f'<p>{body}</p></div>' for n, title, body in steps)
+
+    return c.layout(links, "Football Betting Hub", "index", f"""
+<div class="lhero">
+  <div class="eyebrow">CALIBRATED FOOTBALL PROBABILITIES</div>
+  <h1>How likely it is. <em>Not</em> what to bet.</h1>
+  <p class="lead">A probability for {covered} across
+  {picks.get('n_selections') and f"{n_sel:,} selections" or "every market it can price"},
+  fitted to what has actually happened rather than to how confident the model
+  feels. Every daily pick is written down before kick-off and graded afterwards,
+  in public, whichever way it goes.</p>
+  <div class="lactions">
+    <a class="btn primary" href="{links.href('card')}">See today's card</a>
+    <a class="btn ghost" href="{links.href('reliability')}">Is 85% really 85%?</a>
+  </div>
+  {_landing_pick(picks)}
+</div>
+
+{_landing_stats(ctx)}
+
+<div class="lsection">
+  <h2>HOW IT WORKS</h2>
+  <p class="lead">Four steps, and the third is the one that matters.</p>
+  <div class="lgrid">{step_html}</div>
+</div>
+
+<div class="lsection">
+  <h2>WHAT IT WILL NOT DO</h2>
+  <p class="lead">The limits are the product too.</p>
+  <div class="llimits"><ul>
+    <li><strong>It will not tell you a bet is good value.</strong> A calibrated
+    probability says how often something happens. Whether the price on offer is
+    worth taking is a different question, and it needs a price this does not
+    always have.</li>
+    <li><strong>It is mostly the market.</strong> The closing line carries most
+    of the forecast by design; the model's job is to add to it without damaging
+    it. Measured on 45,580 out-of-sample matches, it does not beat the line — it
+    keeps up with it.</li>
+    <li><strong>The record is young.</strong> A handful of settled picks is not
+    evidence of anything. The reliability tables run on tens of thousands of
+    matches; the daily ledger does not, and is labelled with how few it has.</li>
+    <li><strong>It is research, not advice.</strong> Nothing here accounts for
+    your stake, your book, or your ability to get the price shown.</li>
+  </ul></div>
+</div>
+
+<div class="lcta">
+  <div>
+    <h2>The card is rebuilt every morning</h2>
+    <p>Results, model, calibration and prices refresh on a schedule, and the
+    day's pick goes out before the first kick-off.</p>
+  </div>
+  <div class="lactions" style="margin-top:0">
+    <a class="btn primary" href="{links.href('card')}">Open the card</a>
+    <a class="btn ghost" href="{links.href('method')}">Read the method</a>
+  </div>
+</div>
+""", show_head=False)
+
+
 # -- 1. the card -----------------------------------------------------------
 
 def page_card(links, ctx):
@@ -912,7 +1053,8 @@ def page_method(links, ctx):
 
 
 BUILDERS = {
-    "index": page_card,
+    "index": page_landing,
+    "card": page_card,
     "fixtures": page_fixtures,
     "history": page_history,
     "reliability": page_reliability,
