@@ -334,4 +334,5 @@ def evaluation_tables(weight=None, folds=5, threshold=None):
         "versus_market": evaluate.versus_market(predictions, keys, calibrated,
                                                 results, scored),
         "coherence": evaluate.coherence(keys, calibrated),
+        "rps": evaluate.rps_1x2(predictions, keys, calibrated, results, scored),
     }

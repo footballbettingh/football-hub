@@ -209,6 +209,9 @@ def cmd_evaluate(args):
     _show(tables["groups"])
     print("\n== Against the closing line it is built from\n")
     _show(tables["versus_market"], floats=5)
+    if len(tables["rps"]):
+        print("\n== Ranked probability score on 1X2 (lower is better)\n")
+        _show(tables["rps"], floats=5)
     print("\n== Internal consistency after calibrating each group separately\n")
     _show(tables["coherence"], floats=5)
 

@@ -43,6 +43,78 @@ def log_loss(probs, outcomes):
     return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))
 
 
+def ranked_probability_score(probs, outcome_index):
+    """Mean RPS over ordered categories. Lower is better; 0 is perfect.
+
+    Scored on the cumulative distribution rather than the outright one, which
+    is what makes it care about *how far* a forecast missed by. `probs` rows
+    must sum to 1 and be in outcome order; `outcome_index` says which category
+    actually happened.
+    """
+    probs = np.asarray(probs, dtype=float)
+    n, r = probs.shape
+    actual = np.zeros_like(probs)
+    actual[np.arange(n), np.asarray(outcome_index, dtype=int)] = 1.0
+    gap = np.cumsum(probs, axis=1)[:, :-1] - np.cumsum(actual, axis=1)[:, :-1]
+    return float(np.mean(np.sum(gap ** 2, axis=1) / (r - 1)))
+
+
+def rps_1x2(predictions, keys, probs, results, rows=None):
+    """RPS on 1X2, against the closing line and against knowing nothing.
+
+    Brier reads home/draw/away as three unrelated coin flips: calling a home
+    win when the away side wins costs it exactly what calling one when the
+    match is drawn costs. Home-draw-away is ordered, so those two misses are
+    not equally wrong, and RPS is the standard scoring rule that says so.
+
+    Only 1X2 gets this. Every other market on the card is binary, and for two
+    ordered categories RPS is algebraically the Brier score — a second column
+    of identical numbers.
+
+    Calibrating each selection on its own breaks the sum to one, so the triple
+    is renormalised here. `renorm` reports how much that moved it: it is the
+    same violation `coherence` measures, restated as a cost to this metric.
+    """
+    mask = np.ones(len(predictions), dtype=bool) if rows is None else np.asarray(rows)
+    ordered = ("1x2_home", "1x2_draw", "1x2_away")
+    if any(k not in keys for k in ordered):
+        return pd.DataFrame()
+
+    columns = [keys.index(k) for k in ordered]
+    ours = probs[mask][:, columns].astype(float)
+    outcome = results[mask][:, columns]
+    market = predictions[["q_home", "q_draw", "q_away"]].to_numpy(dtype=float)[mask]
+
+    # One and only one of the three must have happened, or the row tells us
+    # nothing about which way to score it.
+    # Parenthesised because `&` binds tighter than `==`: without them this
+    # reads as (all_present & count) == 1, which happens to give the right
+    # answer for three outcomes and would stop doing so for four.
+    settled = (outcome >= 0).all(axis=1) & ((outcome == 1).sum(axis=1) == 1)
+    valid = settled & np.isfinite(ours).all(axis=1) & np.isfinite(market).all(axis=1)
+    if valid.sum() == 0:
+        return pd.DataFrame()
+
+    ours, market, outcome = ours[valid], market[valid], outcome[valid]
+    happened = np.argmax(outcome == 1, axis=1)
+
+    totals = ours.sum(axis=1, keepdims=True)
+    renorm = float(np.mean(np.abs(totals - 1.0)))
+    ours = ours / totals
+    market = market / market.sum(axis=1, keepdims=True)
+    uniform = np.full_like(ours, 1.0 / 3.0)
+
+    n = int(valid.sum())
+    return pd.DataFrame([
+        {"forecast": "Ours (calibrated)", "n": n,
+         "rps": ranked_probability_score(ours, happened), "renorm": renorm},
+        {"forecast": "Closing line", "n": n,
+         "rps": ranked_probability_score(market, happened), "renorm": 0.0},
+        {"forecast": "Knowing nothing", "n": n,
+         "rps": ranked_probability_score(uniform, happened), "renorm": 0.0},
+    ])
+
+
 def wilson(successes, n, z=1.96):
     """Confidence interval for a hit rate. Behaves at n small and p near 1."""
     if n == 0:
