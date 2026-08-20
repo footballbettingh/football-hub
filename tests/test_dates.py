@@ -145,6 +145,26 @@ def test_history_dates_go_through_the_same_parser(tmp_path):
                                      pd.Timestamp("2021-08-15")]
 
 
+def test_an_explicit_path_does_not_depend_on_the_default_source(tmp_path, monkeypatch):
+    """A test that reads its own CSV must not need the developer's data folder.
+
+    load_history checked the configured source unconditionally, so this suite
+    passed on any machine that had fetched history and failed on one that had
+    not — which is exactly what a clean CI runner is.
+    """
+    frame = pd.DataFrame({
+        "date": ["2021-08-14"], "competition": ["PL"], "season": [2021],
+        "home_team": ["a"], "away_team": ["b"],
+        "home_goals": [1], "away_goals": [0],
+        "home_key": ["a"], "away_key": ["b"],
+    })
+    path = tmp_path / "mine.csv"
+    frame.to_csv(path, index=False)
+    monkeypatch.setattr(cf_data.config, "HISTORY_CSV", tmp_path / "absent.csv")
+
+    assert len(cf_data.load_history(path)) == 1
+
+
 # -- the season window -----------------------------------------------------
 
 def test_the_season_window_ends_at_the_live_season():

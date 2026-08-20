@@ -8,6 +8,8 @@
 Both come from the sibling project and are read, never written.
 """
 
+from pathlib import Path
+
 import pandas as pd
 
 from . import config
@@ -45,9 +47,18 @@ HISTORY_COLUMNS = [
 
 
 def load_history(path=None) -> pd.DataFrame:
-    """Played matches, oldest first, with team keys in `home` / `away`."""
-    config.require_source()
+    """Played matches, oldest first, with team keys in `home` / `away`.
+
+    The guard only applies to the default source. Checked unconditionally it
+    asked about a file the caller had not named — which passes silently on any
+    machine that happens to have fetched history, and fails on one that has
+    not, so a test reading its own CSV depended on the developer's data folder.
+    """
     source = path or config.HISTORY_CSV
+    if path is None:
+        config.require_source()
+    elif not Path(source).exists():
+        raise SystemExit(f"Historical data not found at {source}.")
     df = pd.read_csv(source)
 
     df["date"] = parse_dates(df["date"], str(source))
