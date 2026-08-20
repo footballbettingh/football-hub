@@ -26,3 +26,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-08-22,safe,2026-08-20T12:08:48,GSL,Super League,olympiakos piraeus,atromitos athens,Olympiakos Piraeus v Atromitos Athens,tt1.5_home_over,tt,Home team over 1.5 goals,0.76916,1.30012,,0.77455,33906,,,,pending,,
 2026-08-22,main,2026-08-20T12:08:48,SB,Serie B,vicenza,catanzaro 1929,Vicenza v US Catanzaro 1929,tt1.5_home_under,tt,Home team under 1.5 goals,0.62341,1.60408,,0.65247,61865,,,,pending,,
 2026-08-22,value,2026-08-20T12:08:48,USA-MLS,MLS,inter miami,toronto,Inter Miami CF v Toronto FC,tt2.5_home_over,tt,Home team over 2.5 goals,0.45441,2.20067,,0.47577,18139,,,,pending,,
+2026-08-23,safe,2026-08-20T21:17:48,ARG-LIGAPROF,Liga Profesional,belgrano,defensa y justicia,Belgrano de Cordoba v Defensa y Justicia,dnb_home,dnb,Home draw-no-bet,0.76889,1.30058,,0.77444,4225,,,,pending,,
+2026-08-23,main,2026-08-20T21:17:48,ARG-LIGAPROF,Liga Profesional,river plate,velez sarsfield,River Plate v Velez Sarsfield BA,ou2.5_under,ou,Under 2.5 goals,0.62044,1.61175,1.59000,0.65773,36573,,,,pending,,
+2026-08-23,value,2026-08-20T21:17:48,ARG-LIGAPROF,Liga Profesional,huracan,deportivo riestra,Atlético Huracán v Deportivo Riestra,ou1.5_under,ou,Under 1.5 goals,0.44821,2.23108,2.20000,0.42251,22208,,,,pending,,
