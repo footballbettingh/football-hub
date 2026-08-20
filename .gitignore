@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets.
+.env
+
+# Fetched and derived. Rebuild with the buttons, or `python fb.py full-refresh`.
+# `data/*` rather than `data/`: git will not re-include a file whose parent
+# directory is excluded, so the two negations below were silently dead and the
+# one irreplaceable file in the project was not being tracked at all.
+data/*
+site/
+reports/
+
+# ...except the one file that cannot be rebuilt. Every other artifact here is
+# derived from data that can be fetched again; the ledger is a record of what
+# was picked BEFORE each match, and once lost there is no honest way to
+# reconstruct it.
+!data/best_picks.csv
+!data/best_accas.csv
+
+# Unattended run logs.
+logs/

@@ -1,0 +1,111 @@
+name: Daily refresh
+
+# The whole cycle, without a machine of your own left on: fetch results and
+# prices, rebuild the model, re-price the card, send the pick to Telegram, and
+# publish the site to Pages.
+
+on:
+  schedule:
+    # 09:00 UTC = 12:00 in Sofia while summer time is in force, 11:00 after the
+    # clocks go back. GitHub cron only speaks UTC, so the local hour drifts by
+    # one in winter; change this to "0 10 * * *" if that matters.
+    - cron: "0 9 * * *"
+  workflow_dispatch:          # the Run workflow button
+  push:
+    branches: [main]
+    paths:                    # code changes rebuild; a ledger commit must not
+      - "**.py"
+      - "requirements.txt"
+      - ".github/workflows/daily.yml"
+
+permissions:
+  contents: write             # the ledger is committed back after each run
+  pages: write
+  id-token: write
+
+# Never let two runs overlap. They write the same CSVs, and the ledger commit
+# of one would land on top of the other's.
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+      # Empty secrets are not an error: the run reports the notification as
+      # unconfigured and still publishes.
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Tests
+        # A broken build must not publish, and must not post a pick.
+        run: python -m pytest tests/ -q
+
+      # Everything under data/ except the ledger is derived, but restoring it
+      # is what makes the run affordable. `fb.py run` decides whether to spend
+      # Odds API credits by reading `fetched_at` out of the price files: with
+      # no cache there are no price files, every run looks overdue, and 31
+      # leagues at 4 credits would drain the 500-a-month free tier in four days.
+      - name: Restore the data folder
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: hub-data-${{ github.run_id }}
+          restore-keys: hub-data-
+
+      - name: Fetch, rebuild, re-price and notify
+        run: python -u fb.py run --only-if-changed
+
+      - name: Save the data folder
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: hub-data-${{ github.run_id }}
+
+      # The one file in data/ that cannot be rebuilt. Every pick is written
+      # down before its match and graded afterwards, so losing it loses the
+      # only out-of-sample record the project has.
+      - name: Commit the ledger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/best_picks.csv data/best_accas.csv
+          if git diff --cached --quiet; then
+            echo "No new picks or gradings."
+          else
+            git commit -m "Ledger: $(date -u +%Y-%m-%d)"
+            git pull --rebase --autostash
+            git push
+          fi
+
+      - name: Export the site
+        run: python fb.py export
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: refresh
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

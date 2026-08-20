@@ -1,0 +1,331 @@
+/* Site styles. Edited directly — the build copies this file verbatim.
+ *
+ * Palette is validated: the categorical/diverging pair passes lightness-band,
+ * chroma, CVD-separation, normal-vision and contrast checks in both light and
+ * dark mode. Status colours always ship with an icon and a label, so meaning
+ * never rides on hue alone.
+ */
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --series-1: #2a78d6;
+  --pos: #2a78d6;
+  --neg: #e34948;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --losing: #d03b3b;
+  --neutral: #52514e;
+  --neutral-mid: #f0efec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --pos: #3987e5;
+    --neg: #e66767;
+    --neutral: #c3c2b7;
+    --neutral-mid: #383835;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255,255,255,0.10);
+  --series-1: #3987e5;
+  --pos: #3987e5;
+  --neg: #e66767;
+  --neutral: #c3c2b7;
+  --neutral-mid: #383835;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--text-primary);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+/* One number for both the page and the topbar, so the brand stays lined up
+   with the content under it. Wide enough for the ten-column card table to fit
+   without scrolling on a normal laptop. */
+:root { --page-width: 1480px; }
+.wrap { max-width: var(--page-width); margin: 0 auto; padding: 0 20px 80px; }
+
+/* ---- site header + nav ---- */
+.topbar { border-bottom: 1px solid var(--border); background: var(--surface-1);
+  position: sticky; top: 0; z-index: 30; }
+.topbar .inner { max-width: var(--page-width); margin: 0 auto; padding: 0 20px;
+  display: flex; align-items: center; gap: 22px; flex-wrap: wrap; min-height: 56px; }
+.brand { font-weight: 650; font-size: 15px; letter-spacing: -0.01em;
+  text-decoration: none; white-space: nowrap; }
+.brand .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--series-1); margin-right: 8px; vertical-align: middle; }
+nav.main { display: flex; gap: 2px; flex-wrap: wrap; margin-right: auto; }
+nav.main a { text-decoration: none; font-size: 13.5px; color: var(--text-secondary);
+  padding: 7px 11px; border-radius: 7px; white-space: nowrap; }
+nav.main a:hover { background: var(--neutral-mid); color: var(--text-primary); }
+nav.main a[aria-current="page"] { color: var(--text-primary); font-weight: 600;
+  background: var(--neutral-mid); }
+button.theme { font: inherit; font-size: 12px; cursor: pointer; padding: 5px 11px;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--page);
+  color: var(--text-secondary); }
+button.theme:hover { color: var(--text-primary); }
+
+.pagehead { padding: 34px 0 22px; }
+.pagehead h1 { font-size: 26px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.018em; }
+.pagehead p { color: var(--text-secondary); font-size: 14px; margin: 0; max-width: 72ch; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+.badge { font-size: 11.5px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--text-secondary);
+  background: var(--surface-1); white-space: nowrap; }
+
+.card { background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.card > h2 { font-size: 15px; font-weight: 620; margin: 0 0 3px; letter-spacing: -0.005em; }
+.card > .note { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 18px; max-width: 72ch; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; }
+.grid2 > .card { margin-bottom: 0; }
+
+/* ---- verdict / hero ---- */
+.verdict { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+.hero-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 2px; }
+.hero { font-size: 52px; line-height: 1.05; font-weight: 640; letter-spacing: -0.025em; }
+.hero .ci { display: block; font-size: 13px; font-weight: 400; letter-spacing: 0;
+  color: var(--text-secondary); margin-top: 6px; }
+.status { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px;
+  border-radius: 10px; border: 1px solid var(--border); max-width: 48ch; }
+.status .icon { flex: none; width: 20px; height: 20px; margin-top: 1px; }
+.status .t { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; }
+.status .d { font-size: 12.5px; color: var(--text-secondary); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px;
+  background: var(--border); border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; margin-top: 22px; }
+.kpi { background: var(--surface-1); padding: 14px 16px; }
+.kpi .k { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 4px; }
+.kpi .v { font-size: 21px; font-weight: 620; letter-spacing: -0.015em; }
+.kpi .m { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+/* ---- best pick ---- */
+.pick { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.pick .side { flex: 1 1 260px; }
+.pick .fixture { font-size: 22px; font-weight: 640; letter-spacing: -0.015em; margin-bottom: 3px; }
+.pick .when { font-size: 12.5px; color: var(--text-secondary); }
+.pick .selection { font-size: 13px; margin-top: 12px; color: var(--text-secondary); }
+.pick .selection strong { color: var(--text-primary); font-size: 15px; }
+.picknums { display: flex; gap: 26px; flex-wrap: wrap; }
+.picknums .n { min-width: 78px; }
+.picknums .n .k { font-size: 11.5px; color: var(--text-secondary); }
+.picknums .n .v { font-size: 24px; font-weight: 640; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; }
+
+/* ---- insights ---- */
+.insight { border-left: 3px solid var(--state, var(--neutral)); }
+.insight .top { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+.insight .icon { flex: none; width: 19px; height: 19px; margin-top: 2px; color: var(--state); }
+.insight h2, .insight h3 { font-size: 15px; font-weight: 620; margin: 0 0 2px;
+  letter-spacing: -0.008em; }
+.insight .headline { font-size: 13.5px; color: var(--state); font-weight: 560; }
+.insight .detail { font-size: 13px; color: var(--text-secondary); margin: 10px 0 14px;
+  max-width: 76ch; }
+.insight .stat { margin-left: auto; font-size: 11.5px; color: var(--text-secondary);
+  border: 1px solid var(--border); padding: 3px 9px; border-radius: 999px;
+  white-space: nowrap; font-variant-numeric: tabular-nums; }
+.insight table { font-size: 12.5px; }
+
+/* ---- charts ---- */
+.chart { width: 100%; overflow-x: auto; }
+svg { display: block; max-width: 100%; }
+svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.tick { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.baseline { stroke: var(--axis); stroke-width: 1; }
+.bar-label { font-size: 11px; fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.tooltip { position: fixed; pointer-events: none; z-index: 40; opacity: 0;
+  transition: opacity .09s; background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; font-size: 12.5px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.13); max-width: 260px; }
+.tooltip .tt-h { font-weight: 620; margin-bottom: 3px; }
+.tooltip .tt-r { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; }
+/* A long table scrolls inside its own box, so the header can actually pin.
+   position:sticky resolves against the nearest scroll container, and the
+   plain .tablewrap only scrolls horizontally — a sticky header inside it
+   pins to a box that never moves vertically, i.e. never sticks at all. */
+.tablewrap.tall { max-height: 70vh; overflow: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+/* Text cells WRAP. They used to be nowrap across the board, which is what
+   forced a ten-column card wider than the window and put a horizontal
+   scrollbar under it — a long team name could push the whole table out on its
+   own. Numbers still hold their line, because a figure broken across two rows
+   is unreadable. */
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
+  white-space: normal; overflow-wrap: break-word; }
+td.num, th.num, td.nowrap, th.nowrap { white-space: nowrap; }
+th { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+table.sticky thead th { position: sticky; top: 0; background: var(--surface-1); z-index: 2;
+  box-shadow: inset 0 -1px 0 var(--border); }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text-primary); }
+th .arrow { opacity: .35; font-size: 9px; }
+th.active .arrow { opacity: 1; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr:hover { background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
+tr.muted td { color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px;
+  padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.filters input, .filters select { font: inherit; font-size: 12.5px; padding: 5px 9px;
+  border-radius: 7px; border: 1px solid var(--border); background: var(--page);
+  color: var(--text-primary); }
+.filters .count { font-size: 12px; color: var(--text-secondary); margin-left: auto; }
+.empty { padding: 26px; text-align: center; color: var(--text-secondary); font-size: 13px; }
+
+.edgebar { display: inline-block; vertical-align: middle; width: 56px; height: 7px;
+  border-radius: 3px; background: var(--neutral-mid); position: relative;
+  overflow: hidden; margin-right: 8px; }
+.edgebar > i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+
+footer.site { color: var(--text-secondary); font-size: 12.5px; line-height: 1.65;
+  border-top: 1px solid var(--border); padding-top: 18px; margin-top: 10px; }
+footer.site code, .mono { background: var(--neutral-mid); padding: 1px 5px;
+  border-radius: 4px; font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+footer.site p { max-width: 76ch; }
+.next { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.next a { text-decoration: none; font-size: 13px; padding: 9px 14px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+.next a:hover { border-color: var(--series-1); }
+.next a span { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ---- control strip: freshness + the buttons that fix it ---- */
+.control { border: 1px solid var(--border); background: var(--surface-1);
+  border-radius: 12px; padding: 14px 16px; margin-top: 18px; }
+.chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.chip { display: flex; gap: 7px; align-items: baseline; font-size: 11.5px;
+  border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px;
+  padding: 4px 9px; background: var(--page); }
+.chip .k { color: var(--text-secondary); }
+.chip .v { font-variant-numeric: tabular-nums; }
+.chip.fresh { border-left-color: var(--good); }
+.chip.stale { border-left-color: var(--warning); }
+.chip.missing { border-left-color: var(--critical); }
+.control .actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; }
+button.run { font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+  padding: 7px 12px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--page); color: var(--text-primary); line-height: 1.25; }
+button.run:hover:not([disabled]) { border-color: var(--series-1); }
+button.run .est { display: block; font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+/* Anything that spends money or credits looks different before it is clicked,
+   not after. */
+button.run.danger { border-color: color-mix(in srgb, var(--warning) 55%, var(--border)); }
+button.run.danger .est { color: var(--warning); }
+button.run[disabled] { opacity: .45; cursor: not-allowed; }
+.control .running { font-size: 12.5px; color: var(--text-secondary); margin-top: 10px;
+  display: flex; gap: 8px; align-items: center; }
+.control .running .dot { width: 8px; height: 8px; border-radius: 50%;
+  background: var(--series-1); animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.joblog { max-height: 240px; overflow-y: auto; margin: 10px 0 0; padding: 10px 12px;
+  background: var(--page); border: 1px solid var(--border); border-radius: 9px;
+  font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* pre-wrap alone breaks at spaces only, and every job log ends with a long
+     Windows path that has none. */
+  white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-secondary); }
+.joblog .bad { color: var(--critical); }
+.control.static .note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+
+/* ---- the card ---- */
+.confbar { display: inline-block; vertical-align: middle; width: 46px; height: 7px;
+  border-radius: 3px; background: var(--neutral-mid); position: relative;
+  overflow: hidden; margin-right: 8px; }
+.confbar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px;
+  background: var(--series-1); }
+td.conf { font-variant-numeric: tabular-nums; font-weight: 600; }
+tr.unvalidated td { color: var(--muted); }
+.tag { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; margin-left: 6px;
+  border: 1px solid var(--border); color: var(--text-secondary); }
+.tag.warn { border-color: color-mix(in srgb, var(--warning) 55%, var(--border));
+  color: var(--warning); }
+td.pickbox { width: 30px; padding-right: 0; }
+
+/* Accumulator tray: only appears once something is ticked. */
+.acca { position: sticky; bottom: 0; z-index: 20; margin-top: 14px;
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px;
+  background: var(--surface-1);
+  box-shadow: 0 -6px 20px color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.acca[hidden] { display: none; }
+.acca .legs { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 6px; }
+.acca .nums { display: flex; gap: 26px; flex-wrap: wrap; align-items: baseline; }
+.acca .nums .v { font-size: 22px; font-weight: 640; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; }
+.acca .nums .k { font-size: 11.5px; color: var(--text-secondary); }
+.acca .warn { color: var(--warning); font-size: 12px; margin-top: 6px; }
+.acca button { font: inherit; font-size: 12px; cursor: pointer; padding: 5px 10px;
+  border-radius: 7px; border: 1px solid var(--border); background: var(--page);
+  color: var(--text-secondary); margin-left: auto; }
+
+.empty .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* ---- the two headline picks ---- */
+.card.best { border-left: 3px solid var(--series-1); }
+.card.best .pick { margin-top: 4px; }
+.accanums { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 4px; }
+.accanums .n .k { font-size: 11.5px; color: var(--text-secondary); }
+.accanums .n .v { font-size: 22px; font-weight: 640; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; }
+
+/* Give the wide tables a shape rather than letting the browser guess: the
+   match name should absorb the slack, everything else stays as narrow as its
+   content. */
+table.cardtable td:nth-child(4), table.cardtable th:nth-child(4),
+table.fixtures td:nth-child(3), table.fixtures th:nth-child(3) { width: 40%; }
+table.cardtable td:nth-child(5), table.cardtable th:nth-child(5) { width: 22%; }
+
+/* Narrow windows drop columns instead of scrolling sideways, least useful
+   first. Offered and Edge go before the league does, because they are empty on
+   every row the price feed does not quote — which is most of the card — while
+   the league is on every row and is how you find the match you care about. */
+@media (max-width: 1180px) { .col-band { display: none; } }
+@media (max-width: 1040px) { .col-offered, .col-edge { display: none; } }
+@media (max-width: 900px)  { .col-league, .col-extra { display: none; } }
+@media (max-width: 760px)  { .confbar { display: none; } }
+
+@media (max-width: 760px) {
+  th, td { padding: 7px 8px; font-size: 12.5px; }
+  table.cardtable td:nth-child(4), table.cardtable th:nth-child(4) { width: auto; }
+}
+
+@media (max-width: 640px) {
+  .hero { font-size: 40px; }
+  .verdict, .pick { gap: 18px; }
+  .topbar { position: static; }
+  .control .actions { display: grid; grid-template-columns: 1fr 1fr; }
+}
