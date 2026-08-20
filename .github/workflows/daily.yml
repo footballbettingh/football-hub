@@ -11,6 +11,11 @@ on:
     # one in winter; change this to "0 10 * * *" if that matters.
     - cron: "0 9 * * *"
   workflow_dispatch:          # the Run workflow button
+    inputs:
+      args:
+        description: "Extra flags for `fb.py run`, e.g. --no-odds or --sports soccer_epl"
+        required: false
+        default: ""
   push:
     branches: [main]
     paths:                    # code changes rebuild; a ledger commit must not
@@ -68,7 +73,7 @@ jobs:
           restore-keys: hub-data-
 
       - name: Fetch, rebuild, re-price and notify
-        run: python -u fb.py run --only-if-changed
+        run: python -u fb.py run --only-if-changed ${{ inputs.args }}
 
       - name: Save the data folder
         if: always()
