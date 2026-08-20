@@ -103,7 +103,7 @@ def load_fixtures(source_dir=None, include_started=False, now=None) -> pd.DataFr
     if not files:
         raise SystemExit(
             f"No fixture files matching {config.FIXTURE_GLOB} in {source}.\n"
-            "Run `python vb.py fetch odds` in the ai-football-bot project."
+            "Run `python fb.py fetch odds`, or press Fetch new prices."
         )
 
     frames = []

@@ -48,6 +48,11 @@ jobs:
       PYTHONIOENCODING: utf-8
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the ledger step rebases onto whatever landed while
+          # the run was going, and a rebase on a depth-1 clone is a coin toss.
+          # The repo is under a megabyte, so this costs nothing.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:

@@ -109,5 +109,5 @@ def require_source() -> None:
         raise SystemExit(
             f"Historical data not found at {HISTORY_CSV}.\n"
             "Point CF_SOURCE_DATA at the folder holding history.csv, or run\n"
-            "`python vb.py fetch history` in the ai-football-bot project first."
+            "`python fb.py fetch results` first."
         )

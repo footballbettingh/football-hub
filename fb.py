@@ -311,6 +311,13 @@ def cmd_run(args):
                       f"Force with --odds-every 0.")
             else:
                 sports = args.sports.split(",") if args.sports else None
+                # A machine that has never fetched has no league plan and no
+                # price files, so fetch_odds would refuse with advice meant for
+                # a person at a keyboard. Discovery costs zero credits, so an
+                # unattended run can simply do it and carry on.
+                if not sports and not pipeline.league_plan():
+                    _step("Working out which leagues can be priced (free)",
+                          lambda: pipeline.discover_leagues(), skipped=skipped)
                 _step("Fetching prices",
                       lambda: pipeline.fetch_odds(sports=sports), skipped=skipped)
 
