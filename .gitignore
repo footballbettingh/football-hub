@@ -29,3 +29,8 @@ reports/
 
 # Unattended run logs.
 logs/
+
+# Kept on disk, deliberately out of the repository.
+NEXT-STEPS.md
+.env.example
+Football Betting Hub Design palette/

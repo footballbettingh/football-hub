@@ -69,7 +69,7 @@ def require(*names: str) -> None:
     if missing:
         raise SystemExit(
             f"Missing config: {', '.join(missing)}.\n"
-            f"Add them to {ENV_PATH} (copy .env.example) or export them."
+            f"Add them as KEY=value lines in {ENV_PATH}, or export them."
         )
 
 
