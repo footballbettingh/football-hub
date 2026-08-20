@@ -1,0 +1,37 @@
+fetched_at,date,commence_time,sport,competition,home_team,away_team,home_odds,draw_odds,away_odds,home_odds_cons,draw_odds_cons,away_odds_cons,n_bookmakers,overround,overround_cons,home_key,away_key,over25_odds,under25_odds,over25_odds_cons,under25_odds_cons
+2026-08-11T14:04:09+00:00,2026-08-21,2026-08-21T18:45:00Z,soccer_france_ligue_one,FL1,Marseille,Strasbourg,1.75,4.5,5.1,1.67,4.1,4.5,39,0.9897,1.0649,marseille,strasbourg,,,,
+2026-08-11T14:04:09+00:00,2026-08-22,2026-08-22T15:15:00Z,soccer_france_ligue_one,FL1,RC Lens,Auxerre,1.66,4.46,5.4,1.6,4.1,5.0,39,1.0118,1.0689,lens,auxerre,,,,
+2026-08-11T14:04:09+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Le Mans FC,Brest,2.6,3.75,2.83,2.45,3.45,2.65,39,1.0046,1.0754,le mans,brest,,,,
+2026-08-11T14:04:09+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Nice,Lorient,2.25,3.78,3.45,2.15,3.5,3.1,39,0.9988,1.0734,nice,lorient,,,,
+2026-08-11T14:04:09+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Toulouse,Lyon,3.75,3.88,2.14,3.35,3.6,2.0,39,0.9917,1.0763,toulouse,lyon,,,,
+2026-08-11T14:04:09+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Troyes,Paris FC,2.83,3.8,2.6,2.7,3.5,2.45,39,1.0011,1.0642,troyes,paris,,,,
+2026-08-11T14:04:09+00:00,2026-08-23,2026-08-23T13:00:00Z,soccer_france_ligue_one,FL1,Angers,Lille,5.5,4.0,1.74,4.95,3.75,1.67,39,1.0065,1.0675,angers,lille,,,,
+2026-08-11T14:04:09+00:00,2026-08-23,2026-08-23T15:15:00Z,soccer_france_ligue_one,FL1,Le Havre,AS Monaco,3.76,4.04,2.05,3.4,3.8,1.96,36,1.0013,1.0675,le havre,monaco,,,,
+2026-08-11T14:04:09+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_france_ligue_one,FL1,Paris Saint Germain,Rennes,1.47,5.69,7.5,1.39,5.25,6.5,37,0.9894,1.0637,paris saint germain,rennes,,,,
+2026-08-12T15:37:57+00:00,2026-08-21,2026-08-21T18:45:00Z,soccer_france_ligue_one,FL1,Marseille,Strasbourg,1.8,4.36,4.7,1.71,4.0,4.2,39,0.9977,1.0729,marseille,strasbourg,1.52,2.5,1.52,2.42
+2026-08-12T15:37:57+00:00,2026-08-22,2026-08-22T15:15:00Z,soccer_france_ligue_one,FL1,RC Lens,Auxerre,1.66,4.46,5.4,1.59,4.1,5.0,39,1.0118,1.0728,lens,auxerre,1.7,2.34,1.62,2.23
+2026-08-12T15:37:57+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Le Mans FC,Brest,2.6,3.75,2.83,2.45,3.4,2.65,39,1.0046,1.0796,le mans,brest,1.84,2.11,1.75,2.02
+2026-08-12T15:37:57+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Nice,Lorient,2.25,3.78,3.4,2.15,3.45,3.1,39,1.0031,1.0776,nice,lorient,1.84,2.12,1.75,2.05
+2026-08-12T15:37:57+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Toulouse,Lyon,3.75,3.88,2.12,3.4,3.6,2.0,39,0.9961,1.0719,toulouse,lyon,1.79,2.19,1.7,2.1
+2026-08-12T15:37:57+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Troyes,Paris FC,2.83,3.8,2.6,2.7,3.5,2.45,39,1.0011,1.0642,troyes,paris,1.76,2.23,1.67,2.15
+2026-08-12T15:37:57+00:00,2026-08-23,2026-08-23T13:00:00Z,soccer_france_ligue_one,FL1,Angers,Lille,5.5,4.0,1.74,4.95,3.75,1.67,39,1.0065,1.0675,angers,lille,2.02,1.92,1.935,1.85
+2026-08-12T15:37:57+00:00,2026-08-23,2026-08-23T15:15:00Z,soccer_france_ligue_one,FL1,Le Havre,AS Monaco,3.76,4.04,2.05,3.4,3.8,1.95,36,1.0013,1.0701,le havre,monaco,1.66,2.42,1.57,2.33
+2026-08-12T15:37:57+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_france_ligue_one,FL1,Paris Saint Germain,Rennes,1.47,5.69,7.5,1.38,5.25,6.5,37,0.9894,1.069,paris saint germain,rennes,1.4,2.95,1.39,2.95
+2026-08-14T09:49:18+00:00,2026-08-21,2026-08-21T18:45:00Z,soccer_france_ligue_one,FL1,Marseille,Strasbourg,1.79,4.37,4.6,1.72,4.08,4.24,39,1.0049,1.0623,marseille,strasbourg,1.52,2.5,1.52,2.42
+2026-08-14T09:49:18+00:00,2026-08-22,2026-08-22T15:15:00Z,soccer_france_ligue_one,FL1,RC Lens,Auxerre,1.66,4.46,5.4,1.6,4.1,5.1,39,1.0118,1.065,lens,auxerre,1.7,2.34,1.62,2.23
+2026-08-14T09:49:18+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Le Mans FC,Brest,2.6,3.75,2.84,2.45,3.45,2.7,39,1.0034,1.0684,le mans,brest,1.84,2.12,1.75,2.04
+2026-08-14T09:49:18+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Nice,Lorient,2.24,3.78,3.4,2.15,3.5,3.1,39,1.0051,1.0734,nice,lorient,1.84,2.12,1.75,2.05
+2026-08-14T09:49:18+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Toulouse,Lyon,3.65,3.85,2.17,3.3,3.6,2.05,39,0.9945,1.0686,toulouse,lyon,1.81,2.17,1.7,2.1
+2026-08-14T09:49:18+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Troyes,Paris FC,2.83,3.8,2.6,2.7,3.5,2.45,39,1.0011,1.0642,troyes,paris,1.75,2.25,1.67,2.15
+2026-08-14T09:49:18+00:00,2026-08-23,2026-08-23T13:00:00Z,soccer_france_ligue_one,FL1,Angers,Lille,5.5,4.0,1.74,4.9,3.7,1.67,39,1.0065,1.0732,angers,lille,2.02,1.92,1.93,1.85
+2026-08-14T09:49:18+00:00,2026-08-23,2026-08-23T15:15:00Z,soccer_france_ligue_one,FL1,Le Havre,AS Monaco,3.76,4.04,2.05,3.4,3.8,1.95,36,1.0013,1.0701,le havre,monaco,1.66,2.42,1.56,2.33
+2026-08-14T09:49:18+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_france_ligue_one,FL1,Paris Saint Germain,Rennes,1.47,5.69,7.5,1.39,5.25,6.5,37,0.9894,1.0637,paris saint germain,rennes,1.4,2.95,1.39,2.95
+2026-08-20T09:09:44+00:00,2026-08-21,2026-08-21T18:45:00Z,soccer_france_ligue_one,FL1,Marseille,Strasbourg,1.78,4.37,4.8,1.72,4.0,4.33,41,0.999,1.0623,marseille,strasbourg,1.52,2.5,1.52,2.48
+2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T15:15:00Z,soccer_france_ligue_one,FL1,RC Lens,Auxerre,1.62,4.52,6.25,1.56,4.33,5.4,41,0.9985,1.0572,lens,auxerre,1.71,2.35,1.6,2.25
+2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Le Mans FC,Brest,2.62,3.75,2.84,2.5,3.46,2.7,41,1.0005,1.0594,le mans,brest,1.92,2.08,1.77,2.02
+2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Nice,Lorient,2.22,3.76,3.6,2.08,3.55,3.3,41,0.9942,1.0655,nice,lorient,1.89,2.1,1.75,2.03
+2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Toulouse,Lyon,3.05,3.75,2.48,2.88,3.5,2.32,41,0.9978,1.064,toulouse,lyon,1.87,2.12,1.73,2.05
+2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_france_ligue_one,FL1,Troyes,Paris FC,3.25,3.8,2.37,3.0,3.5,2.25,41,0.9928,1.0635,troyes,paris,1.78,2.21,1.7,2.12
+2026-08-20T09:09:44+00:00,2026-08-23,2026-08-23T13:00:00Z,soccer_france_ligue_one,FL1,Angers,Lille,5.4,4.0,1.76,5.0,3.75,1.7,41,1.0034,1.0549,angers,lille,2.03,1.91,1.93,1.85
+2026-08-20T09:09:44+00:00,2026-08-23,2026-08-23T15:15:00Z,soccer_france_ligue_one,FL1,Le Havre,AS Monaco,4.0,4.16,1.98,3.65,3.9,1.88,41,0.9954,1.0623,le havre,monaco,1.65,2.45,1.565,2.35
+2026-08-20T09:09:44+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_france_ligue_one,FL1,Paris Saint Germain,Rennes,1.53,5.25,6.75,1.45,4.8,6.0,25,0.9922,1.0647,paris saint germain,rennes,1.44,2.75,1.44,2.75

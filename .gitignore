@@ -20,5 +20,12 @@ reports/
 !data/best_picks.csv
 !data/best_accas.csv
 
+# The price files are derived and normally ignored, but a set of them was
+# force-added once as a cold-start seed: a runner with no cache has no prices,
+# and therefore no fixture list and no card, and the month's Odds API credits
+# were already spent. They go stale on their own — the newest `fetched_at`
+# wins — and can be dropped with `git rm --cached data/odds_*.csv` once a
+# fetch has run against a fresh quota.
+
 # Unattended run logs.
 logs/

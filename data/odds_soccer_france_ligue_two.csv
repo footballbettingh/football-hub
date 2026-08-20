@@ -1,0 +1,24 @@
+over25_odds,under25_odds,over25_odds_cons,under25_odds_cons,fetched_at,date,commence_time,sport,competition,home_team,away_team,home_odds,draw_odds,away_odds,home_odds_cons,draw_odds_cons,away_odds_cons,n_bookmakers,overround,overround_cons,home_key,away_key
+1.85,2.03,1.8,1.89,2026-08-12T15:37:57+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Annecy FC,Rodez AF,2.2,3.6,3.4,2.1,3.325,3.265,38,1.0264,1.0832,annecy,rodez af
+1.97,1.87,1.86,1.83,2026-08-12T15:37:57+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Guingamp,Boulogne,1.75,3.85,4.75,1.7,3.5,4.4,38,1.0417,1.1012,guingamp,boulogne
+1.68,2.26,1.61,2.15,2026-08-12T15:37:57+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Saint Etienne,Clermont,1.58,4.37,5.9,1.52,4.2,5.3,38,1.0312,1.0847,saint etienne,clermont
+1.91,1.95,1.83,1.83,2026-08-12T15:37:57+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Nancy,Montpellier,2.7,3.58,2.56,2.62,3.3,2.5,38,1.0403,1.0847,nancy,montpellier
+1.84,2.03,1.81,1.89,2026-08-12T15:37:57+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Stade de Reims,USL Dunkerque,1.75,3.9,4.75,1.7,3.7,4.5,39,1.0384,1.0807,stade de reims,dunkerque
+1.93,2.02,1.85,1.9,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Annecy FC,Rodez AF,2.32,3.6,3.45,2.15,3.3,3.2,39,0.9987,1.0806,annecy,rodez af
+2.18,1.84,2.0,1.77,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Guingamp,Boulogne,1.82,3.7,5.0,1.75,3.55,4.5,38,1.0197,1.0753,guingamp,boulogne
+1.8,2.18,1.66,2.16,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Saint Etienne,Clermont,1.51,4.7,7.2,1.45,4.3,6.0,39,1.0139,1.0889,saint etienne,clermont
+2.22,1.8,2.12,1.65,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Dijon,Pau FC,2.4,3.45,3.35,2.25,3.2,3.1100000000000003,38,1.005,1.0785,dijon,pau
+2.06,1.89,1.93,1.79,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Grenoble,Metz,3.8,3.6,2.12,3.52,3.39,2.0,39,1.0126,1.0791,grenoble,metz
+2.12,1.89,1.92,1.83,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Nancy,Montpellier,2.86,3.45,2.66,2.63,3.3,2.5,39,1.0154,1.0833,nancy,montpellier
+2.13,1.84,2.02,1.72,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Stade Lavallois,Nantes,4.1,3.5,2.06,3.75,3.3,1.95,39,1.0151,1.0825,stade lavallois,nantes
+2.07,1.79,1.96,1.72,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Red Star,Sochaux,1.98,3.6,4.5,1.85,3.35,4.1,33,1.0051,1.083,red star,sochaux
+1.9,2.06,1.8,1.88,2026-08-14T09:49:19+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_france_ligue_two,FL2,Stade de Reims,USL Dunkerque,1.85,3.9,4.6,1.75,3.65,4.33,39,1.0143,1.0763,stade de reims,dunkerque
+2.26,1.65,2.08,1.65,2026-08-20T09:09:44+00:00,2026-08-21,2026-08-21T18:00:00Z,soccer_france_ligue_two,FL2,Boulogne,Red Star,3.35,3.25,2.4,3.0,3.1,2.3,37,1.0229,1.0907,boulogne,red star
+2.14,1.78,1.9849999999999999,1.74,2026-08-20T09:09:44+00:00,2026-08-21,2026-08-21T18:00:00Z,soccer_france_ligue_two,FL2,Clermont,Dijon,2.7,3.4,2.8,2.5,3.29,2.62,38,1.0216,1.0856,clermont,dijon
+2.15,1.67,2.04,1.67,2026-08-20T09:09:44+00:00,2026-08-21,2026-08-21T18:00:00Z,soccer_france_ligue_two,FL2,Sochaux,Guingamp,3.0,3.35,2.46,2.8,3.1,2.3600000000000003,34,1.0383,1.1035,sochaux,guingamp
+1.92,1.98,1.87,1.86,2026-08-20T09:09:44+00:00,2026-08-21,2026-08-21T18:00:00Z,soccer_france_ligue_two,FL2,USL Dunkerque,Montpellier,2.55,3.5,2.86,2.45,3.25,2.7,37,1.0275,1.0862,dunkerque,montpellier
+1.95,1.95,1.82,1.87,2026-08-20T09:09:44+00:00,2026-08-21,2026-08-21T18:00:00Z,soccer_france_ligue_two,FL2,Pau FC,Nancy,2.3,3.5,3.3,2.2,3.3,3.05,39,1.0235,1.0854,pau,nancy
+2.02,1.88,1.98,1.75,2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T12:00:00Z,soccer_france_ligue_two,FL2,Metz,Stade Lavallois,1.85,3.75,4.5,1.8,3.4,4.2,37,1.0294,1.0878,metz,stade lavallois
+1.84,2.04,1.77,1.94,2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T12:00:00Z,soccer_france_ligue_two,FL2,Nantes,Rodez AF,1.75,3.9,4.6,1.7,3.7,4.33,37,1.0452,1.0895,nantes,rodez af
+1.7,2.27,1.65,2.06,2026-08-20T09:09:44+00:00,2026-08-22,2026-08-22T18:00:00Z,soccer_france_ligue_two,FL2,Saint Etienne,Grenoble,1.45,4.9,8.2,1.36,4.5,7.0,39,1.0157,1.1004,saint etienne,grenoble
+1.94,1.94,1.88,1.78,2026-08-20T09:09:44+00:00,2026-08-24,2026-08-24T18:45:00Z,soccer_france_ligue_two,FL2,Stade de Reims,Annecy FC,1.84,4.0,4.5,1.75,3.6,4.1,35,1.0157,1.0931,stade de reims,annecy

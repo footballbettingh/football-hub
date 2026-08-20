@@ -1,0 +1,37 @@
+fetched_at,date,commence_time,sport,competition,home_team,away_team,home_odds,draw_odds,away_odds,home_odds_cons,draw_odds_cons,away_odds_cons,n_bookmakers,overround,overround_cons,home_key,away_key,over25_odds,under25_odds,over25_odds_cons,under25_odds_cons
+2026-08-11T14:04:07+00:00,2026-08-28,2026-08-28T18:30:00Z,soccer_germany_bundesliga,BL1,Bayern Munich,VfB Stuttgart,1.33,7.0,9.5,1.28,6.0,8.0,39,1.0,1.0729,bayern munich,stuttgart,,,,
+2026-08-11T14:04:07+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,1. FC Köln,TSG Hoffenheim,3.02,3.85,2.4,2.8,3.65,2.3,39,1.0075,1.0659,fc koln,hoffenheim,,,,
+2026-08-11T14:04:07+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Elversberg,Bayer Leverkusen,5.8,4.82,1.58,5.1,4.5,1.53,39,1.0128,1.0719,elversberg,bayer leverkusen,,,,
+2026-08-11T14:04:07+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,RB Leipzig,Borussia Monchengladbach,1.59,4.8,5.75,1.53,4.5,5.1,39,1.0112,1.0719,rb leipzig,borussia monchengladbach,,,,
+2026-08-11T14:04:07+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Union Berlin,Eintracht Frankfurt,2.52,3.75,2.89,2.38,3.5,2.75,39,1.0095,1.0695,union berlin,eintracht frankfurt,,,,
+2026-08-11T14:04:07+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,FSV Mainz 05,SC Paderborn,1.75,4.21,5.0,1.67,3.95,4.5,39,1.009,1.0742,mainz,paderborn,,,,
+2026-08-11T14:04:07+00:00,2026-08-29,2026-08-29T16:30:00Z,soccer_germany_bundesliga,BL1,Borussia Dortmund,Hamburger SV,1.36,5.75,10.0,1.32,5.25,8.19,39,1.0092,1.0702,borussia dortmund,hamburger,,,,
+2026-08-11T14:04:07+00:00,2026-08-30,2026-08-30T13:30:00Z,soccer_germany_bundesliga,BL1,SC Freiburg,Werder Bremen,2.09,3.85,3.74,2.02,3.6,3.4,35,1.0056,1.0669,freiburg,werder bremen,,,,
+2026-08-11T14:04:07+00:00,2026-08-30,2026-08-30T15:30:00Z,soccer_germany_bundesliga,BL1,Augsburg,FC Schalke 04,2.18,4.0,3.4,2.1,3.7,3.1,37,1.0028,1.069,augsburg,schalke,,,,
+2026-08-12T15:37:49+00:00,2026-08-28,2026-08-28T18:30:00Z,soccer_germany_bundesliga,BL1,Bayern Munich,VfB Stuttgart,1.33,7.0,9.5,1.28,6.0,8.0,39,1.0,1.0729,bayern munich,stuttgart,1.24,4.0,1.24,3.95
+2026-08-12T15:37:49+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,1. FC Köln,TSG Hoffenheim,3.1,3.85,2.43,2.8,3.65,2.3,39,0.9938,1.0659,fc koln,hoffenheim,1.57,2.38,1.55,2.38
+2026-08-12T15:37:49+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Elversberg,Bayer Leverkusen,5.78,4.82,1.58,5.1,4.5,1.53,39,1.0134,1.0719,elversberg,bayer leverkusen,1.47,2.62,1.47,2.62
+2026-08-12T15:37:49+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,RB Leipzig,Borussia Monchengladbach,1.6,4.8,5.75,1.53,4.5,5.1,39,1.0072,1.0719,rb leipzig,borussia monchengladbach,1.44,2.72,1.44,2.72
+2026-08-12T15:37:49+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Union Berlin,Eintracht Frankfurt,2.53,3.75,2.89,2.4,3.5,2.75,39,1.0079,1.066,union berlin,eintracht frankfurt,1.78,2.21,1.68,2.12
+2026-08-12T15:37:49+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,FSV Mainz 05,SC Paderborn,1.75,4.21,5.1,1.67,3.9,4.5,39,1.005,1.0774,mainz,paderborn,1.75,2.25,1.66,2.17
+2026-08-12T15:37:49+00:00,2026-08-29,2026-08-29T16:30:00Z,soccer_germany_bundesliga,BL1,Borussia Dortmund,Hamburger SV,1.36,5.75,9.6,1.32,5.25,8.2,39,1.0134,1.07,borussia dortmund,hamburger,1.57,2.5,1.56,2.4
+2026-08-12T15:37:49+00:00,2026-08-30,2026-08-30T13:30:00Z,soccer_germany_bundesliga,BL1,SC Freiburg,Werder Bremen,2.09,3.85,3.74,2.02,3.6,3.4,36,1.0056,1.0669,freiburg,werder bremen,1.81,2.17,1.73,2.1
+2026-08-12T15:37:49+00:00,2026-08-30,2026-08-30T15:30:00Z,soccer_germany_bundesliga,BL1,Augsburg,FC Schalke 04,2.18,4.0,3.4,2.1,3.7,3.1,37,1.0028,1.069,augsburg,schalke,1.65,2.44,1.57,2.3
+2026-08-14T09:49:04+00:00,2026-08-28,2026-08-28T18:30:00Z,soccer_germany_bundesliga,BL1,Bayern Munich,VfB Stuttgart,1.34,7.0,9.5,1.28,6.03,8.0,39,0.9944,1.0721,bayern munich,stuttgart,1.24,4.0,1.24,3.95
+2026-08-14T09:49:04+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,1. FC Köln,TSG Hoffenheim,3.02,3.85,2.43,2.8,3.65,2.3,39,1.0024,1.0659,fc koln,hoffenheim,1.57,2.38,1.55,2.38
+2026-08-14T09:49:04+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Elversberg,Bayer Leverkusen,5.78,4.82,1.58,5.0,4.5,1.53,39,1.0134,1.0758,elversberg,bayer leverkusen,1.47,2.62,1.47,2.62
+2026-08-14T09:49:04+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,RB Leipzig,Borussia Monchengladbach,1.6,4.8,5.75,1.53,4.5,5.1,39,1.0072,1.0719,rb leipzig,borussia monchengladbach,1.44,2.72,1.44,2.72
+2026-08-14T09:49:04+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Union Berlin,Eintracht Frankfurt,2.53,3.75,2.89,2.39,3.5,2.75,39,1.0079,1.0678,union berlin,eintracht frankfurt,1.78,2.21,1.68,2.12
+2026-08-14T09:49:04+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,FSV Mainz 05,SC Paderborn,1.75,4.21,5.0,1.67,3.95,4.5,39,1.009,1.0742,mainz,paderborn,1.75,2.25,1.67,2.155
+2026-08-14T09:49:04+00:00,2026-08-29,2026-08-29T16:30:00Z,soccer_germany_bundesliga,BL1,Borussia Dortmund,Hamburger SV,1.37,5.75,9.6,1.33,5.25,8.4,39,1.008,1.0614,borussia dortmund,hamburger,1.57,2.5,1.56,2.4
+2026-08-14T09:49:04+00:00,2026-08-30,2026-08-30T13:30:00Z,soccer_germany_bundesliga,BL1,SC Freiburg,Werder Bremen,2.1,3.85,3.73,2.02,3.6,3.4,36,1.004,1.0669,freiburg,werder bremen,1.81,2.15,1.72,2.08
+2026-08-14T09:49:04+00:00,2026-08-30,2026-08-30T15:30:00Z,soccer_germany_bundesliga,BL1,Augsburg,FC Schalke 04,2.25,4.0,3.4,2.1,3.7,3.1,37,0.9886,1.069,augsburg,schalke,1.65,2.44,1.56,2.35
+2026-08-20T09:09:36+00:00,2026-08-28,2026-08-28T18:30:00Z,soccer_germany_bundesliga,BL1,Bayern Munich,VfB Stuttgart,1.34,7.0,9.5,1.28,6.029999999999999,8.0,40,0.9944,1.0721,bayern munich,stuttgart,1.25,4.0,1.25,3.95
+2026-08-20T09:09:36+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,1. FC Köln,TSG Hoffenheim,3.09,3.85,2.4,2.8,3.6,2.28,40,1.0,1.0735,fc koln,hoffenheim,1.57,2.45,1.55,2.43
+2026-08-20T09:09:36+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Elversberg,Bayer Leverkusen,5.6,4.78,1.59,5.0,4.5,1.55,40,1.0167,1.0674,elversberg,bayer leverkusen,1.47,2.62,1.47,2.62
+2026-08-20T09:09:36+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,RB Leipzig,Borussia Monchengladbach,1.6,4.8,5.75,1.53,4.5,5.15,40,1.0072,1.07,rb leipzig,borussia monchengladbach,1.44,2.72,1.44,2.72
+2026-08-20T09:09:36+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,Union Berlin,Eintracht Frankfurt,2.52,3.75,2.87,2.38,3.5,2.7,40,1.0119,1.0763,union berlin,eintracht frankfurt,1.73,2.28,1.68,2.17
+2026-08-20T09:09:36+00:00,2026-08-29,2026-08-29T13:30:00Z,soccer_germany_bundesliga,BL1,FSV Mainz 05,SC Paderborn,1.75,4.2,5.1,1.67,3.9,4.5,40,1.0056,1.0774,mainz,paderborn,1.75,2.25,1.67,2.16
+2026-08-20T09:09:36+00:00,2026-08-29,2026-08-29T16:30:00Z,soccer_germany_bundesliga,BL1,Borussia Dortmund,Hamburger SV,1.37,5.7,10.0,1.3250000000000002,5.25,8.5,40,1.0054,1.0628,borussia dortmund,hamburger,1.57,2.5,1.56,2.4
+2026-08-20T09:09:36+00:00,2026-08-30,2026-08-30T13:30:00Z,soccer_germany_bundesliga,BL1,SC Freiburg,Werder Bremen,2.1,3.85,3.73,2.0,3.55,3.45,38,1.004,1.0715,freiburg,werder bremen,1.83,2.14,1.71,2.12
+2026-08-20T09:09:36+00:00,2026-08-30,2026-08-30T15:30:00Z,soccer_germany_bundesliga,BL1,Augsburg,FC Schalke 04,2.26,4.0,3.23,2.12,3.7,3.05,38,1.0021,1.0698,augsburg,schalke,1.68,2.38,1.57,2.28

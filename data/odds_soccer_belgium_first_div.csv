@@ -1,0 +1,25 @@
+over25_odds,under25_odds,over25_odds_cons,under25_odds_cons,fetched_at,date,commence_time,sport,competition,home_team,away_team,home_odds,draw_odds,away_odds,home_odds_cons,draw_odds_cons,away_odds_cons,n_bookmakers,overround,overround_cons,home_key,away_key
+1.73,2.13,1.7,2.06,2026-08-12T15:37:48+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_belgium_first_div,BJL,Cercle Brugge KSV,Sint Truiden,2.35,3.6,3.05,2.25,3.465,2.885,36,1.0312,1.0797,cercle brugge ksv,sint truiden
+1.63,2.3,1.6,2.28,2026-08-12T15:37:48+00:00,2026-08-15,2026-08-15T14:00:00Z,soccer_belgium_first_div,BJL,Union Saint-Gilloise,SV Zulte-Waregem,1.35,5.3,9.6,1.3,5.0,8.5,38,1.0336,1.0869,union saint gilloise,zulte waregem
+2.07,1.77,2.04,1.75,2026-08-12T15:37:48+00:00,2026-08-15,2026-08-15T16:15:00Z,soccer_belgium_first_div,BJL,KV Kortrijk,Royal Antwerp,2.7,3.35,2.74,2.62,3.2,2.6,36,1.0338,1.0788,kortrijk,royal antwerp
+1.47,2.62,1.47,2.62,2026-08-12T15:37:48+00:00,2026-08-15,2026-08-15T18:45:00Z,soccer_belgium_first_div,BJL,Leuven,Club Brugge,7.6,5.2,1.42,7.0,4.75,1.37,37,1.0281,1.0833,leuven,brugge
+1.48,2.56,1.48,2.56,2026-08-12T15:37:48+00:00,2026-08-15,2026-08-15T18:45:00Z,soccer_belgium_first_div,BJL,Genk,Westerlo,1.75,4.25,4.82,1.68,4.0,4.25,37,1.0142,1.0805,genk,westerlo
+1.89,1.96,1.85,1.85,2026-08-12T15:37:48+00:00,2026-08-16,2026-08-16T11:30:00Z,soccer_belgium_first_div,BJL,SK Beveren,Anderlecht,3.8,3.6,2.18,3.4,3.4,2.0,34,0.9997,1.0882,sk beveren,anderlecht
+1.97,1.92,1.92,1.85,2026-08-12T15:37:48+00:00,2026-08-16,2026-08-16T14:00:00Z,soccer_belgium_first_div,BJL,RAAL La Louvière,Gent,3.15,3.52,2.45,2.9,3.3,2.265,36,1.0097,1.0894,raal la louviere,gent
+2.02,1.86,1.97,1.75,2026-08-12T15:37:48+00:00,2026-08-16,2026-08-16T16:30:00Z,soccer_belgium_first_div,BJL,KV Mechelen,Standard Liege,2.76,3.4,2.7,2.55,3.2,2.6,35,1.0268,1.0893,mechelen,standard liege
+1.92,1.92,1.89,1.85,2026-08-12T15:37:48+00:00,2026-08-16,2026-08-16T17:15:00Z,soccer_belgium_first_div,BJL,Lommel SK,Charleroi,3.3,3.5,2.28,3.08,3.3,2.2,30,1.0273,1.0823,lommel sk,charleroi
+1.76,2.28,1.72,2.06,2026-08-14T09:49:02+00:00,2026-08-14,2026-08-14T18:45:00Z,soccer_belgium_first_div,BJL,Cercle Brugge KSV,Sint Truiden,2.48,3.7,3.0,2.3,3.5,2.81,37,1.0068,1.0764,cercle brugge ksv,sint truiden
+1.62,2.32,1.6,2.28,2026-08-14T09:49:02+00:00,2026-08-15,2026-08-15T14:00:00Z,soccer_belgium_first_div,BJL,Union Saint-Gilloise,SV Zulte-Waregem,1.38,5.3,9.8,1.3,5.0,8.5,37,1.0154,1.0869,union saint gilloise,zulte waregem
+2.06,1.83,2.01,1.79,2026-08-14T09:49:02+00:00,2026-08-15,2026-08-15T16:15:00Z,soccer_belgium_first_div,BJL,KV Kortrijk,Royal Antwerp,2.7,3.45,2.76,2.6,3.2,2.62,37,1.0225,1.0788,kortrijk,royal antwerp
+1.45,2.66,1.45,2.66,2026-08-14T09:49:02+00:00,2026-08-15,2026-08-15T18:45:00Z,soccer_belgium_first_div,BJL,Leuven,Club Brugge,8.5,5.2,1.44,7.0,4.8,1.375,38,1.0044,1.0785,leuven,brugge
+1.48,2.56,1.48,2.56,2026-08-14T09:49:02+00:00,2026-08-15,2026-08-15T18:45:00Z,soccer_belgium_first_div,BJL,Genk,Westerlo,1.68,4.4,5.3,1.61,4.0,4.7,38,1.0112,1.0839,genk,westerlo
+1.88,2.08,1.81,1.93,2026-08-14T09:49:02+00:00,2026-08-16,2026-08-16T11:30:00Z,soccer_belgium_first_div,BJL,SK Beveren,Anderlecht,3.6,3.7,2.16,3.3,3.4,2.05,35,1.011,1.085,sk beveren,anderlecht
+2.02,1.92,1.91,1.85,2026-08-14T09:49:02+00:00,2026-08-16,2026-08-16T14:00:00Z,soccer_belgium_first_div,BJL,RAAL La Louvière,Gent,3.2,3.52,2.38,2.92,3.3,2.28,37,1.0168,1.0841,raal la louviere,gent
+2.07,1.86,1.97,1.78,2026-08-14T09:49:02+00:00,2026-08-16,2026-08-16T16:30:00Z,soccer_belgium_first_div,BJL,KV Mechelen,Standard Liege,2.7,3.4,2.74,2.595,3.225,2.6,36,1.0295,1.08,mechelen,standard liege
+1.92,2.02,1.83,1.91,2026-08-14T09:49:02+00:00,2026-08-16,2026-08-16T17:15:00Z,soccer_belgium_first_div,BJL,Lommel SK,Charleroi,3.6,3.7,2.15,3.275,3.4,2.0700000000000003,32,1.0132,1.0826,lommel sk,charleroi
+2.07,1.83,2.035,1.76,2026-08-20T09:09:35+00:00,2026-08-21,2026-08-21T18:45:00Z,soccer_belgium_first_div,BJL,Standard Liege,RAAL La Louvière,1.91,3.7,4.4,1.82,3.45,4.08,37,1.0211,1.0844,standard liege,raal la louviere
+1.92,2.02,1.84,1.85,2026-08-20T09:09:35+00:00,2026-08-22,2026-08-22T14:00:00Z,soccer_belgium_first_div,BJL,SV Zulte-Waregem,SK Beveren,2.1,3.6,3.8,2.0,3.425,3.41,35,1.0171,1.0852,zulte waregem,sk beveren
+1.8,2.05,1.73,2.02,2026-08-20T09:09:35+00:00,2026-08-22,2026-08-22T16:15:00Z,soccer_belgium_first_div,BJL,Charleroi,KV Mechelen,1.83,3.88,4.66,1.73,3.65,4.2,38,1.0188,1.0901,charleroi,mechelen
+1.86,1.98,1.84,1.89,2026-08-20T09:09:35+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_belgium_first_div,BJL,Royal Antwerp,Genk,3.42,3.5,2.28,3.2,3.35,2.1,38,1.0167,1.0872,royal antwerp,genk
+1.83,2.11,1.75,1.93,2026-08-20T09:09:35+00:00,2026-08-23,2026-08-23T14:00:00Z,soccer_belgium_first_div,BJL,Lommel SK,Westerlo,2.7,3.6,2.68,2.545,3.365,2.565,30,1.0213,1.08,lommel sk,westerlo
+1.31,3.35,1.31,3.35,2026-08-20T09:09:35+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_belgium_first_div,BJL,Club Brugge,Cercle Brugge KSV,1.33,6.5,10.0,1.25,5.9,8.5,35,1.0057,1.0871,brugge,cercle brugge ksv

@@ -1,0 +1,46 @@
+over25_odds,under25_odds,over25_odds_cons,under25_odds_cons,fetched_at,date,commence_time,sport,competition,home_team,away_team,home_odds,draw_odds,away_odds,home_odds_cons,draw_odds_cons,away_odds_cons,n_bookmakers,overround,overround_cons,home_key,away_key
+1.63,2.28,1.57,2.225,2026-08-12T15:38:00+00:00,2026-08-15,2026-08-15T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlante FC,Toluca,6.8,4.75,1.51,6.0,4.2,1.44,33,1.0198,1.0992,atlante,toluca
+1.5,2.48,1.5,2.48,2026-08-12T15:38:00+00:00,2026-08-16,2026-08-16T01:10:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Monterrey,FC Juárez,1.55,4.65,5.8,1.5,4.2,5.4,33,1.0326,1.0899,monterrey,juarez
+2.13,1.75,2.05,1.68,2026-08-12T15:38:00+00:00,2026-08-16,2026-08-16T03:10:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlas,Tigres,3.5,3.4,2.25,3.1,3.2,2.15,33,1.0243,1.1002,atlas,tigres
+1.75,2.14,1.68,2.05,2026-08-12T15:38:00+00:00,2026-08-16,2026-08-16T18:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Pumas,Querétaro,1.88,3.85,4.36,1.81,3.56,3.95,33,1.021,1.0865,pumas,queretaro
+1.65,2.21,1.63,2.15,2026-08-12T15:38:00+00:00,2026-08-16,2026-08-16T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,América,Atlético San Luis,1.56,4.45,6.4,1.5,4.15,5.7,31,1.022,1.0831,america,atletico san luis
+1.52,2.38,1.52,2.38,2026-08-12T15:38:00+00:00,2026-08-17,2026-08-17T01:10:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Santos Laguna,Guadalajara,6.0,4.6,1.55,5.4,4.2,1.5,33,1.0292,1.0899,santos laguna,guadalajara
+1.84,2.0,1.775,1.955,2026-08-12T15:38:00+00:00,2026-08-17,2026-08-17T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Tijuana,Cruz Azul,3.25,3.6,2.26,3.1,3.3,2.1,33,1.0279,1.1018,tijuana,cruz azul
+1.69,2.2,1.62,2.13,2026-08-12T15:38:00+00:00,2026-08-18,2026-08-18T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Necaxa,León,2.24,3.6,3.2,2.1,3.435,3.05,28,1.0367,1.0952,necaxa,leon
+1.68,2.16,1.64,2.12,2026-08-12T15:38:00+00:00,2026-08-18,2026-08-18T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Pachuca,Puebla,1.51,4.5,6.79,1.44,4.2,6.0,28,1.0317,1.0992,pachuca,puebla
+1.62,2.23,1.57,2.215,2026-08-12T15:38:00+00:00,2026-08-22,2026-08-22T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Tigres,Atlante FC,1.37,4.75,8.8,1.34,4.5,7.5,12,1.0541,1.1018,tigres,atlante
+1.78,1.98,1.75,1.95,2026-08-12T15:38:00+00:00,2026-08-22,2026-08-22T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,FC Juárez,América,3.73,3.55,1.94,3.7,3.5,1.88,13,1.0653,1.0879,juarez,america
+1.65,2.28,1.57,2.225,2026-08-14T09:49:22+00:00,2026-08-15,2026-08-15T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlante FC,Toluca,6.8,4.75,1.51,6.0,4.22,1.44,33,1.0198,1.0981,atlante,toluca
+1.52,2.42,1.52,2.42,2026-08-14T09:49:22+00:00,2026-08-16,2026-08-16T01:10:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Monterrey,FC Juárez,1.55,4.65,5.8,1.5,4.25,5.5,33,1.0326,1.0838,monterrey,juarez
+2.13,1.75,2.05,1.68,2026-08-14T09:49:22+00:00,2026-08-16,2026-08-16T03:10:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlas,Tigres,3.45,3.4,2.25,3.2,3.2,2.18,33,1.0284,1.0837,atlas,tigres
+1.75,2.14,1.68,2.05,2026-08-14T09:49:22+00:00,2026-08-16,2026-08-16T18:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Pumas,Querétaro,1.87,3.85,4.36,1.82,3.6,3.93,33,1.0239,1.0817,pumas,queretaro
+1.65,2.21,1.65,2.1100000000000003,2026-08-14T09:49:22+00:00,2026-08-16,2026-08-16T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,América,Atlético San Luis,1.56,4.45,6.4,1.5,4.2,5.8,31,1.022,1.0772,america,atletico san luis
+1.55,2.38,1.53,2.34,2026-08-14T09:49:22+00:00,2026-08-17,2026-08-17T01:10:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Santos Laguna,Guadalajara,6.0,4.6,1.55,5.4,4.2,1.5,33,1.0292,1.0899,santos laguna,guadalajara
+1.84,2.0,1.75,1.955,2026-08-14T09:49:22+00:00,2026-08-17,2026-08-17T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Tijuana,Cruz Azul,3.25,3.6,2.26,3.1,3.37,2.15,33,1.0279,1.0844,tijuana,cruz azul
+1.69,2.2,1.62,2.13,2026-08-14T09:49:22+00:00,2026-08-18,2026-08-18T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Necaxa,León,2.32,3.75,3.2,2.2,3.435,2.955,32,1.0102,1.0841,necaxa,leon
+1.68,2.16,1.63,2.14,2026-08-14T09:49:22+00:00,2026-08-18,2026-08-18T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Pachuca,Puebla,1.52,4.5,6.79,1.44,4.1,6.0,32,1.0274,1.105,pachuca,puebla
+1.62,2.23,1.57,2.215,2026-08-14T09:49:22+00:00,2026-08-22,2026-08-22T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Tigres,Atlante FC,1.37,4.75,8.8,1.34,4.5,7.5,12,1.0541,1.1018,tigres,atlante
+1.78,1.98,1.75,1.95,2026-08-14T09:49:22+00:00,2026-08-22,2026-08-22T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,FC Juárez,América,3.73,3.55,1.94,3.7,3.5,1.88,13,1.0653,1.0879,juarez,america
+1.6,2.25,1.56,2.24,2026-08-14T09:49:22+00:00,2026-08-22,2026-08-22T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Querétaro,Toluca,3.55,3.7,1.96,3.4,3.65,1.92,13,1.0622,1.0889,queretaro,toluca
+1.52,2.42,1.51,2.38,2026-08-14T09:49:22+00:00,2026-08-22,2026-08-22T23:07:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Guadalajara,Tijuana,1.49,4.4,6.0,1.44,4.2,5.9,13,1.0651,1.102,guadalajara,tijuana
+1.58,2.32,1.54,2.3,2026-08-14T09:49:22+00:00,2026-08-23,2026-08-23T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,León,Monterrey,3.05,3.6,2.2,2.9,3.5,2.14,13,1.0602,1.0978,leon,monterrey
+1.6,2.25,1.56,2.2350000000000003,2026-08-14T09:49:22+00:00,2026-08-23,2026-08-23T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Puebla,Santos Laguna,2.68,3.55,2.43,2.6,3.5,2.4,13,1.0663,1.087,puebla,santos laguna
+1.88,1.85,1.85,1.83,2026-08-14T09:49:22+00:00,2026-08-23,2026-08-23T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Cruz Azul,Atlas,1.72,3.7,4.7,1.68,3.65,4.6,13,1.0644,1.0866,cruz azul,atlas
+1.7,2.08,1.68,2.05,2026-08-14T09:49:22+00:00,2026-08-23,2026-08-23T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlético San Luis,Pachuca,3.25,3.4,2.14,3.2,3.3,2.08,13,1.0691,1.0963,atletico san luis,pachuca
+1.58,2.3,1.55,2.29,2026-08-14T09:49:22+00:00,2026-08-24,2026-08-24T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Pumas,Necaxa,1.83,3.75,3.98,1.76,3.65,3.9,13,1.0644,1.0986,pumas,necaxa
+1.7,2.15,1.66,2.1,2026-08-20T09:09:46+00:00,2026-08-22,2026-08-22T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Tigres,Atlante FC,1.51,4.85,6.8,1.43,4.365,6.324999999999999,34,1.0155,1.0865,tigres,atlante
+1.68,2.3,1.56,2.25,2026-08-20T09:09:46+00:00,2026-08-22,2026-08-22T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,León,Monterrey,3.31,3.85,2.17,3.1,3.55,2.06,34,1.0227,1.0897,leon,monterrey
+1.73,2.16,1.67,2.1,2026-08-20T09:09:46+00:00,2026-08-22,2026-08-22T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,FC Juárez,América,4.3,4.1,1.83,3.975,3.675,1.7650000000000001,34,1.0229,1.0903,juarez,america
+1.58,2.38,1.55,2.3,2026-08-20T09:09:46+00:00,2026-08-22,2026-08-22T03:10:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Querétaro,Toluca,4.1,4.05,1.87,3.8,3.78,1.8,34,1.0256,1.0833,queretaro,toluca
+1.64,2.27,1.6150000000000002,2.1900000000000004,2026-08-20T09:09:46+00:00,2026-08-22,2026-08-22T23:07:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Guadalajara,Tijuana,1.52,4.8,6.5,1.45,4.35,5.890000000000001,34,1.0201,1.0893,guadalajara,tijuana
+1.65,2.25,1.57,2.225,2026-08-20T09:09:46+00:00,2026-08-23,2026-08-23T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Puebla,Santos Laguna,2.1,3.85,3.41,2.0,3.6,3.165,34,1.0292,1.0937,puebla,santos laguna
+1.78,2.09,1.7,2.04,2026-08-20T09:09:46+00:00,2026-08-23,2026-08-23T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Cruz Azul,Atlas,1.53,4.4,6.5,1.47,4.175000000000001,6.0,34,1.0347,1.0865,cruz azul,atlas
+1.85,2.04,1.77,1.98,2026-08-20T09:09:46+00:00,2026-08-23,2026-08-23T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlético San Luis,Pachuca,3.2,3.6,2.3,3.1,3.4,2.06,30,1.0251,1.1021,atletico san luis,pachuca
+1.8,2.1,1.7,2.05,2026-08-20T09:09:46+00:00,2026-08-24,2026-08-24T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Pumas,Necaxa,1.97,3.8,3.75,1.9,3.51,3.5,34,1.0374,1.0969,pumas,necaxa
+1.76,2.04,1.71,2.02,2026-08-20T09:09:46+00:00,2026-08-29,2026-08-29T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlante FC,León,3.1,3.6,2.25,2.95,3.3,2.14,19,1.0448,1.1093,atlante,leon
+1.6,2.26,1.56,2.2350000000000003,2026-08-20T09:09:46+00:00,2026-08-29,2026-08-29T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Necaxa,Cruz Azul,3.75,4.0,1.91,3.55,3.6,1.815,18,1.0402,1.1104,necaxa,cruz azul
+1.68,2.15,1.66,2.1,2026-08-20T09:09:46+00:00,2026-08-29,2026-08-29T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Tijuana,Pumas,2.26,3.75,3.05,2.15,3.4,2.8,19,1.037,1.1164,tijuana,pumas
+1.83,1.87,1.83,1.87,2026-08-20T09:09:46+00:00,2026-08-29,2026-08-29T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Atlas,Querétaro,2.05,3.35,3.3,2.0149999999999997,3.2750000000000004,3.25,8,1.0893,1.1093,atlas,queretaro
+1.7,2.04,1.7,2.04,2026-08-20T09:09:46+00:00,2026-08-29,2026-08-29T23:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Pachuca,Guadalajara,2.7,3.35,2.35,2.665,3.3,2.315,8,1.0944,1.1102,pachuca,guadalajara
+1.64,2.12,1.64,2.12,2026-08-20T09:09:46+00:00,2026-08-30,2026-08-30T01:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,América,Puebla,1.44,4.25,6.25,1.42,4.175,6.125,8,1.0897,1.107,america,puebla
+1.61,2.18,1.61,2.18,2026-08-20T09:09:46+00:00,2026-08-30,2026-08-30T03:00:00Z,soccer_mexico_ligamx,MEX-LIGAMX,Santos Laguna,Tigres,4.35,3.75,1.68,4.275,3.675,1.66,8,1.0918,1.1084,santos laguna,tigres

@@ -1,0 +1,41 @@
+fetched_at,date,commence_time,sport,competition,home_team,away_team,home_odds,draw_odds,away_odds,home_odds_cons,draw_odds_cons,away_odds_cons,n_bookmakers,overround,overround_cons,home_key,away_key,over25_odds,under25_odds,over25_odds_cons,under25_odds_cons
+2026-08-11T14:04:05+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Udinese,Como,4.8,3.68,1.88,4.4,3.4,1.83,39,1.012,1.0678,udinese,como,,,,
+2026-08-11T14:04:05+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Inter Milan,Monza,1.25,7.0,16.5,1.21,6.1,12.15,39,1.0035,1.0727,inter milan,monza,,,,
+2026-08-11T14:04:05+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Parma,Cagliari,2.75,3.2,3.0,2.6,3.05,2.8,39,1.0095,1.0696,parma,cagliari,,,,
+2026-08-11T14:04:05+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Genoa,Napoli,5.2,3.55,1.89,4.6,3.3,1.83,39,1.0031,1.0669,genoa,napoli,,,,
+2026-08-11T14:04:05+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Frosinone,Juventus,8.8,4.66,1.5,6.8,4.33,1.44,39,0.9949,1.0725,frosinone,juventus,,,,
+2026-08-11T14:04:05+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Venezia,Lecce,2.43,3.35,3.4,2.3,3.2,3.1,39,1.0041,1.0699,venezia,lecce,,,,
+2026-08-11T14:04:05+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Torino,AC Milan,4.9,3.9,1.85,4.4,3.65,1.75,39,1.001,1.0727,torino,milan,,,,
+2026-08-11T14:04:05+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Atalanta BC,Sassuolo,1.59,4.7,7.0,1.5,4.33,6.0,39,0.9846,1.0643,atalanta bc,sassuolo,,,,
+2026-08-11T14:04:05+00:00,2026-08-24,2026-08-24T16:30:00Z,soccer_italy_serie_a,SA,Bologna,Lazio,2.22,3.4,3.72,2.12,3.2,3.5,39,1.0134,1.0699,bologna,lazio,,,,
+2026-08-11T14:04:05+00:00,2026-08-24,2026-08-24T18:45:00Z,soccer_italy_serie_a,SA,AS Roma,Fiorentina,1.63,4.3,6.75,1.54,4.0,5.85,38,0.9942,1.0703,roma,fiorentina,,,,
+2026-08-12T15:38:05+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Udinese,Como,4.8,3.68,1.88,4.4,3.4,1.83,39,1.012,1.0678,udinese,como,2.25,1.75,2.14,1.68
+2026-08-12T15:38:05+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Inter Milan,Monza,1.25,7.0,16.0,1.21,6.0,12.5,39,1.0054,1.0731,inter milan,monza,1.71,2.33,1.62,2.25
+2026-08-12T15:38:05+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Parma,Cagliari,2.75,3.2,3.0,2.6,3.05,2.8,39,1.0095,1.0696,parma,cagliari,2.47,1.64,2.4,1.55
+2026-08-12T15:38:05+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Genoa,Napoli,5.2,3.55,1.89,4.6,3.3,1.83,39,1.0031,1.0669,genoa,napoli,2.33,1.71,2.17,1.65
+2026-08-12T15:38:05+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Frosinone,Juventus,8.8,4.66,1.5,6.8,4.33,1.44,39,0.9949,1.0725,frosinone,juventus,1.87,2.08,1.82,1.95
+2026-08-12T15:38:05+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Venezia,Lecce,2.43,3.35,3.4,2.3,3.2,3.1,39,1.0041,1.0699,venezia,lecce,2.31,1.72,2.2,1.66
+2026-08-12T15:38:05+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Torino,AC Milan,5.0,3.87,1.85,4.45,3.6,1.75,39,0.9989,1.0739,torino,milan,1.97,1.97,1.87,1.91
+2026-08-12T15:38:05+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Atalanta BC,Sassuolo,1.59,4.8,7.0,1.5,4.33,5.9,39,0.9801,1.0671,atalanta,sassuolo,1.75,2.25,1.65,2.2
+2026-08-12T15:38:05+00:00,2026-08-24,2026-08-24T16:30:00Z,soccer_italy_serie_a,SA,Bologna,Lazio,2.22,3.4,3.72,2.12,3.23,3.5,39,1.0134,1.067,bologna,lazio,2.27,1.74,2.16,1.68
+2026-08-12T15:38:05+00:00,2026-08-24,2026-08-24T18:45:00Z,soccer_italy_serie_a,SA,AS Roma,Fiorentina,1.62,4.3,6.75,1.53,4.0,5.9,38,0.998,1.0731,roma,fiorentina,1.96,1.99,1.83,1.93
+2026-08-14T09:49:31+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Udinese,Como,5.0,3.71,1.88,4.4,3.4,1.83,39,1.0015,1.0678,udinese,como,2.25,1.75,2.12,1.7
+2026-08-14T09:49:31+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Inter Milan,Monza,1.25,7.0,16.0,1.21,6.0,13.0,39,1.0054,1.07,inter milan,monza,1.71,2.33,1.62,2.25
+2026-08-14T09:49:31+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Parma,Cagliari,2.75,3.2,2.97,2.6,3.05,2.8,39,1.0128,1.0696,parma,cagliari,2.47,1.64,2.4,1.55
+2026-08-14T09:49:31+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Genoa,Napoli,5.4,3.6,1.9,4.6,3.3,1.83,39,0.9893,1.0669,genoa,napoli,2.33,1.71,2.15,1.65
+2026-08-14T09:49:31+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Frosinone,Juventus,8.8,4.66,1.5,6.8,4.33,1.44,39,0.9949,1.0725,frosinone,juventus,1.87,2.08,1.82,1.95
+2026-08-14T09:49:31+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Venezia,Lecce,2.43,3.35,3.4,2.3,3.19,3.1,39,1.0041,1.0708,venezia,lecce,2.31,1.72,2.2,1.66
+2026-08-14T09:49:31+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Torino,AC Milan,5.0,3.87,1.85,4.4,3.6,1.76,39,0.9989,1.0732,torino,milan,1.97,1.97,1.87,1.91
+2026-08-14T09:49:31+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Atalanta BC,Sassuolo,1.59,4.75,7.0,1.5,4.33,6.0,39,0.9823,1.0643,atalanta,sassuolo,1.74,2.27,1.65,2.18
+2026-08-14T09:49:31+00:00,2026-08-24,2026-08-24T16:30:00Z,soccer_italy_serie_a,SA,Bologna,Lazio,2.28,3.37,3.7,2.15,3.2,3.5,39,1.0056,1.0633,bologna,lazio,2.27,1.74,2.23,1.64
+2026-08-14T09:49:31+00:00,2026-08-24,2026-08-24T18:45:00Z,soccer_italy_serie_a,SA,AS Roma,Fiorentina,1.62,4.3,6.75,1.55,4.0,5.8,38,0.998,1.0676,roma,fiorentina,1.96,1.99,1.85,1.93
+2026-08-20T09:09:51+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Udinese,Como,5.2,3.73,1.88,4.55,3.46,1.8,42,0.9923,1.0644,udinese,como,2.25,1.75,2.14,1.68
+2026-08-20T09:09:51+00:00,2026-08-22,2026-08-22T16:30:00Z,soccer_italy_serie_a,SA,Inter Milan,Monza,1.24,7.4,18.0,1.2,6.5,13.625,42,0.9971,1.0606,inter milan,monza,1.69,2.37,1.6,2.275
+2026-08-20T09:09:51+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Parma,Cagliari,2.68,3.2,3.2,2.535,3.0,3.0,42,0.9981,1.0611,parma,cagliari,2.54,1.62,2.4,1.55
+2026-08-20T09:09:51+00:00,2026-08-22,2026-08-22T18:45:00Z,soccer_italy_serie_a,SA,Genoa,Napoli,5.27,3.6,1.89,4.7,3.32,1.83,42,0.9966,1.0604,genoa,napoli,2.33,1.71,2.185,1.645
+2026-08-20T09:09:51+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Frosinone,Juventus,8.0,4.85,1.49,7.0,4.5,1.44,42,1.0023,1.0595,frosinone,juventus,1.88,2.09,1.8,1.98
+2026-08-20T09:09:51+00:00,2026-08-23,2026-08-23T16:30:00Z,soccer_italy_serie_a,SA,Venezia,Lecce,2.36,3.33,3.6,2.25,3.175,3.335,42,1.0018,1.0593,venezia,lecce,2.34,1.72,2.205,1.65
+2026-08-20T09:09:51+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Torino,AC Milan,4.9,3.9,1.84,4.5,3.7,1.755,42,1.004,1.0623,torino,milan,1.98,1.98,1.87,1.91
+2026-08-20T09:09:51+00:00,2026-08-23,2026-08-23T18:45:00Z,soccer_italy_serie_a,SA,Atalanta BC,Sassuolo,1.59,4.6,6.75,1.5,4.35,6.0,42,0.9945,1.0632,atalanta,sassuolo,1.75,2.28,1.65,2.18
+2026-08-20T09:09:51+00:00,2026-08-24,2026-08-24T16:30:00Z,soccer_italy_serie_a,SA,Bologna,Lazio,2.3,3.35,3.65,2.2,3.2,3.4,42,1.0073,1.0612,bologna,lazio,2.28,1.74,2.2,1.65
+2026-08-20T09:09:51+00:00,2026-08-24,2026-08-24T18:45:00Z,soccer_italy_serie_a,SA,AS Roma,Fiorentina,1.65,4.25,6.5,1.57,4.0,5.8,41,0.9952,1.0594,roma,fiorentina,1.96,1.99,1.85,1.93
