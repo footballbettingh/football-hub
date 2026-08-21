@@ -341,7 +341,7 @@ def page_card(links, ctx):
     picks = ctx["picks"]
     if not picks:
         return c.layout(
-            links, "Card", "index",
+            links, "Card", "card",
             c.empty("No card yet.", "Press “Refresh the card” to price the upcoming "
                                     "fixtures. It takes about twenty seconds."),
             subtitle="The selections most likely to land.")
@@ -436,7 +436,7 @@ def page_card(links, ctx):
       ("evidence", "Why not chase value?", "the backtest that says don't")])}
 </section>
 """
-    return c.layout(links, "Card", "index", body,
+    return c.layout(links, "Card", "card", body,
                     page_data={"card": payload,
                                "accumulators": picks.get("accumulators") or {}},
                     subtitle="The selections most likely to land, ranked by a "

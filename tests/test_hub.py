@@ -438,6 +438,21 @@ def test_the_card_page_shows_the_selections_it_was_given():
     assert "Under 4.5 goals" not in html
 
 
+@pytest.mark.parametrize("page", sorted(pages.BUILDERS))
+def test_every_page_marks_itself_in_the_nav(page):
+    """The current tab has to be the page you are on.
+
+    Card got this wrong the moment it moved off the root: it went on declaring
+    itself "index", so clicking Card lit up Home. Nothing else noticed, because
+    a wrong `current` renders perfectly valid HTML.
+    """
+    import re
+    links = c.Links("server")
+    html = pages.render(page, links, dict(EMPTY))
+    marked = re.findall(r'<a href="([^"]+)"[^>]*aria-current="page"', html)
+    assert marked == [links.href(page)], f"{page} highlighted {marked}"
+
+
 def test_the_root_is_the_landing_page_and_the_card_moved():
     """A public site's front door introduces the thing; the card is one click
     in. Pinning both directions so a future rename cannot silently swap them."""
