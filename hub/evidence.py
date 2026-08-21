@@ -52,6 +52,15 @@ def _thin(points, limit=EQUITY_POINTS):
     return [points[min(int(i * step), len(points) - 1)] for i in range(limit)]
 
 
+def _history_rows():
+    """Lines in history.csv, minus the header. Cheap enough to call per build."""
+    path = vb_config.DATA_DIR / "history.csv"
+    if not path.exists():
+        return 0
+    with path.open("rb") as handle:
+        return max(sum(1 for _ in handle) - 1, 0)
+
+
 def build(progress=print, data=None):
     """Recompute everything and write evidence.json. Returns the payload."""
     path = data or (vb_config.DATA_DIR / "history.csv")
@@ -89,6 +98,11 @@ def build(progress=print, data=None):
         "equity": _thin(equity_curve(bets)),
         "coverage": coverage,
         "n_matches": int(len(dataset)),
+        # Rows in history.csv as it stood, so a later run can tell whether
+        # this is still current without re-running the backtest to find out.
+        # The count differs from n_matches above, which is after the loader
+        # drops rows it cannot price.
+        "source_rows": _history_rows(),
         "n_competitions": int(dataset.competition.nunique()),
         "config": {"odds_min": cfg.odds_min, "odds_max": cfg.odds_max,
                    "min_edge": cfg.min_edge, "markets": list(cfg.markets),

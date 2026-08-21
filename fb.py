@@ -286,6 +286,32 @@ def _odds_age_days():
     return (datetime.now(timezone.utc) - newest.to_pydatetime()).total_seconds() / 86400
 
 
+def _evidence_is_stale():
+    """Whether the value-betting evidence is behind the results behind it.
+
+    Judged on the number of rows in history.csv, which the artifact records
+    when it is built -- not on either file's modification time. A runner
+    restores both from a cache, so their timestamps say when a tarball was
+    unpacked rather than when the numbers were worked out, and an evidence
+    page that never rebuilds looks exactly like one that is up to date.
+
+    An artifact written before this was recorded has no `source_rows`, and is
+    treated as stale so it is brought forward once.
+    """
+    import json
+
+    from hub.artifacts import EVIDENCE_JSON
+    from hub.evidence import _history_rows
+
+    if not EVIDENCE_JSON.exists():
+        return True
+    try:
+        built_from = json.loads(EVIDENCE_JSON.read_text(encoding="utf-8")).get("source_rows")
+    except (ValueError, OSError):
+        return True
+    return built_from is None or int(built_from) != _history_rows()
+
+
 def cmd_run(args):
     """Everything the buttons do, in dependency order, with nobody watching.
 
@@ -294,7 +320,7 @@ def cmd_run(args):
     upcoming matches all eventually kick off and the card has nothing to price.
     """
     from datetime import datetime
-    from hub import card, notify as tg, pipeline
+    from hub import card, evidence, notify as tg, pipeline
 
     started, skipped = datetime.now(), []
     print(f"=== Football Hub run {started:%Y-%m-%d %H:%M:%S} ===")
@@ -340,6 +366,16 @@ def cmd_run(args):
         _step("Sending the best pick to Telegram",
               lambda: _notify(tg, only_if_changed=args.only_if_changed),
               skipped=skipped)
+
+    if args.no_evidence:
+        print("\nSkipping the evidence rebuild (--no-evidence).")
+    elif args.force_evidence or _evidence_is_stale():
+        # Free, but the slowest thing here, which is why it runs after the
+        # notification rather than in front of it.
+        _step("Rebuilding the value-betting evidence (no credits, ~10 min)",
+              lambda: evidence.build(), skipped=skipped)
+    else:
+        print("\nEvidence is current with the results on file; not rebuilding.")
 
     # Exit 0 either way: the card was rebuilt, which is what the run is for.
     # The tally is here so a skimmed log shows a degraded run at a glance.
@@ -484,6 +520,10 @@ def main(argv=None):
     p.add_argument("--skip-model", action="store_true",
                    help="skip the walk-forward rebuild and recalibration")
     p.add_argument("--no-notify", action="store_true")
+    p.add_argument("--no-evidence", action="store_true",
+                   help="skip the value-betting backtest even if it is behind")
+    p.add_argument("--force-evidence", action="store_true",
+                   help="rebuild the backtest even if it is already current")
     p.add_argument("--only-if-changed", action="store_true",
                    help="stay quiet when the pick is the same as last time")
     p.set_defaults(func=cmd_run)
