@@ -32,3 +32,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-08-24,safe,2026-08-22T10:00:24,SA,Serie A,bologna,lazio,Bologna v Lazio,tt1.5_away_under,tt,Away team under 1.5 goals,0.76914,1.30015,,0.77423,34115,,,,pending,,
 2026-08-24,main,2026-08-22T10:00:24,DNK-SUPERLIG,Superliga,brondby,silkeborg,Brondby IF v Silkeborg IF,tt0.5_away_over,tt,Away team over 0.5 goals,0.62478,1.60057,,0.65221,62120,,,,pending,,
 2026-08-24,value,2026-08-22T10:00:24,PD,La Liga,osasuna,levante,CA Osasuna v Levante,btts_yes,btts,Both teams to score,0.45392,2.20305,,0.46604,29229,,,,pending,,
+2026-08-25,safe,2026-08-23T10:00:24,ARG-LIGAPROF,Liga Profesional,talleres cordoba,rosario central,Talleres v Rosario Central,tt1.5_away_under,tt,Away team under 1.5 goals,0.76091,1.31421,,0.77423,34115,,,,pending,,
+2026-08-25,main,2026-08-23T10:00:24,ARG-LIGAPROF,Liga Profesional,lanus,argentinos juniors,Lanus v Argentinos Juniors,tt0.5_away_over,tt,Away team over 0.5 goals,0.61776,1.61874,,0.65221,62120,,,,pending,,
+2026-08-25,value,2026-08-23T10:00:24,ARG-LIGAPROF,Liga Profesional,lanus,argentinos juniors,Lanus v Argentinos Juniors,btts_yes,btts,Both teams to score,0.41983,2.38189,,0.41641,13501,,,,pending,,
