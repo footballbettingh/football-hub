@@ -35,3 +35,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-08-25,safe,2026-08-23T10:00:24,ARG-LIGAPROF,Liga Profesional,talleres cordoba,rosario central,Talleres v Rosario Central,tt1.5_away_under,tt,Away team under 1.5 goals,0.76091,1.31421,,0.77423,34115,,,,pending,,
 2026-08-25,main,2026-08-23T10:00:24,ARG-LIGAPROF,Liga Profesional,lanus,argentinos juniors,Lanus v Argentinos Juniors,tt0.5_away_over,tt,Away team over 0.5 goals,0.61776,1.61874,,0.65221,62120,,,,pending,,
 2026-08-25,value,2026-08-23T10:00:24,ARG-LIGAPROF,Liga Profesional,lanus,argentinos juniors,Lanus v Argentinos Juniors,btts_yes,btts,Both teams to score,0.41983,2.38189,,0.41641,13501,,,,pending,,
+2026-08-26,safe,2026-08-24T11:03:39,PD,La Liga,real madrid,sociedad,Real Madrid v Real Sociedad,corners7.5_over,corners,Over 7.5 corners,0.76286,1.31086,,0.77340,15296,,,,pending,,
+2026-08-26,main,2026-08-24T11:03:39,PD,La Liga,real madrid,sociedad,Real Madrid v Real Sociedad,ou3.5_under,ou,Under 3.5 goals,0.61318,1.63084,,0.65793,36563,,,,pending,,
+2026-08-26,value,2026-08-24T11:03:39,PD,La Liga,real madrid,sociedad,Real Madrid v Real Sociedad,tt0.5_away_under,tt,Away team under 0.5 goals,0.42924,2.32970,,0.43361,24395,,,,pending,,
