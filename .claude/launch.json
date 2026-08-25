@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["fb.py", "serve", "--no-open"],
       "port": 8756
+    },
+    {
+      "name": "export",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8757", "--directory", "site"],
+      "port": 8757
     }
   ]
 }

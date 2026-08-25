@@ -5,7 +5,7 @@ __pycache__/
 # Secrets.
 .env
 
-# Fetched and derived. Rebuild with the buttons, or `python fb.py full-refresh`.
+# Fetched and derived. Rebuild with `python fb.py run --no-odds --no-notify`.
 # `data/*` rather than `data/`: git will not re-include a file whose parent
 # directory is excluded, so the two negations below were silently dead and the
 # one irreplaceable file in the project was not being tracked at all.
@@ -34,3 +34,8 @@ logs/
 NEXT-STEPS.md
 .env.example
 Football Betting Hub Design palette/
+
+# Skills are installed per machine by `npx skills add`. The lockfile and the
+# skill itself are tracked; this directory is a symlink back to them, which on
+# Windows git resolves into a second copy of the same file.
+.claude/skills/
