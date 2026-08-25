@@ -8,11 +8,13 @@ missing.
 
 import json
 import time
+from datetime import datetime
 
 import pandas as pd
 import pytest
 
-from hub import artifacts, card, components as c, export, leagues, pages
+from hub import (artifacts, card, components as c, export, leagues, ledger,
+                 pages)
 
 
 # -- league names ----------------------------------------------------------
@@ -445,3 +447,229 @@ def test_export_writes_a_self_contained_site(tmp_path, monkeypatch):
     assert 'href="fixtures.html"' in html
     assert 'href="/fixtures"' not in html          # would 404 on Pages
     assert "<button class=\"run" not in html
+
+
+# -- the card shows what was recorded --------------------------------------
+
+def _slate_pick(**overrides):
+    row = {
+        "band": "main", "band_low": 1.6, "band_high": 2.2,
+        "day": "2026-08-26", "date": "2026-08-26", "candidates": 11,
+        "competition": "PD", "competition_name": "La Liga",
+        "home": "real madrid", "away": "sociedad",
+        "match": "Real Madrid v Real Sociedad", "key": "ou2.5_over",
+        "group": "ou", "selection": "Over 2.5 goals", "prob": 0.614,
+        "fair_odds": 1.63, "odds": 1.53, "edge": -0.06, "hit_rate": 0.658,
+        "hit_rate_n": 36216, "new_team": False, "score": 0.614,
+    }
+    row.update(overrides)
+    return row
+
+
+def _recorded(path, **overrides):
+    row = {
+        "day": "2026-08-26", "band": "main", "competition": "PD",
+        "competition_name": "La Liga", "home": "real madrid",
+        "away": "sociedad", "match": "Real Madrid v Real Sociedad",
+        "key": "ou3.5_under", "group": "ou", "selection": "Under 3.5 goals",
+        "prob": 0.613, "fair_odds": 1.631, "odds": None, "hit_rate": 0.658,
+        "hit_rate_n": 36563,
+    }
+    row.update(overrides)
+    ledger.record(row, path, today="2026-08-24")
+
+
+def test_a_day_already_in_the_ledger_is_shown_as_recorded(tmp_path):
+    """The bug this fixes: the card re-prices every fixture on every build, so
+    two days after a pick was written down it happily prefers a different
+    selection for the same day. Only one of them is graded, and it is the one
+    in the ledger — so the front page named one bet and History named another.
+    """
+    path = tmp_path / "best_picks.csv"
+    _recorded(path)
+    payload = {"slate": [_slate_pick()], "best_pick": _slate_pick()}
+
+    changed = card._apply_ledger(payload, path=path)
+
+    assert payload["best_pick"]["selection"] == "Under 3.5 goals"
+    assert payload["slate"][0]["selection"] == "Under 3.5 goals"
+    assert [c["day"] for c in changed] == ["2026-08-26"]
+    # The count of what qualified is about today's card, not about the bet.
+    assert payload["best_pick"]["candidates"] == 11
+
+
+def test_a_day_not_yet_recorded_keeps_the_price_just_computed(tmp_path):
+    path = tmp_path / "best_picks.csv"
+    payload = {"slate": [_slate_pick()], "best_pick": _slate_pick()}
+
+    assert card._apply_ledger(payload, path=path) == []
+    assert payload["best_pick"]["selection"] == "Over 2.5 goals"
+
+
+def test_a_recorded_band_survives_falling_off_the_card(tmp_path):
+    """A band that has nothing in its price range today must not quietly drop
+    the pick already written down for that day — it is still going to be
+    graded."""
+    path = tmp_path / "best_picks.csv"
+    _recorded(path, band="value", key="tt0.5_away_under",
+              selection="Away team under 0.5 goals", prob=0.429, fair_odds=2.33)
+    payload = {"slate": [_slate_pick()], "best_pick": _slate_pick()}
+
+    card._apply_ledger(payload, path=path)
+
+    bands = [pick["band"] for pick in payload["slate"]]
+    assert bands == ["main", "value"]
+    assert "candidates" not in payload["slate"][1]
+
+
+def test_the_recorded_pick_renders_with_no_qualifying_count(tmp_path):
+    """`candidates` is absent for a band that is off the card, and the section
+    used to interpolate it unconditionally."""
+    path = tmp_path / "best_picks.csv"
+    _recorded(path)
+    payload = {"slate": [_slate_pick(band="safe", band_low=1.3, band_high=1.6)],
+               "best_pick": None}
+    card._apply_ledger(payload, path=path)
+
+    html = pages._best_pick_section({"best_pick": payload["best_pick"],
+                                     "best_band": [1.6, 2.2]})
+    assert "Under 3.5 goals" in html
+    assert "that qualified" not in html
+
+
+def test_a_pick_written_down_on_an_earlier_day_says_so():
+    """Three days of horizon means most of the card was recorded a build or two
+    ago, price included. Unlabelled, those numbers read as this morning's."""
+    html = pages._best_pick_section({
+        "best_band": [1.6, 2.2],
+        "best_pick": {**_slate_pick(), "recorded_at": "2026-08-24T11:03:39"}})
+    assert "Written down on Mon 24 Aug at 11:03" in html
+
+
+def test_a_pick_recorded_today_is_not_labelled_as_old():
+    stamp = datetime.now().isoformat(timespec="seconds")
+    html = pages._best_pick_section({
+        "best_band": [1.6, 2.2],
+        "best_pick": {**_slate_pick(), "recorded_at": stamp}})
+    assert "Written down on" not in html
+
+
+# -- and the same for the accumulator --------------------------------------
+
+def _slip(**overrides):
+    row = {
+        "legs": 4, "target_odds": 3.0, "min_leg_odds": 1.3161,
+        "probability": 0.319, "fair_odds": 3.14, "offered_odds": None,
+        "weakest_leg": 0.743, "first_day": "2026-08-26", "last_day": "2026-08-28",
+        "selections": [
+            {"date": "2026-08-26", "competition": "PD", "competition_name": "La Liga",
+             "home": "real madrid", "away": "sociedad",
+             "match": "Real Madrid v Real Sociedad", "key": "corners7.5_over",
+             "selection": "Over 7.5 corners", "prob": 0.759, "fair_odds": 1.32,
+             "odds": None},
+            {"date": "2026-08-27", "competition": "PD", "competition_name": "La Liga",
+             "home": "celta", "away": "osasuna", "match": "Celta Vigo v CA Osasuna",
+             "key": "dc_1x", "selection": "Home or draw (1X)", "prob": 0.756,
+             "fair_odds": 1.32, "odds": None},
+        ],
+    }
+    row.update(overrides)
+    return row
+
+
+def _payload_with(slip, default="4"):
+    return {"accumulators": {"2": _slip(legs=2), default: slip},
+            "acca_default": default}
+
+
+def test_the_accumulator_shown_is_the_one_that_was_recorded(tmp_path):
+    """Same failure as the slate, on a shorter fuse: the slip is keyed on the
+    day it was issued, so a second build after new odds land is refused by the
+    ledger and used by the page."""
+    path = tmp_path / "best_accas.csv"
+    ledger.record_acca(_slip(), path)
+
+    repriced = _slip(selections=[
+        {**_slip()["selections"][0], "key": "ou1.5_over",
+         "selection": "Over 1.5 goals"}, _slip()["selections"][1]])
+    payload = _payload_with(repriced)
+
+    swapped = card._apply_acca_ledger(payload, path=path)
+
+    shown = payload["accumulators"][payload["acca_default"]]
+    assert [leg["selection"] for leg in shown["selections"]] == [
+        "Over 7.5 corners", "Home or draw (1X)"]
+    assert "Over 1.5 goals" in swapped["repriced"]
+    assert "Over 7.5 corners" in swapped["recorded"]
+
+
+def test_the_other_leg_counts_stay_live(tmp_path):
+    """Only the default is ever handed to `record_acca`, so only the default
+    can claim to be in the record."""
+    path = tmp_path / "best_accas.csv"
+    ledger.record_acca(_slip(), path)
+    payload = _payload_with(_slip())
+
+    card._apply_acca_ledger(payload, path=path)
+
+    assert payload["accumulators"]["2"]["legs"] == 2
+    assert "recorded_at" not in payload["accumulators"]["2"]
+
+
+def test_a_day_with_no_slip_recorded_keeps_the_one_just_computed(tmp_path):
+    path = tmp_path / "best_accas.csv"
+    payload = _payload_with(_slip())
+
+    assert card._apply_acca_ledger(payload, path=path) is None
+    assert "recorded_at" not in payload["accumulators"]["4"]
+
+
+def test_re_pricing_the_same_legs_is_not_a_disagreement(tmp_path):
+    """Prices and probabilities drift between builds and that is not a
+    different accumulator. A swapped leg is."""
+    path = tmp_path / "best_accas.csv"
+    ledger.record_acca(_slip(), path)
+    drifted = _slip(probability=0.324)
+    drifted["selections"][0]["prob"] = 0.761
+    payload = _payload_with(drifted)
+
+    assert card._apply_acca_ledger(payload, path=path) is None
+    # Nothing to report, but the recorded numbers are still the ones shown:
+    # the record was made at 0.319, and that is what it will be graded on.
+    shown = payload["accumulators"]["4"]
+    assert shown["probability"] == pytest.approx(0.319)
+    assert shown["selections"][0]["prob"] == pytest.approx(0.759)
+
+
+def test_a_slip_recorded_at_another_leg_count_is_still_the_one_shown(tmp_path):
+    """If ACCA_LEGS changes after a slip is written down, the recorded one is
+    still the bet that gets graded — so it is still the one to show."""
+    path = tmp_path / "best_accas.csv"
+    ledger.record_acca(_slip(legs=3), path)
+    payload = _payload_with(_slip(), default="4")
+
+    card._apply_acca_ledger(payload, path=path)
+
+    assert payload["acca_default"] == "3"
+    assert payload["accumulators"]["3"]["legs"] == 3
+
+
+def test_the_card_says_which_slip_size_is_in_the_record():
+    html = pages._accumulator_section({
+        "acca_target": 3.0, "acca_default": "4",
+        "accumulators": {"4": {**_slip(), "recorded_at": "2026-08-26T09:12:04"}}})
+    assert "The 4-leg slip is the one written into the record" in html
+    assert "went down at 09:12" in html
+
+
+def test_a_recorded_slip_survives_the_card_being_unable_to_build_one(tmp_path):
+    """Nothing clearing the target today does not unrecord this morning's slip
+    — it is still going to be graded, so it is still what the page shows."""
+    path = tmp_path / "best_accas.csv"
+    ledger.record_acca(_slip(), path)
+    payload = {"accumulators": {}, "acca_default": "4"}
+
+    card._apply_acca_ledger(payload, path=path)
+
+    assert payload["accumulators"]["4"]["legs"] == 4
+    assert pages._accumulator_section({**payload, "acca_target": 3.0})

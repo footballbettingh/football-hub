@@ -403,3 +403,58 @@ def test_an_ambiguous_name_is_left_pending_rather_than_guessed():
                                ("PL", "manchester united", "arsenal", "2026-08-14", 0, 1)]),
                       path)
         assert ledger.load(path).iloc[0]["outcome"] == "pending"
+
+
+# -- reading it back onto the card -----------------------------------------
+
+def test_a_recorded_day_comes_back_in_the_shape_the_card_uses(path):
+    ledger.record(pick(), path, today="2026-08-12")
+    slate = ledger.recorded_slate(["2026-08-14"], path)
+
+    entry = slate[("2026-08-14", "main")]
+    assert entry["match"] == "LASK v Ried"
+    assert entry["selection"] == "Over 2.5 goals"
+    assert entry["day"] == entry["date"] == "2026-08-14"
+    assert (entry["band_low"], entry["band_high"]) == (1.60, 2.20)
+    # Both halves of the edge are stored, so it is recomputed rather than kept.
+    assert entry["edge"] == pytest.approx(0.624 * 1.75 - 1.0)
+
+
+def test_a_day_that_was_not_asked_for_is_not_returned(path):
+    ledger.record(pick(), path, today="2026-08-12")
+    assert ledger.recorded_slate(["2026-08-15"], path) == {}
+
+
+def test_a_pick_with_no_price_has_no_edge(path):
+    ledger.record(pick(odds=None), path, today="2026-08-12")
+    entry = ledger.recorded_slate(["2026-08-14"], path)[("2026-08-14", "main")]
+    assert entry["odds"] is None and entry["edge"] is None
+
+
+def test_an_empty_league_name_falls_back_to_the_code(path):
+    """NaN is truthy, so `name or code` returns the NaN and the page prints it."""
+    ledger.record(pick(competition_name=None), path, today="2026-08-12")
+    entry = ledger.recorded_slate(["2026-08-14"], path)[("2026-08-14", "main")]
+    assert entry["competition_name"] == "AUT-BUNDESLI"
+
+
+def test_a_recorded_slip_comes_back_in_the_shape_the_card_renders(acca_path):
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    slip = ledger.recorded_acca("2026-08-12", acca_path)
+
+    assert slip["legs"] == 2
+    assert slip["probability"] == pytest.approx(0.33)
+    assert slip["offered_odds"] == pytest.approx(3.2)
+    assert [leg["match"] for leg in slip["selections"]] == ["LASK v Ried", "a v b"]
+    assert slip["recorded_at"]
+
+
+def test_a_day_with_no_slip_recorded_has_nothing_to_show(acca_path):
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    assert ledger.recorded_acca("2026-08-13", acca_path) is None
+
+
+def test_an_unpriced_slip_reads_back_with_no_offered_price(acca_path):
+    ledger.record_acca(acca(offered_odds=None), acca_path, today="2026-08-12")
+    slip = ledger.recorded_acca("2026-08-12", acca_path)
+    assert slip["offered_odds"] is None

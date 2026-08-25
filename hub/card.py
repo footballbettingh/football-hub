@@ -55,9 +55,6 @@ def build(progress=print, weight=None, devig_method=None):
     table.to_csv(cf_config.PICKS_CSV, index=False, float_format="%.5f")
 
     payload = to_payload(table, fixtures, reliability, calibrators)
-    PICKS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    PICKS_JSON.write_text(json.dumps(payload), encoding="utf-8")
-    progress(f"Priced {len(table):,} selections -> {PICKS_JSON}")
 
     # Write the day's pick down before the match, and grade any earlier ones
     # the results have caught up with. Both are no-ops when there is nothing
@@ -77,10 +74,150 @@ def build(progress=print, weight=None, devig_method=None):
         progress(f"Recorded today's {slip['legs']}-leg accumulator: "
                  f"{slip['probability']:.1%} at {slip['fair_odds']:.2f}")
 
+    # And then show what the ledger says, not what was just priced. Everything
+    # above is a fresh opinion about days that mostly already have one.
+    for changed in _apply_ledger(payload, table):
+        progress(f"Showing the recorded {changed['band']} pick for "
+                 f"{changed['day']} ({changed['recorded']}) instead of today's "
+                 f"re-priced {changed['repriced']}")
+    swapped = _apply_acca_ledger(payload)
+    if swapped:
+        progress(f"Showing the accumulator recorded at {swapped['at']} rather "
+                 f"than today's re-priced one")
+        progress(f"  recorded:  {swapped['recorded']}")
+        progress(f"  re-priced: {swapped['repriced']}")
+
+    PICKS_JSON.parent.mkdir(parents=True, exist_ok=True)
+    PICKS_JSON.write_text(json.dumps(payload), encoding="utf-8")
+    progress(f"Priced {len(table):,} selections -> {PICKS_JSON}")
+
     graded = ledger.settle(history) + ledger.settle_accas(history)
     if graded:
         progress(f"Settled {graded} earlier bet(s) against new results")
     return payload
+
+
+def _new_team_flags(table):
+    """Which fixtures on the card involve a team the model does not know.
+
+    Deliberately not a ledger column: it is a fact about today's fit, not about
+    the bet, and a club that was new in August is not new in March. So it is
+    looked up again here rather than frozen with the rest of the row.
+    """
+    if table is None or getattr(table, "empty", True) or "new_team" not in table:
+        return {}
+    rows = table.drop_duplicates(subset=["date", "home", "away"])
+    return {(str(row.date)[:10], row.home, row.away): bool(row.new_team)
+            for row in rows.itertuples()}
+
+
+def _apply_ledger(payload, table=None, path=None):
+    """Replace every pick on the slate that has already been written down.
+
+    The card looks three match days ahead and is rebuilt every morning, so all
+    but the newest day on it was recorded one or two builds ago. Re-pricing
+    those days is not wrong — new results and moved lines genuinely change the
+    answer — but showing the new answer is, because the ledger keeps the old
+    one and the ledger is what gets graded. Left alone, the front page named
+    one bet and the History page named another for the same day, which is
+    exactly the thing this site claims not to do.
+
+    Returns the list of days where the two disagreed, for the job log.
+    """
+    slate = payload.get("slate") or []
+    if not slate:
+        return []
+
+    days = list(dict.fromkeys(pick["day"] for pick in slate))
+    recorded = ledger.recorded_slate(days, path or ledger.LEDGER_CSV)
+    if not recorded:
+        return []
+
+    fresh = {(pick["day"], pick["band"]): pick for pick in slate}
+    new_teams = _new_team_flags(table)
+    # Config order first, then anything the ledger holds under a band this
+    # installation no longer defines — a renamed band must not drop a recorded
+    # pick off the page while it is still waiting to be graded.
+    bands = list(cf_config.BAND_ORDER)
+    bands += sorted({band for _, band in list(fresh) + list(recorded)} - set(bands))
+
+    merged, changed = [], []
+    for day in days:
+        for band in bands:
+            key = (day, band)
+            pick = recorded.get(key)
+            if pick is None:
+                if key in fresh:
+                    merged.append(fresh[key])
+                continue
+            if key in fresh:
+                # How many qualified in this band is a fact about the day, not
+                # about the pick, so today's count is the honest one to quote.
+                # Absent where the band has nothing on the card any more: the
+                # record still stands, the count does not.
+                pick["candidates"] = fresh[key].get("candidates")
+                repriced = (fresh[key].get("key"), fresh[key].get("match"))
+                if repriced != (pick["key"], pick["match"]):
+                    changed.append({
+                        "day": day, "band": band,
+                        "recorded": f"{pick['match']} — {pick['selection']}",
+                        "repriced": f"{fresh[key]['match']} — "
+                                    f"{fresh[key]['selection']}"})
+            flag = new_teams.get((day, pick.get("home"), pick.get("away")))
+            if flag is not None:
+                pick["new_team"] = flag
+            merged.append(pick)
+
+    payload["slate"] = _plain(merged)
+    payload["best_pick"] = next(
+        (pick for pick in payload["slate"] if pick["band"] == "main"), None)
+    return changed
+
+
+def _acca_legs(acca):
+    """What makes two slips the same bet: which legs are on it.
+
+    Prices and probabilities move a little between builds and that is not a
+    different accumulator. A leg swapped for another one is.
+    """
+    return sorted((leg.get("match"), leg.get("key"))
+                  for leg in acca.get("selections") or [])
+
+
+def _acca_line(acca):
+    """One slip on one line, for the job log."""
+    return " + ".join(f"{leg.get('match')}: {leg.get('selection')}"
+                      for leg in acca.get("selections") or [])
+
+
+def _apply_acca_ledger(payload, path=None):
+    """Show the slip that was written down, where one already has been.
+
+    Only the default leg count is ever recorded — `record_acca` is handed that
+    one alone — so only that one is replaced. The other sizes stay live, and
+    the page says so rather than letting them pass as part of the record.
+
+    Returns what the two disagreed about, for the job log, or None.
+    """
+    accas = payload.get("accumulators") or {}
+    recorded = ledger.recorded_acca(path=path or ledger.ACCA_CSV)
+    if not recorded:
+        return None
+
+    # Filed under the leg count it was actually recorded at, and selected. If
+    # ACCA_LEGS changed after a slip was written down, the recorded one is
+    # still the bet that will be graded, so it is still the one to show.
+    key = str(int(recorded["legs"]))
+    fresh = accas.get(key)
+    accas[key] = _plain(recorded)
+    payload["accumulators"] = accas
+    payload["acca_default"] = key
+
+    if fresh and _acca_legs(fresh) != _acca_legs(recorded):
+        return {"at": recorded.get("recorded_at"),
+                "recorded": _acca_line(recorded),
+                "repriced": _acca_line(fresh)}
+    return None
 
 
 def _plain(value, digits=5):
