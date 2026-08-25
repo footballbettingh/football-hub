@@ -40,6 +40,7 @@ PRICED = {
     "1x2_home": "home_odds", "1x2_draw": "draw_odds", "1x2_away": "away_odds",
     "ou2.5_over": "over25_odds", "ou2.5_under": "under25_odds",
     "ou1.5_over": "over15_odds", "ou1.5_under": "under15_odds",
+    "ou3.5_over": "over35_odds", "ou3.5_under": "under35_odds",
 }
 
 

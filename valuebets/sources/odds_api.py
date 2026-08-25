@@ -135,8 +135,18 @@ def list_sports(client=None):
 
 
 def fetch_odds(sport_key, regions="eu,uk", markets="h2h,totals", price_method="best",
-               totals_lines=(2.5, 1.5), client=None):
-    """Current odds for upcoming matches. Costs [markets] x [regions] credits."""
+               totals_lines=(2.5, 1.5, 3.5), client=None):
+    """Current odds for upcoming matches. Costs [markets] x [regions] credits.
+
+    `totals_lines` costs nothing to extend. One `totals` request returns every
+    line the bookmakers are quoting, and the price is paid per market rather
+    than per line, so the only question is which of them we bother to read.
+    Measured over 1,122 events of raw responses on disk: 2.5 is quoted on 88%
+    of fixtures, 3.5 on 19.5%, 1.5 on 7.2%. The model prices 0.5, 1.5, 2.5,
+    3.5 and 4.5; of those, 0.5 and 4.5 are never quoted, so these three are all
+    there is to take. 3.5 was being discarded despite being quoted more than
+    twice as often as the 1.5 line that was not.
+    """
     config.require("ODDS_API_KEY")
     config.ensure_dirs()
     client = client or Client()
