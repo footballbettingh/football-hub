@@ -41,3 +41,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-08-27,safe,2026-08-25T10:13:47,PD,La Liga,barcelona,athletic bilbao,Barcelona v Athletic Bilbao,corners7.5_over,corners,Over 7.5 corners,0.76783,1.30237,,0.77359,15459,,,,pending,,
 2026-08-27,main,2026-08-25T10:13:47,PD,La Liga,barcelona,athletic bilbao,Barcelona v Athletic Bilbao,ou2.5_over,ou,Over 2.5 goals,0.61224,1.63335,1.50000,0.65849,36216,,,,pending,,
 2026-08-27,value,2026-08-25T10:13:47,PD,La Liga,celta,osasuna,Celta Vigo v CA Osasuna,tt1.5_home_over,tt,Home team over 1.5 goals,0.42482,2.35392,,0.43343,24837,,,,pending,,
+2026-08-28,safe,2026-08-25T21:31:19,BL2,2. Bundesliga,braunschweig,hertha,Eintracht Braunschweig v Hertha Berlin,corners7.5_over,corners,Over 7.5 corners,0.76594,1.30558,,0.77361,15460,,,,pending,,
+2026-08-28,main,2026-08-25T21:31:19,BL2,2. Bundesliga,bochum,osnabruck,VfL Bochum v VfL Osnabrück,corners9.5_over,corners,Over 9.5 corners,0.61758,1.61922,,0.64985,47600,,,,pending,,
+2026-08-28,value,2026-08-25T21:31:19,ARG-LIGAPROF,Liga Profesional,huracan,estudiantes rio cuarto,Atlético Huracán v Estudiantes de Río Cuarto,tt1.5_home_over,tt,Home team over 1.5 goals,0.45388,2.20323,,0.47579,18073,,,,pending,,
