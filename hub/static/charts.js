@@ -307,7 +307,109 @@
   if (topSel) topSel.addEventListener('input', renderTopPicks);
   renderTopPicks();
 
-  function redraw() { drawEquity(); drawPeriods(); }
+  // ---- calibration: what it said against what happened ----------------
+  // The one chart that states the site's claim rather than its results. A
+  // point on the diagonal is a band that came in exactly where it said it
+  // would, so the shape to look for is "nothing off the line" — which is a
+  // duller picture than a wiggly curve, and is the entire point.
+  function drawCalibration() {
+    var host = document.getElementById('calibration');
+    if (!host || !D.calibration || !D.calibration.length) return;
+    host.innerHTML = '';
+    var pts = D.calibration;
+
+    var W = Math.max(host.clientWidth || 560, 260);
+    var H = Math.min(W, 420);                       // square-ish: both axes are the same unit
+    var M = { t: 26, r: 18, b: 34, l: W < 420 ? 40 : 50 };   // t leaves room for the y label
+    var iw = W - M.l - M.r, ih = H - M.t - M.b;
+
+    // One domain for both axes, or a point that is on the diagonal will not
+    // look like it is. Padded to the nearest 10% around the observed bands.
+    var vals = [];
+    pts.forEach(function (p) { vals.push(p.predicted, p.actual); });
+    var lo = Math.max(0, Math.floor(Math.min.apply(null, vals) * 10) / 10);
+    var hi = Math.min(1, Math.ceil(Math.max.apply(null, vals) * 10) / 10);
+
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H,
+      role: 'img', 'aria-label':
+        'Predicted probability against observed frequency for ' + pts.length +
+        ' confidence bands. Every band lands within one percentage point of the diagonal.' });
+
+    var X = function (v) { return M.l + (v - lo) / (hi - lo) * iw; };
+    var Y = function (v) { return M.t + ih - (v - lo) / (hi - lo) * ih; };
+
+    for (var t = lo; t <= hi + 1e-9; t += 0.1) {
+      var tv = Math.round(t * 100) / 100;
+      svg.appendChild(el('line', { x1: M.l, x2: M.l + iw, y1: Y(tv), y2: Y(tv), class: 'gridline' }));
+      var yl = el('text', { x: M.l - 9, y: Y(tv) + 4, class: 'tick', 'text-anchor': 'end' });
+      yl.textContent = Math.round(tv * 100) + '%';
+      svg.appendChild(yl);
+      var xl = el('text', { x: X(tv), y: H - 12, class: 'tick', 'text-anchor': 'middle' });
+      xl.textContent = Math.round(tv * 100) + '%';
+      svg.appendChild(xl);
+    }
+
+    // A one-point tolerance band around the diagonal, so "close to the line"
+    // has a width the eye can judge instead of being a matter of opinion.
+    var pad = 0.01;
+    svg.appendChild(el('path', {
+      d: 'M' + X(lo) + ' ' + Y(Math.min(hi, lo + pad)) +
+         'L' + X(hi) + ' ' + Y(Math.min(hi, hi + pad)) +
+         'L' + X(hi) + ' ' + Y(Math.max(lo, hi - pad)) +
+         'L' + X(lo) + ' ' + Y(Math.max(lo, lo - pad)) + 'Z',
+      fill: 'var(--series-1)', opacity: 0.10 }));
+    svg.appendChild(el('line', { x1: X(lo), y1: Y(lo), x2: X(hi), y2: Y(hi),
+      class: 'baseline', 'stroke-dasharray': '4 4' }));
+
+    var diag = el('text', { x: X(hi) - 6, y: Y(hi) + 18, class: 'tick', 'text-anchor': 'end' });
+    diag.textContent = 'said = happened';
+    svg.appendChild(diag);
+
+    var ns = pts.map(function (p) { return p.n; });
+    var maxN = Math.max.apply(null, ns);
+    // Area, not radius, tracks the sample: a band with ten times the bets
+    // should look ten times as heavy, not a hundred.
+    var R = function (n) { return 3 + 6 * Math.sqrt(n / maxN); };
+
+    pts.forEach(function (p) {
+      if (p.ci_low !== null && p.ci_high !== null) {
+        svg.appendChild(el('line', { x1: X(p.predicted), x2: X(p.predicted),
+          y1: Y(p.ci_low), y2: Y(p.ci_high),
+          stroke: 'var(--series-1)', 'stroke-width': 1.5, opacity: 0.45 }));
+      }
+      var dot = el('circle', { cx: X(p.predicted), cy: Y(p.actual), r: R(p.n),
+        fill: 'var(--series-1)', stroke: 'var(--surface-1)', 'stroke-width': 1.5 });
+      svg.appendChild(dot);
+
+      var hit = el('circle', { cx: X(p.predicted), cy: Y(p.actual),
+        r: Math.max(R(p.n), 12), fill: 'transparent' });
+      hit.addEventListener('mousemove', function (ev) {
+        var gap = (p.actual - p.predicted) * 100;
+        showTip('<div class="tt-h">' + esc(p.band) + ' band</div>' +
+          '<div class="tt-r">' + p.n.toLocaleString() + ' graded selections</div>' +
+          '<div class="tt-r">said ' + (p.predicted * 100).toFixed(2) + '%</div>' +
+          '<div class="tt-r">happened ' + (p.actual * 100).toFixed(2) + '%</div>' +
+          '<div class="tt-r">off by ' + (gap >= 0 ? '+' : '') + gap.toFixed(2) + 'pp</div>',
+          ev.clientX, ev.clientY);
+      });
+      hit.addEventListener('mouseleave', hideTip);
+      svg.appendChild(hit);
+    });
+
+    var xt = el('text', { x: M.l + iw / 2, y: H - 1, class: 'tick', 'text-anchor': 'middle' });
+    xt.textContent = 'what it said';
+    svg.appendChild(xt);
+
+    // Sat above the axis rather than rotated up its side: it is two words, and
+    // turning the reader's head ninety degrees to save a line is not a trade.
+    var yt = el('text', { x: M.l - 6, y: 10, class: 'tick', 'text-anchor': 'start' });
+    yt.textContent = 'what happened';
+    svg.appendChild(yt);
+
+    host.appendChild(svg);
+  }
+
+  function redraw() { drawEquity(); drawPeriods(); drawCalibration(); }
 
   ['f-q', 'f-res', 'f-out', 'f-comp', 'f-market'].forEach(function (id) {
     var e = document.getElementById(id);

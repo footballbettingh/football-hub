@@ -162,31 +162,39 @@ def _record_line(ledger_summary):
 
 
 def format_picks(payload, ledger_summary=None, full=False):
-    """The pick, in three lines.
+    """The pick, in four lines — one fact to a line.
 
     `payload` is picks.json as written by `fb.py card`.
 
-    Three lines is the whole design. A notification is read on a lock screen
-    and answers one question — what is the bet — so the band, the reliability
-    footnote, the other two bands and the accumulator all belong on the page
-    that has room for them. `full=True` restores them for anyone who wants the
-    long version.
+    That shape is the whole design. A notification is read on a lock screen and
+    answers one question — what is the bet — so the confidence, the price, the
+    band, the reliability footnote, the other two bands and the accumulator all
+    belong on the page that has room for them. `full=True` restores them,
+    unchanged, for anyone who wants the long version.
     """
     if not payload or not payload.get("best_pick"):
         return ("<b>No best pick today</b> — nothing on the next match day "
                 "priced into the best-pick band.")
 
     best = payload["best_pick"]
+    match = _e(best.get("match", "?"))
+    competition = _e(best.get("competition_name") or best.get("competition", "?"))
+    selection = _e(best.get("selection", "?"))
+
+    if not full:
+        return "\n".join([
+            "⚽ <b>Best pick of the day</b>",
+            f"📅 {_e(best.get('day', ''))}  ·  🏆 {competition}",
+            f"🆚 <b>{match}</b>",
+            f"🎯 <b>{selection}</b>",
+        ])
+
     lines = [
         f"⚽ <b>Best pick of the day</b> · {_e(best.get('day', ''))}",
-        f"<b>{_e(best.get('match', '?'))}</b> — "
-        f"{_e(best.get('competition_name') or best.get('competition', '?'))}",
-        f"<b>{_e(best.get('selection', '?'))}</b> — Confidence "
+        f"<b>{match}</b> — {competition}",
+        f"<b>{selection}</b> — Confidence "
         f"<b>{best.get('prob', 0):.1%}</b> · {_price(best)}",
     ]
-    if not full:
-        return "\n".join(lines)
-
     low, high = payload.get("best_band", [1.6, 2.2])
     lines.insert(2, f"<i>band {low:g}–{high:g}</i>")
     if best.get("hit_rate") is not None:

@@ -19,41 +19,59 @@ Then double-click **`start.bat`**, or:
 python fb.py serve
 ```
 
-That opens <http://127.0.0.1:8756/> and everything else is buttons.
+That opens <http://127.0.0.1:8756/>. The site only reads: every page renders
+files that are already on disk, and nothing on a page rebuilds anything. The
+jobs that write those files are the commands below, run from a terminal where
+their output and their exit code are in front of you.
 
-## What the buttons do
+## The commands
 
 The site never computes anything on a page load. It reads files, and each file
-has a job that rebuilds it. The strip at the top of every page shows how old each
-one is, and turns amber when something is *behind* what it was built from — you
-fetched new prices but did not re-price the card, which is the mistake that
-actually happens.
+has a command that rebuilds it. Run them from the project root; every one is
+safe to re-run, and every one prints what it did.
 
-| Button | Rebuilds | Takes | Costs |
+| Command | Rebuilds | Takes | Costs |
 |---|---|---|---|
-| Refresh the card | the card | ~20 s | — |
-| Check available leagues | the league plan | ~5 s | **free** — it only asks |
-| Fetch new prices | fixture prices | ~10 s per league | **Odds API credits, ~4 per league** |
-| Fetch new results | match history | 2–5 min | free |
-| Recalibrate | calibrators + reliability record | ~2 min | — |
-| Rebuild the model | walk-forward predictions | 6–8 min | — |
-| Rebuild the evidence | the value-betting backtest | 5–15 min | — |
-| Full refresh | results → model → calibration → card | 8–12 min | — |
+| `python fb.py fetch results` | match history and closing odds | 1–3 min | free, no API key |
+| `python fb.py fetch leagues` | the league plan | ~5 s | **free** — it only asks what is in season |
+| `python fb.py fetch odds` | fixture prices | ~10 s per league | **Odds API credits, ~4 per league** |
+| `python fb.py model` | walk-forward predictions | 6–8 min | — |
+| `python fb.py calibrate` | calibrators + the reliability record | ~2 min | — |
+| `python fb.py card` | the card, the slate and the two headline picks | ~20 s | — |
+| `python fb.py evidence` | the value-betting backtest and its insights | 5–15 min | — |
 
-Jobs run in the background with a live log, one at a time — they write the same
-CSVs, and concurrent runs fail in ways that look like modelling bugs rather than
-scheduling ones. The only button that spends anything is marked, and asks first.
+`fetch odds` is the only one that spends anything. Everything else reads what is
+already on disk, so the worst a mistaken re-run costs you is the time.
 
-Every button is also a command, for scheduling:
+They depend on each other in that order. New results are worth nothing until the
+model has walked forward over them, the model is worth nothing until the
+calibrators have been refitted, and the card is priced from both. Running one
+without the ones above it is the mistake that actually happens, and it shows up
+as a page quoting numbers built from something older than it claims.
+
+The whole chain, in order, without the prices:
 
 ```bash
-python fb.py fetch leagues
-python fb.py fetch results
-python fb.py model
-python fb.py calibrate
-python fb.py card
-python fb.py best
+python fb.py run --no-odds --no-notify
 ```
+
+### Reading what is already there
+
+These compute nothing and write nothing. They print to the terminal.
+
+| Command | Shows |
+|---|---|
+| `python fb.py best` | the day's pick and the accumulator pick, from the card on disk |
+| `python fb.py history` | the daily pick's record and running P&L |
+| `python fb.py evaluate` | the reliability tables, per market and against the closing line |
+| `python fb.py sweep` | the market-fusion weight, 0 (model alone) to 1 (line alone) |
+
+### Looking at it
+
+| Command | Does |
+|---|---|
+| `python fb.py serve` | the local site on <http://127.0.0.1:8756/>; `--port N`, `--no-open` |
+| `python fb.py export` | the same seven pages as static files under `site/` |
 
 The server loads the code once at startup, so after editing anything under
 `hub/`, `confidence/` or `valuebets/` you need to restart it. Editing
@@ -66,10 +84,10 @@ in the URL, so a reload picks the new file up.
 python fb.py run
 ```
 
-Results, prices, model, calibration, card, Telegram — the same order the **Full
-refresh** button uses, with prices in front of it, because the card takes its
-fixture list from the price files and without a fetch the upcoming matches
-eventually all kick off.
+Results, prices, model, calibration, card, Telegram — the whole chain above in
+one command, with prices in front of it, because the card takes its fixture list
+from the price files and without a fetch the upcoming matches eventually all
+kick off.
 
 Each stage is independently survivable: a provider having a bad afternoon logs a
 line and the run carries on with yesterday's copy of that data. Only the card is
@@ -86,12 +104,43 @@ run exits 0 either way and ends with a tally of what it skipped.
 | `--no-notify` | rebuild only, send nothing |
 | `--only-if-changed` | stay quiet unless the pick itself changed |
 
-**The Odds API free tier is the binding constraint**, and `--odds-every` is what
-keeps a daily run inside it. 31 tracked leagues at 4 credits each is ~124 credits
-a fetch against 500 a month: every seventh day would be 539, every eighth is 471.
+### API credit usage
+
+Only one thing in this project costs anything: fetching bookmaker prices from
+The Odds API. Results, the model, the calibrators, the card and the backtest are
+all free and local.
+
+| | Credits |
+|---|---|
+| One league, one fetch | 4 |
+| 31 tracked leagues, one fetch | ~124 |
+| Free tier | 500 per month |
+| Fetches that fit | 4 |
+
+**The free tier is the binding constraint**, and `--odds-every` is what keeps a
+daily run inside it. At every seventh day a year of runs would want 539 credits
+a month; every eighth day wants 471. That is the whole reason the default is 8.
+
 The price files reach about twelve days ahead, so an eight-day threshold still
 leaves the card several days of fixtures at its thinnest. A run that finds fresh
-prices spends nothing and re-prices the card against the new results anyway.
+prices spends nothing and re-prices the card against the new results anyway, so
+the card keeps improving on days no credit is spent.
+
+Three ways to spend nothing at all:
+
+```bash
+python fb.py run --no-odds        # this run fetches no prices
+python fb.py run --odds-every 30  # only if the ones on file are a month old
+python fb.py fetch leagues        # asks what is in season; always free
+```
+
+And one way to spend deliberately: `--odds-every 0` forces a fetch regardless of
+how fresh the files are. `python fb.py fetch odds --sports a,b,c` fetches a named
+subset, at 4 credits each, which is how you price one league without paying for
+thirty-one.
+
+Usage and remaining balance are on your Odds API dashboard; this project does not
+track them, so `--odds-every` is a guard rather than a guarantee.
 
 ### Telegram
 
@@ -111,11 +160,12 @@ python fb.py telegram --test       # sends one test message
 python fb.py notify --dry-run      # shows the real message, sends nothing
 ```
 
-The message is three lines — the day, the fixture and league, the selection with
-its confidence and price. It is read on a lock screen and answers one question,
-so the band, the reliability footnote, the other two bands, the accumulator and
-the ledger's record all stay on the page that has room for them; `--full` sends
-that longer version instead. Several destinations: comma-separate the ids.
+The message is four lines, one fact to a line — the day and the league, the
+fixture, the bet. It is read on a lock screen and answers one question, so the
+confidence, the price, the band, the reliability footnote, the other two bands,
+the accumulator and the ledger's record all stay on the page that has room for
+them; `--full` sends that longer version instead. Several destinations:
+comma-separate the ids.
 
 Without credentials the run reports the notification as *unconfigured* and still
 rebuilds everything; it never fails the refresh. "The same pick as last time" is
@@ -305,10 +355,11 @@ the page.
 python fb.py export
 ```
 
-writes the same five pages as static files under `site/`, with relative links and
-no buttons — a snapshot, honestly labelled as one. Both modes call the same page
+writes the same seven pages as static files under `site/`, with relative links,
+self-hosted fonts, a sitemap and a robots.txt. Both modes call the same page
 builders with a different `Links`, which is what stops the two from drifting
-apart.
+apart — the only difference is that one serves `/card` and the other
+`card.html`.
 
 `.github/workflows/daily.yml` runs that, and everything before it, on GitHub
 Actions at **09:00 UTC** daily — the same `fb.py run` a laptop would call — then
@@ -353,25 +404,24 @@ card.
 fb.py                    one CLI for both halves
 start.bat                double-click to run the site
 hub/                     the part you look at
-  server.py              stdlib HTTP server: 5 pages, 3 endpoints, localhost only
-  jobs.py                background runner with a live log
+  server.py              stdlib HTTP server: 7 pages, GET only, localhost only
   artifacts.py           what exists on disk, and how stale it is
-  pipeline.py            fetch / model / calibrate, callable from CLI and buttons
+  pipeline.py            fetch / model / calibrate, called by the CLI
   card.py                fixtures -> picks.json
   evidence.py            the value backtest -> evidence.json
   leagues.py             readable names, and which leagues a feed can reach
   ledger.py              the daily pick, written down and later graded
-  pages.py               the five page builders
-  components.py          layout, tables, the control strip
-  export.py              the same pages as static files
+  pages.py               the seven page builders
+  components.py          layout, tables, the page shell
+  export.py              the same pages as static files, plus sitemap and robots
   notify.py              the day's pick, pushed to Telegram after a run
-  static/                style.css, charts.js, hub.js — real files, copied verbatim
+  static/                style.css, fonts.css, charts.js, hub.js, fonts/
 confidence/              calibrated probabilities (the card)
 valuebets/               value betting (the evidence)
 scripts/                 Windows scheduler, for running it locally instead
 .github/workflows/       the daily cloud run: refresh, notify, publish
 data/                    everything fetched and derived, gitignored
-tests/                   203 tests
+tests/                   224 tests
 ```
 
 `confidence` and `valuebets` are unchanged from the two projects this was merged

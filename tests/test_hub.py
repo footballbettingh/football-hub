@@ -12,7 +12,7 @@ import time
 import pandas as pd
 import pytest
 
-from hub import artifacts, card, components as c, export, jobs, leagues, pages
+from hub import artifacts, card, components as c, export, leagues, pages
 
 
 # -- league names ----------------------------------------------------------
@@ -145,38 +145,6 @@ def _fake_status(stale=False, missing=False):
              "stale_after": ["Upcoming fixture prices"] if stale else []}]
 
 
-def _fake_jobs():
-    return [jobs.Job("a", "Cheap thing", "does a thing", lambda progress: None, "~1s"),
-            jobs.Job("b", "Costly thing", "spends money", lambda progress: None,
-                     "~1s", cost="spends credits")]
-
-
-def test_static_control_strip_has_no_buttons():
-    """A button that cannot do anything is worse than no button."""
-    html = c.control_strip(c.Links("static"), _fake_status(), _fake_jobs())
-    assert "<button" not in html
-    assert "Snapshot" in html
-
-
-def test_server_control_strip_flags_what_costs_money():
-    html = c.control_strip(c.Links("server"), _fake_status(), _fake_jobs())
-    assert html.count("<button") == 2
-    assert 'data-job="b"' in html
-    assert "danger" in html
-    assert "spends credits" in html
-
-
-def test_control_strip_shows_staleness_and_absence_differently():
-    fresh = c.control_strip(c.Links("server"), _fake_status(), [])
-    stale = c.control_strip(c.Links("server"), _fake_status(stale=True), [])
-    missing = c.control_strip(c.Links("server"), _fake_status(missing=True), [])
-    assert 'chip fresh' in fresh
-    assert "chip stale" in stale and "behind upcoming fixture prices" in stale
-    assert "chip missing" in missing and "never built" in missing
-
-
-# -- artifact freshness ----------------------------------------------------
-
 def test_an_artifact_older_than_what_it_was_built_from_is_stale(tmp_path):
     """The real mistake this catches: fetch new odds, forget to re-price, then
     read yesterday's card as if it were today's."""
@@ -223,82 +191,6 @@ def test_a_missing_artifact_is_reported_as_missing_not_stale(tmp_path):
 
 
 # -- the job runner --------------------------------------------------------
-
-def test_a_job_runs_and_its_output_reaches_the_log(tmp_path):
-    def work(progress):
-        print("printed by the library")
-        progress("reported directly")
-        return {"rows": 3}
-
-    runner = jobs.Runner([jobs.Job("w", "Work", "", work, "~1s")],
-                         status_path=tmp_path / "status.json")
-    ok, _ = runner.start("w")
-    assert ok
-    _wait(runner)
-
-    snapshot = runner.snapshot()
-    text = "\n".join(snapshot["lines"])
-    assert "printed by the library" in text
-    assert "reported directly" in text
-    assert snapshot["last"]["w"]["ok"] is True
-    assert snapshot["last"]["w"]["result"] == {"rows": 3}
-
-
-def test_a_failing_job_says_so_instead_of_hanging(tmp_path):
-    def boom(progress):
-        raise ValueError("no data")
-
-    runner = jobs.Runner([jobs.Job("b", "Boom", "", boom, "~1s")],
-                         status_path=tmp_path / "status.json")
-    runner.start("b")
-    _wait(runner)
-
-    snapshot = runner.snapshot()
-    assert snapshot["running"] is None          # the button must come back
-    assert snapshot["last"]["b"]["ok"] is False
-    assert "no data" in snapshot["last"]["b"]["error"]
-    assert any("ValueError" in line for line in snapshot["lines"])
-
-
-def test_two_jobs_cannot_run_at_once(tmp_path):
-    """They write the same CSVs. Concurrent runs fail in ways that look like
-    modelling bugs rather than scheduling ones."""
-    release = []
-
-    def slow(progress):
-        while not release:
-            time.sleep(0.01)
-
-    runner = jobs.Runner([jobs.Job("s", "Slow", "", slow, "~1s"),
-                          jobs.Job("t", "Other", "", lambda progress: None, "~1s")],
-                         status_path=tmp_path / "status.json")
-    runner.start("s")
-    ok, message = runner.start("t")
-    assert not ok and "Slow" in message
-    release.append(True)
-    _wait(runner)
-
-
-def test_unknown_job_is_refused(tmp_path):
-    runner = jobs.Runner([], status_path=tmp_path / "status.json")
-    ok, message = runner.start("drop-everything")
-    assert not ok and "Unknown job" in message
-
-
-def test_the_log_only_returns_lines_the_client_has_not_seen(tmp_path):
-    def chatty(progress):
-        for i in range(5):
-            progress(f"line {i}")
-
-    runner = jobs.Runner([jobs.Job("c", "Chatty", "", chatty, "~1s")],
-                         status_path=tmp_path / "status.json")
-    runner.start("c")
-    _wait(runner)
-
-    first = runner.snapshot(0)
-    assert len(first["lines"]) == first["next"]
-    assert runner.snapshot(first["next"])["lines"] == []
-
 
 def _wait(runner, timeout=5.0):
     deadline = time.time() + timeout
@@ -477,8 +369,12 @@ def test_the_landing_page_states_the_record_from_the_ledger():
          "key": "ou2.5_over", "issued": "2026-08-14T10:00:00"},
     ])
     html = pages.render("index", c.Links("static"), dict(EMPTY, ledger=frame))
-    assert "Settled record" in html
+    assert "Daily pick record" in html
     assert "1\u20131" in html or "1–1" in html
+    # Stated at its true size rather than as the headline figure: a
+    # handful of settled bets is not the claim this site rests on, and
+    # the strip is built to say so.
+    assert "and young" in html
 
 
 def test_the_landing_page_survives_having_nothing_to_show():

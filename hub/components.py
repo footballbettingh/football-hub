@@ -9,6 +9,7 @@ so there is no second copy of the markup to keep in step.
 
 import html
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -16,6 +17,21 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 # The identity sheet's wordmark, used wherever the site names itself.
 SITE_NAME = "Football Betting Hub"
+
+# Where the pages actually live once published. Canonical links and share cards
+# have to be absolute, and they have to point at the published address rather
+# than at whichever host is rendering them — a card scraped off localhost still
+# belongs to the Pages site. The default is the repository's Pages URL; set
+# SITE_URL to move the site behind a custom domain without touching this file.
+SITE_URL = os.environ.get(
+    "SITE_URL", "https://footballbettingh.github.io/football-hub").rstrip("/")
+
+SITE_TAGLINE = ("Calibrated football match probabilities, written down before "
+                "kick-off and graded afterwards.")
+
+# 512 square, so the share card is the small-summary kind. Claiming
+# `summary_large_image` with a square logo gets it letterboxed or cropped.
+OG_IMAGE = "og-image.png"
 
 PAGES = [
     ("index", "Home", "What this is, and what it has been worth"),
@@ -71,7 +87,7 @@ FAVICON_DATA_URI = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.o
 
 def brandmark(href):
     """The full lockup: mark plus the two-line wordmark."""
-    return (f'<a class="brand" href="{href}" aria-label="Football Betting Hub — home">'
+    return (f'<a class="brand" href="{href}" aria-label="Football Betting Hub, home">'
             f'{LOGOMARK}'
             '<span class="wordmark"><span class="w1">FOOTBALL</span>'
             '<span class="w2">BETTING HUB</span></span></a>')
@@ -89,21 +105,18 @@ def _asset_stamp(name):
 
 
 class Links:
-    """Where a page link points, and whether the action buttons exist at all.
+    """Where a page link points: `/fixtures` under the server, `fixtures.html`
+    on disk and on Pages.
 
-    A static export has no server to POST to, so the control strip is omitted
-    rather than rendered dead — a button that silently does nothing is worse
-    than no button.
+    The site is read-only. Nothing on a page rebuilds anything; every job that
+    writes an artifact is a command in the README, run from a terminal where
+    its output and its exit code are visible.
     """
 
-    def __init__(self, mode="server", control_html=""):
+    def __init__(self, mode="server"):
         if mode not in ("server", "static"):
             raise ValueError(f"unknown link mode {mode!r}")
         self.mode = mode
-        # The control strip belongs to the delivery mode, not to any one page,
-        # so it rides along here instead of being threaded through all five
-        # builders and forgotten in one of them.
-        self.control_html = control_html
 
     @property
     def interactive(self):
@@ -119,6 +132,11 @@ class Links:
             # No query string: a static export may be opened over file://,
             # where some browsers refuse a URL with one.
             return f"assets/{name}"
+        # Fonts are downloaded, never hand-edited, and the <link rel=preload>
+        # in the head has to ask for the byte-identical URL that fonts.css
+        # asks for — a stamp on one and not the other fetches the file twice.
+        if name.startswith("fonts/"):
+            return f"/assets/{name}"
         # Served assets carry the file's own timestamp, so editing the CSS and
         # reloading actually shows the new CSS. Without it the browser holds
         # the cached copy for an hour and the page looks unchanged — which
@@ -153,6 +171,13 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
                     + (f"<p>{subtitle}</p>" if subtitle else "")
                     + badge_html + "</div>")
 
+    # Both the tab and the share card. `subtitle` is the one-line description
+    # each builder already writes for the page header, so there is no second
+    # copy of the same sentence to drift out of step.
+    full_title = e(title) if title == SITE_NAME else f"{e(title)} · {SITE_NAME}"
+    description = e(subtitle) if subtitle else SITE_TAGLINE
+    canonical = f"{SITE_URL}/" if current == "index" else f"{SITE_URL}/{current}.html"
+
     data_script = ""
     if page_data is not None:
         # </script> inside a JSON string would end the block early; escaping the
@@ -163,13 +188,27 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{e(title) if title == SITE_NAME else f"{e(title)} — {SITE_NAME}"}</title>
-<meta name="description" content="{e(subtitle) if subtitle else 'Calibrated football match probabilities, written down before kick-off and graded afterwards.'}">
+<title>{full_title}</title>
+<meta name="description" content="{description}">
 <meta name="theme-color" content="#0d211c">
+<link rel="canonical" href="{canonical}">
 <link rel="icon" href="{FAVICON_DATA_URI}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{SITE_NAME}">
+<meta property="og:title" content="{full_title}">
+<meta property="og:description" content="{description}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:image" content="{SITE_URL}/assets/{OG_IMAGE}">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="The {SITE_NAME} mark: a filled 1 beside an outlined X and 2.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{full_title}">
+<meta name="twitter:description" content="{description}">
+<meta name="twitter:image" content="{SITE_URL}/assets/{OG_IMAGE}">
+<link rel="preload" href="{links.asset('fonts/space-grotesk-variable-latin.woff2')}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{links.asset('fonts/ibm-plex-mono-400-latin.woff2')}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{links.asset('fonts.css')}">
 <link rel="stylesheet" href="{links.asset('style.css')}">
 </head>
 <body>
@@ -181,7 +220,6 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
 </div></div>
 
 <div class="wrap">
-  {links.control_html}
   <main id="main">
   {pagehead}
   {body_html}
@@ -264,48 +302,3 @@ def next_links(links, items):
 def empty(message, hint=""):
     hint_html = f'<div class="hint">{e(hint)}</div>' if hint else ""
     return f'<div class="card"><div class="empty">{e(message)}{hint_html}</div></div>'
-
-
-# -- the control strip -----------------------------------------------------
-
-def control_strip(links, status_rows, jobs, busy=None):
-    """Freshness of every artifact, plus the buttons that rebuild them.
-
-    Static exports get a plain freshness line instead: the data is a snapshot
-    of whenever the export ran, and pretending otherwise would be a lie the
-    page cannot back up.
-    """
-    chips = []
-    for row in status_rows:
-        if not row["exists"]:
-            state, detail = "missing", "never built"
-        elif row["stale_after"]:
-            state, detail = "stale", f"behind {row['stale_after'][0].lower()}"
-        else:
-            state, detail = "fresh", row["age"]
-        chips.append(
-            f'<div class="chip {state}"><span class="k">{e(row["label"])}</span>'
-            f'<span class="v">{e(detail)}</span></div>')
-    chip_html = '<div class="chips">' + "".join(chips) + "</div>"
-
-    if not links.interactive:
-        return (f'<div class="control static">{chip_html}'
-                '<p class="note">Snapshot. Run the local server to rebuild anything.</p>'
-                "</div>")
-
-    buttons = []
-    for job in jobs:
-        note = job.cost or job.estimate
-        classes = "danger" if job.cost else ""
-        buttons.append(
-            f'<button class="run {classes}" data-job="{e(job.key)}" '
-            f'title="{e(job.description)}">{e(job.label)}'
-            f'<span class="est">{e(note)}</span></button>')
-
-    running = f'<div class="running" id="job-running">{e(busy)}</div>' if busy else ""
-    return f"""<div class="control" id="control">
-  {chip_html}
-  <div class="actions">{''.join(buttons)}</div>
-  {running}
-  <pre class="joblog" id="joblog" hidden></pre>
-</div>"""

@@ -1,9 +1,9 @@
-/* Interactive behaviour: the control strip, the card, the fixture list.
+/* Interactive behaviour: the card, the fixture list, the reliability table.
  *
  * Plain ES5 in an IIFE, same as charts.js — no build step, and the file works
- * unchanged whether it is served by the local server or opened from disk. The
- * only difference between those two worlds is whether #control exists; every
- * data-driven part below reads window.__PAGE__ and does not care.
+ * unchanged whether it is served by the local server or opened from disk.
+ * Everything below reads window.__PAGE__ and nothing talks to the server, so
+ * the two worlds behave identically.
  */
 (function () {
   var D = window.__PAGE__ || {};
@@ -14,72 +14,36 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
     });
   }
-  function pct(v, d) { return v === null || v === undefined ? '—' : (v * 100).toFixed(d === undefined ? 1 : d) + '%'; }
-  function num(v, d) { return v === null || v === undefined ? '—' : v.toFixed(d === undefined ? 2 : d); }
+  // The mark for "no number here", matching NONE in pages.py. An en-dash, not
+  // a hyphen: the Edge column carries signed values, so a hyphen here would be
+  // the same glyph as the minus in the row above it.
+  function pct(v, d) { return v === null || v === undefined ? '–' : (v * 100).toFixed(d === undefined ? 1 : d) + '%'; }
+  function num(v, d) { return v === null || v === undefined ? '–' : v.toFixed(d === undefined ? 2 : d); }
 
-  // ---- control strip ---------------------------------------------------
-  (function control() {
-    var root = $('control');
-    if (!root) return;
-    var log = $('joblog'), running = $('job-running');
-    var buttons = [].slice.call(root.querySelectorAll('button.run'));
-    var cursor = 0, timer = null, wasRunning = null;
+  // ---- unpacking the card ----------------------------------------------
+  // The card arrives as arrays against a column list, with the strings that
+  // repeat sent once and referenced by index — see `_card_payload` in
+  // pages.py for why. Everything downstream wants the row objects it has
+  // always had, so they get rebuilt here, once, and nothing else changes.
+  (function expandCard() {
+    var card = D.card;
+    if (!card || !card.columns || !card.rows) return;
+    var cols = card.columns, tables = card.tables || {}, comps = card.competitions || {};
+    var flag = {};
+    (card.flags || []).forEach(function (name) { flag[name] = 1; });
 
-    function setBusy(job) {
-      buttons.forEach(function (b) { b.disabled = !!job; });
-      if (!running) return;
-      running.innerHTML = job
-        ? '<span class="dot"></span>' + esc(job) + ' — running. You can leave this page open.'
-        : '';
-    }
-
-    function appendLines(lines) {
-      if (!lines.length) return;
-      if (log.hidden) log.hidden = false;
-      lines.forEach(function (line) {
-        var span = document.createElement('span');
-        if (line.indexOf('!!!') === 0) span.className = 'bad';
-        span.textContent = line + '\n';
-        log.appendChild(span);
-      });
-      log.scrollTop = log.scrollHeight;
-    }
-
-    function poll() {
-      fetch('/api/status?since=' + cursor).then(function (r) { return r.json(); })
-        .then(function (s) {
-          cursor = s.next;
-          appendLines(s.lines || []);
-          setBusy(s.label);
-          if (wasRunning && !s.running) {
-            // The artifacts on disk just changed; the page is now stale.
-            appendLines(['=== reloading the page with the new data']);
-            setTimeout(function () { location.reload(); }, 900);
-            return;
-          }
-          wasRunning = s.running;
-          timer = setTimeout(poll, s.running ? 900 : 4000);
-        })
-        .catch(function () { timer = setTimeout(poll, 5000); });
-    }
-
-    buttons.forEach(function (button) {
-      button.addEventListener('click', function () {
-        var job = button.getAttribute('data-job');
-        var cost = button.classList.contains('danger');
-        if (cost && !confirm(button.textContent.trim() + '\n\nThis spends real API '
-            + 'credits. Continue?')) return;
-        setBusy(button.textContent);
-        fetch('/api/run/' + job, { method: 'POST' })
-          .then(function (r) { return r.json(); })
-          .then(function (res) {
-            if (!res.ok) appendLines(['!!! ' + res.message]);
-            clearTimeout(timer);
-            poll();
-          });
-      });
+    card.rows = card.rows.map(function (packed) {
+      var row = {};
+      for (var i = 0; i < cols.length; i++) {
+        var name = cols[i], value = packed[i];
+        if (tables[name]) value = tables[name][value];
+        else if (flag[name]) value = !!value;
+        row[name] = value === undefined ? null : value;
+      }
+      // Carried by the competition code rather than repeated on every row.
+      row.competition_name = comps[row.competition] || row.competition;
+      return row;
     });
-    poll();
   })();
 
   // ---- the card --------------------------------------------------------
@@ -133,10 +97,10 @@
       }
       body.innerHTML = list.map(function (r) {
         var key = r.match + '|' + r.key;
-        var edge = r.edge === null ? '—'
+        var edge = r.edge === null ? '–'
           : '<span style="color:' + (r.edge > 0 ? 'var(--pos)' : 'var(--neg)') + '">'
             + (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + '%</span>';
-        var band = r.hit_rate === null ? '—'
+        var band = r.hit_rate === null ? '–'
           : pct(r.hit_rate) + ' <span class="tag">n=' + (r.hit_rate_n || 0).toLocaleString() + '</span>';
         var flags = (r.new_team ? '<span class="tag warn">new team</span>' : '')
           + (r.validated ? '' : '<span class="tag warn">unverified</span>');
@@ -194,10 +158,10 @@
       });
 
       $('acca-legs').textContent = legs.length + ' leg' + (legs.length > 1 ? 's' : '') + ': '
-        + legs.map(function (l) { return l.match + ' — ' + l.selection; }).join('  •  ');
+        + legs.map(function (l) { return l.match + ' - ' + l.selection; }).join('  •  ');
       $('acca-prob').textContent = pct(probability);
       $('acca-fair').textContent = num(1 / probability);
-      $('acca-offered').textContent = haveOffered ? num(offered) : '—';
+      $('acca-offered').textContent = haveOffered ? num(offered) : '–';
 
       var warn = $('acca-warn');
       warn.hidden = !duplicate;
@@ -219,7 +183,11 @@
   (function accumulatorPick() {
     var body = $('acca-body');
     if (!body || !D.accumulators) return;
-    var select = $('acca-legs'), summary = $('acca-summary'), totals = $('acca-totals');
+    // `acca-size` on purpose, not `acca-legs`: the tray lower down the same
+    // page owns that id, and getElementById returns whichever comes first.
+    // While both were called it, ticking one pick wrote the slip summary into
+    // this <select>, wiping every option out of it until a reload.
+    var select = $('acca-size'), summary = $('acca-summary'), totals = $('acca-totals');
 
     function render() {
       var acca = D.accumulators[select.value];

@@ -1,43 +1,35 @@
-"""The local server: five pages and four endpoints, on the standard library.
+"""The local server: seven pages and their assets, on the standard library.
 
-No framework on purpose. This is one user on one machine looking at files that
-another thread rebuilds; Flask would add an install step and a dependency to
-keep current in exchange for routing that fits in forty lines.
+No framework on purpose. It reads the same artifacts the static export reads
+and renders the same pages from the same builders, so a page cannot look right
+here and be broken on Pages.
 
-It binds to 127.0.0.1 and nothing else. The pages expose buttons that spend API
-credits and rewrite the dataset, which is fine for a process only this machine
-can reach and would not be fine on a network.
+It serves GET only. Nothing here rebuilds anything: the jobs that write
+artifacts are CLI commands, listed in the README, run from a terminal where
+their output and their exit code are in front of you. It binds to 127.0.0.1
+because it is a way to look at local files, not a service.
 """
 
-import json
+import gzip
 import mimetypes
 import threading
 import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
-from . import artifacts, components, jobs, pages
+from . import components, pages
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 HOST = "127.0.0.1"
 PORT = 8756
+WOFF2 = "font/woff2"
 
 # Derived from the nav rather than written out again: a hand-kept second list
 # is how a page ends up in the menu and 404s when you click it.
 ROUTES = {components.Links("server").href(page): page
           for page, _, _ in components.PAGES}
-
-
-def _links():
-    """Server-mode links, with the control strip built from live status."""
-    links = components.Links("server")
-    runner = jobs.runner()
-    snapshot = runner.snapshot()
-    links.control_html = components.control_strip(
-        links, artifacts.status(), list(runner.jobs.values()), busy=snapshot["label"])
-    return links
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -46,13 +38,31 @@ class Handler(BaseHTTPRequestHandler):
     # -- plumbing ---------------------------------------------------------
 
     def log_message(self, fmt, *args):
-        """Silence the per-request log — the job log is the interesting one."""
+        """Silence the per-request log. Nothing here is worth a line."""
 
     def _send(self, body, content_type="text/html; charset=utf-8",
               status=HTTPStatus.OK, cache=False):
         if isinstance(body, str):
             body = body.encode("utf-8")
+
+        # GitHub Pages compresses what it serves, so a local page that does not
+        # is a page whose weight you cannot read off this server. The card is
+        # mostly one long JSON array and gives up about nine tenths of itself.
+        # Below a kilobyte the header costs more than the saving, and woff2 and
+        # png arrive compressed already — running them through gzip spends CPU
+        # to make them very slightly larger.
+        compressible = content_type.startswith(
+            ("text/", "application/json", "application/javascript",
+             "application/xml", "image/svg+xml"))
+        gzipped = (compressible and len(body) > 1024
+                   and "gzip" in self.headers.get("Accept-Encoding", ""))
+        if gzipped:
+            body = gzip.compress(body, compresslevel=6)
+
         self.send_response(status)
+        if gzipped:
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Vary", "Accept-Encoding")
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         # Pages reflect files that a job may have just rewritten, so they must
@@ -63,18 +73,14 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
-    def _json(self, payload, status=HTTPStatus.OK):
-        self._send(json.dumps(payload), "application/json; charset=utf-8", status)
-
     # -- routing ----------------------------------------------------------
 
     def do_GET(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
+        path = urlparse(self.path).path
 
         if path in ROUTES:
             try:
-                self._send(pages.render(ROUTES[path], _links()))
+                self._send(pages.render(ROUTES[path], components.Links("server")))
             except Exception as exc:                        # noqa: BLE001
                 # A broken artifact should explain itself in the browser rather
                 # than only in the terminal the user is not looking at.
@@ -84,12 +90,6 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/assets/"):
             return self._asset(path[len("/assets/"):])
 
-        if path == "/api/status":
-            since = int((parse_qs(parsed.query).get("since") or ["0"])[0])
-            snapshot = jobs.runner().snapshot(since)
-            snapshot["artifacts"] = artifacts.status()
-            return self._json(snapshot)
-
         if path == "/favicon.ico":
             return self._send(b"", "image/x-icon")
 
@@ -98,26 +98,15 @@ class Handler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self.do_GET()
 
-    def do_POST(self):
-        path = urlparse(self.path).path
-        if not path.startswith("/api/run/"):
-            return self._json({"ok": False, "message": "unknown endpoint"},
-                              HTTPStatus.NOT_FOUND)
-        key = path[len("/api/run/"):]
-        runner = jobs.runner()
-        if key not in runner.jobs:
-            return self._json({"ok": False, "message": f"Unknown job {key!r}"},
-                              HTTPStatus.NOT_FOUND)
-        ok, message = runner.start(key)
-        # 409 means "busy", which is the only way a known job refuses to start.
-        return self._json({"ok": ok, "message": message},
-                          HTTPStatus.OK if ok else HTTPStatus.CONFLICT)
-
     def _asset(self, name):
         target = (STATIC_DIR / name).resolve()
         if not target.is_file() or STATIC_DIR.resolve() not in target.parents:
             return self._send("not found", "text/plain", HTTPStatus.NOT_FOUND)
-        kind = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        # mimetypes does not know woff2 on every Python, and the wrong type
+        # makes the browser refuse the font without saying why.
+        kind = (WOFF2 if target.suffix == ".woff2"
+                else mimetypes.guess_type(target.name)[0]
+                or "application/octet-stream")
         self._send(target.read_bytes(), kind, cache=True)
 
 

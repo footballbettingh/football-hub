@@ -53,16 +53,17 @@ def payload(**overrides):
 
 # -- the message -----------------------------------------------------------
 
-def test_the_message_is_three_lines_and_answers_only_what_the_bet_is():
-    """Read on a lock screen. Everything that is not the bet belongs on the
-    page that has room for it."""
+def test_the_message_is_four_lines_and_answers_only_what_the_bet_is():
+    """Read on a lock screen, one fact to a line. Everything that is not the
+    bet — the confidence and the price included — belongs on the page that has
+    room for it."""
     text = notify.format_picks(payload())
-    assert len(text.splitlines()) == 3
+    assert len(text.splitlines()) == 4
     for fragment in ("Rayo Vallecano v Alaves", "La Liga", "2026-08-20",
-                     "Not both teams to score", "61.1%", "1.64"):
+                     "Not both teams to score"):
         assert fragment in text, fragment
-    for absent in ("64.1%", "1,774", "band", "Accumulator",
-                   "Sheffield Wednesday", "Record"):
+    for absent in ("Confidence", "61.1%", "fair", "1.64", "64.1%", "1,774",
+                   "band", "Accumulator", "Sheffield Wednesday", "Record"):
         assert absent not in text, absent
 
 
@@ -82,8 +83,10 @@ def test_other_days_do_not_leak_into_today():
 
 
 def test_offered_price_appears_only_when_a_bookmaker_quoted_one():
-    assert "offered" not in notify.format_picks(payload())
-    quoted = notify.format_picks(payload(best_pick={"odds": 1.91, "edge": 0.07}))
+    """Prices are a long-version concern; the short message carries none."""
+    assert "offered" not in notify.format_picks(payload(), full=True)
+    quoted = notify.format_picks(payload(best_pick={"odds": 1.91, "edge": 0.07}),
+                                 full=True)
     assert "offered <b>1.91</b>" in quoted and "+7.0%" in quoted
 
 

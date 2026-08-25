@@ -19,6 +19,18 @@ from . import artifacts, components as c, ledger
 
 CONF_FLOOR = 0.55       # below this a selection is not worth shipping to the page
 
+# What a cell says when there is no number for it. Printed into thousands of
+# cells by the builders below and by hub.js, which uses the same mark, so it is
+# generated punctuation rather than prose. Named so the two cannot drift apart.
+#
+# An en-dash, and the reason is the Edge column. Edges are signed, so a real
+# value there reads "-2.8%", and on the full card an empty cell sits one row
+# above a negative one. A hyphen placeholder next to a minus sign is the same
+# glyph meaning two different things in the same column. The en-dash is also
+# the width of a digit in Space Grotesk, where the hyphen is two thirds of one
+# and rides too low to line up with the figures around it.
+NONE = "–"
+
 
 def build_context():
     """Load every artifact once. Cheap enough to do per request."""
@@ -30,17 +42,15 @@ def build_context():
         "reliability": artifacts.load_reliability(),
         "evidence": artifacts.load_evidence(),
         "data": artifacts.data_summary(),
-        "status": artifacts.status(),
-        "ready": artifacts.ready(),
     }
 
 
 def _pct(value, digits=1):
-    return "—" if value is None else f"{value * 100:.{digits}f}%"
+    return NONE if value is None else f"{value * 100:.{digits}f}%"
 
 
 def _num(value, digits=2):
-    return "—" if value is None else f"{value:.{digits}f}"
+    return NONE if value is None else f"{value:.{digits}f}"
 
 
 def _best_pick_section(picks):
@@ -56,7 +66,7 @@ def _best_pick_section(picks):
 </section>"""
 
     day = datetime.strptime(best["day"], "%Y-%m-%d")
-    band = ("—" if best.get("hit_rate") is None else
+    band = (NONE if best.get("hit_rate") is None else
             f'{_pct(best["hit_rate"])} <span class="note">over '
             f'{int(best.get("hit_rate_n") or 0):,} historical bets</span>')
     edge = ("" if best.get("edge") is None else
@@ -124,13 +134,13 @@ def _slate_section(picks):
                 c.e(pick["selection"]),
                 f'<strong>{_pct(pick["prob"])}</strong>',
                 _num(pick["fair_odds"]),
-                "—" if pick.get("odds") is None else _num(pick["odds"]),
+                NONE if pick.get("odds") is None else _num(pick["odds"]),
                 # Shown next to the offer, because an offer below fair odds is
                 # a bet priced against you however likely it is.
-                "—" if edge is None else
+                NONE if edge is None else
                 f'<span style="color:var(--{"pos" if edge > 0 else "neg"})">'
                 f'{edge * 100:+.1f}%</span>',
-                "—" if pick.get("hit_rate") is None else _pct(pick["hit_rate"]),
+                NONE if pick.get("hit_rate") is None else _pct(pick["hit_rate"]),
             ])
 
     return f"""<section class="card">
@@ -169,7 +179,8 @@ def _accumulator_section(picks):
   fixture — two selections on one match are correlated, and multiplying them
   overstates the whole thing.</p>
   <div class="filters">
-    <select id="acca-legs">{options}</select>
+    <label class="visually-hidden" for="acca-size">Legs per slip</label>
+    <select id="acca-size">{options}</select>
     <span class="count" id="acca-summary"></span>
   </div>
   <div class="tablewrap"><table>
@@ -182,12 +193,59 @@ def _accumulator_section(picks):
 </section>"""
 
 
+# What a selection carries to the browser, in payload order. `home_team`,
+# `away_team` and `implied_resid` are deliberately absent: they ride along in
+# picks.json for analysis, and no line of hub.js has ever read them.
+CARD_COLUMNS = ["date", "competition", "match", "key", "group", "selection",
+                "prob", "fair_odds", "odds", "edge", "hit_rate", "hit_rate_n",
+                "new_team", "validated"]
+
+# The six that repeat themselves: thirteen dates, thirty-one competitions,
+# three hundred fixtures and forty markets, spread over every row on the card.
+CARD_INTERNED = ("date", "competition", "match", "key", "group", "selection")
+
+# Sent as 0/1 rather than true/false. Four characters a row each, twice a row,
+# on six thousand rows.
+CARD_FLAGS = ("new_team", "validated")
+
+
 def _card_payload(picks):
-    """Only what the table needs, and only rows worth showing."""
+    """Only what the table needs, and only rows worth showing.
+
+    Rows travel as arrays against a shared column list rather than as objects.
+    At close to six thousand selections the repeated JSON key names came to
+    more than half the payload — more than every value in it put together —
+    and the low-cardinality strings go the same way, because thirteen dates
+    copied out six thousand times is thirteen dates and a lot of quotation
+    marks. `hub.js` expands them back on load, so what the page filters and
+    renders is the same row object it always was.
+    """
     rows = [row for row in picks["selections"] if (row["prob"] or 0) >= CONF_FLOOR]
     rows.sort(key=lambda row: -(row["prob"] or 0))
+
+    tables = {name: [] for name in CARD_INTERNED}
+    seen = {name: {} for name in CARD_INTERNED}
+
+    def intern(name, value):
+        if value not in seen[name]:
+            seen[name][value] = len(tables[name])
+            tables[name].append(value)
+        return seen[name][value]
+
+    packed = []
+    for row in rows:
+        packed.append([
+            intern(name, row.get(name)) if name in seen
+            else int(bool(row.get(name))) if name in CARD_FLAGS
+            else row.get(name)
+            for name in CARD_COLUMNS
+        ])
+
     return {
-        "rows": rows,
+        "columns": CARD_COLUMNS,
+        "tables": tables,
+        "flags": list(CARD_FLAGS),
+        "rows": packed,
         "ceilings": picks.get("ceilings", {}),
         "groups": picks.get("groups", {}),
         "competitions": picks.get("competitions", []),
@@ -203,14 +261,21 @@ def _landing_pick(picks):
         return ('<div class="lpick none">No pick on the board right now — either '
                 'the next match day has nothing in the price range worth singling '
                 'one out in, or the fixtures need refreshing.</div>')
-    low, high = (picks or {}).get("best_band", [1.6, 2.2])
     offered = (f'<div><div class="k">Offered</div><div class="v">'
                f'{_num(best.get("odds"))}</div></div>' if best.get("odds") else "")
+    when = ""
+    if best.get("day"):
+        try:
+            when = f" · {datetime.strptime(best['day'], '%Y-%m-%d'):%a %d %b}"
+        except ValueError:
+            when = ""
+    # Sentence case, not tracked capitals. It was one of eight eyebrows on a
+    # page entitled to two, and it was the least load-bearing of them.
     return f"""<div class="lpick">
   <div>
-    <div class="band">BEST PICK · {c.e(best.get('day', ''))} · BAND {low:g}–{high:g}</div>
+    <div class="band">Best pick of the day</div>
     <div class="fixture">{c.e(best.get('match', ''))}</div>
-    <div class="meta">{c.e(best.get('competition_name') or best.get('competition', ''))}</div>
+    <div class="meta">{c.e(best.get('competition_name') or best.get('competition', ''))}{when}</div>
     <div class="sel">{c.e(best.get('selection', ''))}</div>
   </div>
   <div class="nums">
@@ -221,71 +286,129 @@ def _landing_pick(picks):
 </div>"""
 
 
+def _calibration_points(ctx):
+    """The pooled reliability curve, as the landing chart plots it."""
+    table = ctx.get("reliability")
+    if table is None or table.empty:
+        return []
+    pooled = table[table["scope"] == "all"]
+    return [{"band": row.band, "n": int(row.n),
+             "predicted": float(row.predicted), "actual": float(row.actual),
+             "ci_low": float(row.ci_low), "ci_high": float(row.ci_high)}
+            for row in pooled.itertuples()]
+
+
 def _landing_stats(ctx):
     """The record, stated before any claim about the method.
 
     Read from the ledger and the dataset rather than written down, so the page
     cannot end up quoting a number nothing produced.
+
+    One figure leads and three support it, rather than four abreast. The lead
+    is the calibration record, because that is the claim the site actually
+    makes and it rests on a million graded selections. The daily ledger sits
+    among the supporting three at its true size: sixteen settled bets is not
+    the headline, and formatting it like one would be the kind of overstatement
+    this page exists to argue against.
     """
+    points = _calibration_points(ctx)
+    lead = ""
+    if points:
+        graded = sum(p["n"] for p in points)
+        worst = max(abs(p["actual"] - p["predicted"]) for p in points)
+        lead = (f'<div class="lstat lead">'
+                f'<div class="v">{graded:,}</div>'
+                f'<div class="k">Graded selections behind the calibration</div>'
+                f'<div class="m">Worst band off by {worst * 100:.2f} points, '
+                f'out of sample</div></div>')
+
     cells = []
     frame = ctx.get("ledger")
     if frame is not None and not frame.empty:
         head = ledger.summary(frame)
-        cells.append((f"{head['wins']}\u2013{head['losses']}", "Settled record",
-                      f"{head['pending']} still pending"))
-        if head.get("hit_rate") is not None:
-            cells.append((_pct(head["hit_rate"]), "Actually landed",
-                          f"against {_pct(head['expected'])} claimed"))
-        cells.append((f"{head['recorded']:,}", "Picks written down",
-                      "each one before its match"))
+        cells.append((f"{head['wins']}\u2013{head['losses']}", "Daily pick record",
+                      f"{head['pending']} still pending, and young"))
+    picks = ctx.get("picks") or {}
+    if picks.get("n_fixtures"):
+        cells.append((f"{picks['n_fixtures']:,}", "Fixtures priced now",
+                      f"{picks.get('n_selections', 0):,} selections"))
     data = ctx.get("data")
     if data:
         cells.append((f"{data['matches']:,}", "Matches behind it",
                       f"{data['competitions']} competitions"))
-    if not cells:
+    if not lead and not cells:
         return ""
-    return ('<div class="lstats">' + "".join(
+    return ('<div class="lstats">' + lead + "".join(
         f'<div class="lstat"><div class="v">{v}</div><div class="k">{k}</div>'
         f'<div class="m">{m}</div></div>' for v, k, m in cells) + "</div>")
 
 
+def _landing_calibration(links, ctx):
+    """The site's own argument, drawn once, on the front door."""
+    points = _calibration_points(ctx)
+    if not points:
+        return ""
+    worst = max(abs(p["actual"] - p["predicted"]) for p in points)
+    return f"""
+<div class="lsection lcal">
+  <h2>Does an 85% pick win 85% of the time?</h2>
+  <div class="lcal-body">
+    <div class="chart" id="calibration"></div>
+    <div class="lcal-note">
+      <p>Every graded selection, bucketed by what it claimed and plotted against
+      what then happened. A dot on the dashed line is a band that came in exactly
+      where it said it would; the shaded strip is one percentage point either
+      side of it.</p>
+      <p>All {len(points)} bands land inside that strip. The worst is off by
+      <strong>{worst * 100:.2f} points</strong>. Dot size is the number of bets
+      behind each one.</p>
+      <p><a href="{links.href('reliability')}">The same thing market by market</a>,
+      including the two that fail.</p>
+    </div>
+  </div>
+</div>"""
+
+
 def page_landing(links, ctx):
     picks = ctx.get("picks") or {}
-    n_sel = picks.get("n_selections")
-    covered = (f"{picks.get('n_fixtures', 0):,} upcoming fixtures"
-               if picks.get("n_fixtures") else "the upcoming fixtures")
 
+    # The order is carried by the wording rather than by 01/02/03/04 markers
+    # above each card. It is a real sequence, so it should read as one; it does
+    # not need four more tracked-capital labels on a page that had eight of
+    # them and was entitled to two.
+    #
+    # Step three gets the wider cell because the line above the grid says it is
+    # the one that matters, and a layout that agrees is a layout carrying
+    # information rather than decorating it.
     steps = [
-        ("01", "Closing prices, de-vigged",
+        ("First, the closing price", "",
          "The closing line is the sharpest number a bookmaker publishes. Raw "
          "<code>1/odds</code> sums to about 1.07, and counting that margin as "
          "information is the easiest way to fool yourself — so it is removed first."),
-        ("02", "A Dixon-Coles model, walked forward",
+        ("Then a model, walked forward", "",
          "Team strengths are estimated from goals with a low-score correction, "
          "refitted as the season moves, and every match is predicted using only "
          "what was known before it kicked off."),
-        ("03", "Calibrated, out of sample",
+        ("Then the calibration", "wide",
          "The raw number is fitted to what actually happened, on folds it never "
-         "saw. That is the step which makes \u201c62%\u201d mean 62% instead of "
-         "meaning \u201cconfident\u201d."),
-        ("04", "Written down, then graded",
+         "saw. That is the step which makes “62%” mean 62% instead of "
+         "meaning “confident”, and it is the whole difference between a "
+         "forecast you can add up and a number that only sounds sure of itself."),
+        ("Finally, written down and graded", "",
          "One pick per price band per match day goes into a ledger before kick-off "
          "and is settled against the result afterwards. The record on this page "
          "is that file, not a backtest."),
     ]
     step_html = "".join(
-        f'<div class="item"><div class="n">{n}</div><h3>{c.e(title)}</h3>'
-        f'<p>{body}</p></div>' for n, title, body in steps)
+        f'<div class="item {span}"><h3>{c.e(title)}</h3><p>{body}</p></div>'
+        for title, span, body in steps)
 
     return c.layout(links, "Football Betting Hub", "index", f"""
 <div class="lhero">
   <div class="eyebrow">CALIBRATED FOOTBALL PROBABILITIES</div>
   <h1>How likely it is. <em>Not</em> what to bet.</h1>
-  <p class="lead">A probability for {covered} across
-  {picks.get('n_selections') and f"{n_sel:,} selections" or "every market it can price"},
-  fitted to what has actually happened rather than to how confident the model
-  feels. Every daily pick is written down before kick-off and graded afterwards,
-  in public, whichever way it goes.</p>
+  <p class="lead">Every pick is written down before kick-off and graded against
+  the result afterwards, in public, whichever way it goes.</p>
   <div class="lactions">
     <a class="btn primary" href="{links.href('card')}">See today's card</a>
     <a class="btn ghost" href="{links.href('reliability')}">Is 85% really 85%?</a>
@@ -295,15 +418,15 @@ def page_landing(links, ctx):
 
 {_landing_stats(ctx)}
 
+{_landing_calibration(links, ctx)}
+
 <div class="lsection">
-  <h2>HOW IT WORKS</h2>
-  <p class="lead">Four steps, and the third is the one that matters.</p>
+  <h2 class="lead">Four steps, and the third is the one that matters.</h2>
   <div class="lgrid">{step_html}</div>
 </div>
 
 <div class="lsection">
-  <h2>WHAT IT WILL NOT DO</h2>
-  <p class="lead">The limits are the product too.</p>
+  <h2 class="lead">The limits are the product too.</h2>
   <div class="llimits"><ul>
     <li><strong>It will not tell you a bet is good value.</strong> A calibrated
     probability says how often something happens. Whether the price on offer is
@@ -332,7 +455,8 @@ def page_landing(links, ctx):
     <a class="btn ghost" href="{links.href('method')}">Read the method</a>
   </div>
 </div>
-""", show_head=False)
+""", show_head=False,
+                    page_data={"calibration": _calibration_points(ctx)})
 
 
 # -- 1. the card -----------------------------------------------------------
@@ -347,7 +471,10 @@ def page_card(links, ctx):
             subtitle="The selections most likely to land.")
 
     payload = _card_payload(picks)
-    strong = [r for r in payload["rows"] if r["prob"] >= 0.75 and r["validated"]]
+    # Counted off the selections rather than off the payload: the payload rows
+    # are packed arrays now, and this number belongs to the page anyway.
+    strong = [r for r in picks["selections"]
+              if (r["prob"] or 0) >= 0.75 and r.get("validated")]
     by_match = len({r["match"] for r in strong})
 
     kpi = c.kpis([
@@ -387,8 +514,11 @@ def page_card(links, ctx):
   the price would have to be for the bet to break even.</p>
 
   <div class="filters">
+    <label class="visually-hidden" for="f-q">Search team or match</label>
     <input id="f-q" type="search" placeholder="Search team or match" size="22">
+    <label class="visually-hidden" for="f-comp">League</label>
     <select id="f-comp"><option value="all">All leagues</option>{comps}</select>
+    <label class="visually-hidden" for="f-group">Market</label>
     <select id="f-group"><option value="all">All markets</option>{groups}</select>
     <label class="pill"><input id="f-min" type="range" min="55" max="99" value="75"
       step="1"> <span id="f-min-v">75%</span> confidence</label>
@@ -414,9 +544,9 @@ def page_card(links, ctx):
   <div class="acca" id="acca" hidden>
     <div class="legs" id="acca-legs"></div>
     <div class="nums">
-      <div><div class="k">Combined chance</div><div class="v" id="acca-prob">—</div></div>
-      <div><div class="k">Fair odds</div><div class="v" id="acca-fair">—</div></div>
-      <div><div class="k">Offered</div><div class="v" id="acca-offered">—</div></div>
+      <div><div class="k">Combined chance</div><div class="v" id="acca-prob">{NONE}</div></div>
+      <div><div class="k">Fair odds</div><div class="v" id="acca-fair">{NONE}</div></div>
+      <div><div class="k">Offered</div><div class="v" id="acca-offered">{NONE}</div></div>
       <button id="acca-clear">Clear</button>
     </div>
     <div class="warn" id="acca-warn" hidden></div>
@@ -506,6 +636,7 @@ def page_fixtures(links, ctx):
   history in this competition — a promoted club or a cup tie — so the price is
   carrying almost the whole forecast.</p>
   <div class="filters">
+    <label class="visually-hidden" for="fx-q">Search team or match</label>
     <input id="fx-q" type="search" placeholder="Search team or match" size="22">
     <span class="count" id="fx-count"></span>
   </div>
@@ -546,22 +677,22 @@ def _acca_history_section(frame):
         state, label = OUTCOME_LABEL.get(outcome, ("neutral", outcome))
         legs = ledger.acca_legs(row._asdict())
         detail = " • ".join(f"{leg['match']}: {leg['selection']}" for leg in legs)
-        landed = ("—" if row.legs_won != row.legs_won
+        landed = (NONE if row.legs_won != row.legs_won
                   else f"{int(row.legs_won)}/{int(row.legs)}")
-        pnl = ("—" if row.pnl != row.pnl else
+        pnl = (NONE if row.pnl != row.pnl else
                f'<span style="color:var(--{"pos" if row.pnl >= 0 else "neg"})">'
                f"{row.pnl:+.2f}</span>")
         rows.append([
             str(row.issued), f"{int(row.legs)}",
             f'<span class="note">{c.e(detail)}</span>',
             _pct(row.probability), _num(row.fair_odds),
-            "—" if row.offered_odds != row.offered_odds else _num(row.offered_odds),
+            NONE if row.offered_odds != row.offered_odds else _num(row.offered_odds),
             landed,
             f'<span style="color:var(--{state})">{label}</span>',
             pnl,
         ])
 
-    money = f"{head['pnl']:+.2f}" if head["priced"] else "—"
+    money = f"{head['pnl']:+.2f}" if head["priced"] else NONE
     return f"""
 <section class="card">
   <h2>Accumulator picks</h2>
@@ -577,7 +708,7 @@ def _acca_history_section(frame):
        f"said {_pct(head['expected'])}" if head["expected"] is not None else ""),
       ("Legs landing", (f"{head['average_legs_won']:.1f} of "
                         f"{head['average_legs']:.0f}")
-       if head["average_legs_won"] is not None else "—", "on average"),
+       if head["average_legs_won"] is not None else NONE, "on average"),
       ("P&amp;L", money, f"{head['priced']} priced, {head['unpriced']} not"),
   ])}
   {c.table(["Issued", "Legs", "Selections", "Chance", "Fair", "Offered",
@@ -646,9 +777,9 @@ def page_history(links, ctx):
     for row in frame.sort_values("day", ascending=False).itertuples():
         outcome = row.outcome if isinstance(row.outcome, str) else "pending"
         state, label = OUTCOME_LABEL.get(outcome, ("neutral", outcome))
-        score = ("—" if row.home_goals != row.home_goals
+        score = (NONE if row.home_goals != row.home_goals
                  else f"{int(row.home_goals)}–{int(row.away_goals)}")
-        pnl = ("—" if row.pnl != row.pnl else
+        pnl = (NONE if row.pnl != row.pnl else
                f'<span style="color:var(--{"pos" if row.pnl >= 0 else "neg"})">'
                f"{row.pnl:+.2f}</span>")
         # `nan or fallback` returns the nan — NaN is truthy — so the check has
@@ -662,15 +793,15 @@ def page_history(links, ctx):
             c.e(league),
             c.e(row.match), c.e(row.selection),
             _pct(row.prob), _num(row.fair_odds),
-            "—" if row.odds != row.odds else _num(row.odds),
+            NONE if row.odds != row.odds else _num(row.odds),
             score,
             f'<span style="color:var(--{state})">{label}</span>',
             pnl,
         ])
 
     verdict = _history_verdict(head)
-    money = (f"{head['pnl']:+.2f}" if head["priced"] else "—")
-    roi = (f"{head['roi']:+.1f}%" if head["roi"] is not None else "—")
+    money = (f"{head['pnl']:+.2f}" if head["priced"] else NONE)
+    roi = (f"{head['roi']:+.1f}%" if head["roi"] is not None else NONE)
 
     behind_note = _results_behind_note(frame, ctx.get("data"))
 
@@ -698,7 +829,7 @@ def page_history(links, ctx):
             f"{row['wins']}&ndash;{row['losses']}",
             _pct(row["hit_rate"]),
             _pct(row["expected"]),
-            f"{row['pnl']:+.2f}" if row["priced"] else "—",
+            f"{row['pnl']:+.2f}" if row["priced"] else NONE,
             str(row["pending"]),
         ] for row in bands]
         band_section = f"""
@@ -860,6 +991,7 @@ def page_reliability(links, ctx):
   <h2>By market</h2>
   <p class="note">The pooled table above hides the two markets that fail. Pick one.</p>
   <div class="filters">
+    <label class="visually-hidden" for="rel-scope">Market</label>
     <select id="rel-scope">{options}</select>
     <span class="count" id="rel-count"></span>
   </div>
@@ -893,6 +1025,37 @@ VERDICT_TEXT = {
 }
 
 
+# Ten findings in a row, all the same shape, is where a reader stops reading.
+# They already carry a state, and the state is the honest grouping: two say the
+# thesis fails, three say the rescues fail with it, two describe where the bets
+# came from, and three survive. Headings that say what each group found, rather
+# than "Critical" and "Warning", because the finding is more use than the label.
+INSIGHT_GROUPS = [
+    ("critical", "The two findings that settle it"),
+    ("warning", "Three rescues that did not survive"),
+    ("neutral", "Where the bets actually came from"),
+    ("good", "What held up anyway"),
+]
+
+
+def _grouped_insights(insights):
+    """The evidence cards, chunked by verdict instead of stacked ten deep."""
+    out = []
+    for state, heading in INSIGHT_GROUPS:
+        members = [i for i in insights if i.get("state") == state]
+        if not members:
+            continue
+        out.append(f'<h3 class="insight-group">{c.e(heading)}</h3>')
+        out.extend(c.insight_card(i, heading_level="h4") for i in members)
+    # Anything with an unexpected state still gets rendered rather than dropped.
+    seen = {s for s, _ in INSIGHT_GROUPS}
+    rest = [i for i in insights if i.get("state") not in seen]
+    if rest:
+        out.append('<h3 class="insight-group">Everything else</h3>')
+        out.extend(c.insight_card(i, heading_level="h4") for i in rest)
+    return "".join(out)
+
+
 def page_evidence(links, ctx):
     evidence = ctx["evidence"]
     if not evidence:
@@ -915,7 +1078,7 @@ def page_evidence(links, ctx):
                    f"[{row['ci'][0]:+.1f}%, {row['ci'][1]:+.1f}%]"]
                   for row in evidence["sweep"]]
 
-    insights = "".join(c.insight_card(insight) for insight in evidence["insights"])
+    insights = _grouped_insights(evidence["insights"])
 
     body = f"""
 <section class="card">
