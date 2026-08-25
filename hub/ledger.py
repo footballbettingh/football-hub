@@ -24,6 +24,7 @@ from datetime import date, datetime
 import numpy as np
 import pandas as pd
 
+from confidence import config as cf_config
 from confidence.markets import corner_results, goal_results
 from confidence.teams import build_resolver
 from valuebets import config as vb_config
@@ -131,6 +132,71 @@ def record_slate(slate, path=LEDGER_CSV, today=None):
     """
     return [row for row in (record(pick, path, today) for pick in slate or [])
             if row]
+
+
+def _text(value, fallback=None):
+    """A stored string, or the fallback where the cell is empty.
+
+    `or` will not do it: a missing cell reads back from the CSV as NaN, and NaN
+    is truthy, so `row["competition_name"] or row["competition"]` returns the
+    NaN.
+    """
+    return value if isinstance(value, str) and value else fallback
+
+
+def _number(value):
+    return None if value is None or value != value else float(value)
+
+
+def recorded_slate(days, path=LEDGER_CSV):
+    """What is already written down for these match days, keyed (day, band).
+
+    The card re-prices every fixture on every build, and two days of fresh
+    results and moved prices are quite enough to make it prefer a different
+    selection for the same day — or a different fixture entirely. Only one of
+    those is the bet: the one in this file, written down before kick-off and
+    graded afterwards.
+
+    So anything the reader is shown for a day already in the book has to come
+    from here. Without it the site advertised one selection on the front page
+    and graded another on the History page, for every day on the card except
+    the newest — which is the one failure this whole project exists to avoid.
+    """
+    frame = load(path)
+    if frame.empty:
+        return {}
+    wanted = {str(day)[:10] for day in days or ()}
+
+    out = {}
+    for row in frame.to_dict("records"):
+        day = str(row["day"])[:10]
+        if day not in wanted:
+            continue
+        band = _text(row["band"], DEFAULT_BAND)
+        low, high = cf_config.PICK_BANDS.get(band, (None, None))
+        prob, odds = _number(row["prob"]), _number(row["odds"])
+        out[(day, band)] = {
+            "band": band, "band_low": low, "band_high": high,
+            "day": day, "date": day,
+            "competition": row["competition"],
+            "competition_name": _text(row["competition_name"], row["competition"]),
+            "home": row["home"], "away": row["away"], "match": row["match"],
+            "key": row["key"], "group": row["group"],
+            "selection": row["selection"],
+            "prob": prob, "fair_odds": _number(row["fair_odds"]), "odds": odds,
+            # Not a stored column, because both halves of it are: the edge a
+            # recorded pick had is its recorded probability against the price
+            # that was quoted when it was written down.
+            "edge": None if prob is None or odds is None else prob * odds - 1.0,
+            "hit_rate": _number(row["hit_rate"]),
+            # A count, and it is written to a CSV with five decimals: read
+            # back as 36563.0 it would reach the page as a float.
+            "hit_rate_n": None if _number(row["hit_rate_n"]) is None
+                          else int(row["hit_rate_n"]),
+            # Carried so the page can say how old the numbers beside it are.
+            "recorded_at": _text(row["recorded_at"]),
+        }
+    return out
 
 
 def _resolvers(history):
@@ -469,6 +535,49 @@ def acca_legs(row):
         return json.loads(row["selections"])
     except (TypeError, ValueError):
         return []
+
+
+def recorded_acca(issued=None, path=ACCA_CSV):
+    """The slip written down on this day, in the shape the card renders.
+
+    The same failure the slate had, on a shorter fuse. This book is keyed on
+    the day the slip was issued, so the first build of the morning writes it
+    down and every later build is refused — while the card went on rendering
+    whatever the fresh prices happened to like. One build a day and the two
+    agree; a second build after new odds land and the page advertises a slip
+    the record has never heard of.
+
+    Returns None where nothing has been recorded for the day, which is the
+    normal state of affairs right up until the first build.
+    """
+    frame = load_accas(path)
+    if frame.empty:
+        return None
+    issued = pd.to_datetime(issued or date.today()).strftime("%Y-%m-%d")
+    rows = frame[frame["issued"].astype(str) == issued]
+    if rows.empty:
+        return None
+
+    row = rows.iloc[-1]
+    legs = acca_legs(row)
+    if not legs:
+        # A slip whose legs did not survive the round trip is worse than no
+        # slip: the page would render an accumulator with an empty table.
+        return None
+    return {
+        "legs": int(row["legs"]),
+        "target_odds": _number(row["target_odds"]),
+        "min_leg_odds": _number(row["min_leg_odds"]),
+        "probability": _number(row["probability"]),
+        "fair_odds": _number(row["fair_odds"]),
+        "offered_odds": _number(row["offered_odds"]),
+        "weakest_leg": _number(row["weakest_leg"]),
+        "first_day": _text(row["first_day"]),
+        "last_day": _text(row["last_day"]),
+        "selections": legs,
+        # Carried so the page can say which build of the day this came from.
+        "recorded_at": _text(row["recorded_at"]),
+    }
 
 
 def equity(frame):

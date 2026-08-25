@@ -82,14 +82,17 @@ def _best_pick_section(picks):
     offered = ("" if best.get("odds") is None else
                f'<div class="n"><div class="k">Offered</div>'
                f'<div class="v">{_num(best["odds"])}</div></div>')
+    # Absent once the pick comes from the ledger and its band has nothing left
+    # on today's card. The record stands; the count is a fact about the card.
+    qualified = ("" if best.get("candidates") is None else
+                 f', out of {best["candidates"]} that qualified')
 
     return f"""<section class="card best">
   <h2>Best pick of the day</h2>
   <p class="note">The most reliable selection priced between {low:g} and {high:g}
-  on {day:%A %d %B}, out of {best["candidates"]} that qualified. Ranked on the
-  claim <em>discounted by how much its confidence band has historically
-  overstated itself</em> — a band that came up two points short scales every
-  claim in it down to match.</p>
+  on {day:%A %d %B}{qualified}. Ranked on the claim <em>discounted by how much
+  its confidence band has historically overstated itself</em> — a band that
+  came up two points short scales every claim in it down to match.</p>
   <div class="pick">
     <div class="side">
       <div class="fixture">{c.e(best["match"])}</div>
@@ -107,7 +110,31 @@ def _best_pick_section(picks):
     </div>
   </div>
   <p class="note">This band has landed {band}.</p>
+  {_recorded_note(best)}
 </section>"""
+
+
+def _recorded_note(pick):
+    """When this pick went into the ledger, on the days that is not today.
+
+    The card looks three match days ahead, so most of what it shows was written
+    down a build or two ago and has not been touched since — the price
+    included. Saying so is the difference between a number that looks stale and
+    one that is recorded: without it, a reader who checks the current line has
+    no way to tell why the page names a bet today's prices would not choose.
+    """
+    stamp = pick.get("recorded_at")
+    if not stamp:
+        return ""
+    try:
+        when = datetime.fromisoformat(str(stamp))
+    except (TypeError, ValueError):
+        return ""
+    if when.date() == datetime.now().date():
+        return ""
+    return (f'<p class="note">Written down on {when:%a %d %b} at {when:%H:%M} '
+            f'and not revised since, so the numbers above are the ones the '
+            f'record was made at.</p>')
 
 
 BAND_LABEL = {"safe": "Safe", "main": "Best", "value": "Longer"}
@@ -164,6 +191,27 @@ def _slate_section(picks):
 </section>"""
 
 
+def _acca_recorded_note(acca, legs):
+    """Which size is the one in the record, and when it went down.
+
+    Only the default is ever recorded — `record_acca` is handed that slip and
+    no other — so the dropdown mixes one bet that will be graded with four that
+    will not. Unlabelled, all five read as part of the record.
+    """
+    when = ""
+    stamp = (acca or {}).get("recorded_at")
+    if stamp:
+        try:
+            when = (f" Today's went down at "
+                    f"{datetime.fromisoformat(str(stamp)):%H:%M} and has not "
+                    f"been revised since.")
+        except (TypeError, ValueError):
+            when = ""
+    return (f'<p class="note">The {legs}-leg slip is the one written into the '
+            f'record each day and graded afterwards; the other sizes are '
+            f're-priced on every build and are here for comparison.{when}</p>')
+
+
 def _accumulator_section(picks):
     """The safest accumulator that still pays something."""
     accas = picks.get("accumulators") or {}
@@ -185,6 +233,7 @@ def _accumulator_section(picks):
   so no single long shot carries the slip, and every leg comes from a different
   fixture — two selections on one match are correlated, and multiplying them
   overstates the whole thing.</p>
+  {_acca_recorded_note(accas.get(default), default)}
   <div class="filters">
     <label class="visually-hidden" for="acca-size">Legs per slip</label>
     <select id="acca-size">{options}</select>
