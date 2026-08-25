@@ -18,6 +18,7 @@ construction and look like a result.
 """
 
 import json
+import math
 from datetime import date, datetime
 
 import numpy as np
@@ -240,6 +241,19 @@ def settle(history, path=LEDGER_CSV):
 
 # -- reading it back -------------------------------------------------------
 
+def wilson(successes, n, z=1.96):
+    """Interval for a hit rate. The same one the reliability tables use, and
+    it is chosen for the same reason: the normal approximation runs past 1.0
+    exactly where the bands that matter sit."""
+    if not n:
+        return (None, None)
+    p = successes / n
+    denom = 1 + z ** 2 / n
+    centre = (p + z ** 2 / (2 * n)) / denom
+    half = z * math.sqrt(p * (1 - p) / n + z ** 2 / (4 * n ** 2)) / denom
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
 def summary(frame):
     """Headline numbers. Everything is out of sample by construction here —
     every row was written down before the match was played."""
@@ -271,6 +285,10 @@ def summary(frame):
         "wins": wins,
         "losses": int(len(decided)) - wins,
         "hit_rate": float(wins / len(decided)) if len(decided) else None,
+        # The interval around what happened. Without it a reader has no way to
+        # tell a forecast that is wrong from a sample that is small, and at
+        # this many picks it is almost always the second.
+        "hit_ci": wilson(wins, len(decided)) if len(decided) else (None, None),
         # The forecast's own claim, to sit next to what happened. A run of ten
         # is noise; the comparison only starts meaning something in the dozens.
         "expected": float(decided["prob"].mean()) if len(decided) else None,

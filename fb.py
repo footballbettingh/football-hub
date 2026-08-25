@@ -160,7 +160,7 @@ def cmd_history(args):
         raise SystemExit("No picks recorded yet — run `python fb.py card`.")
 
     head = ledger.summary(frame)
-    columns = ["day", "band", "match", "selection", "prob", "odds", "outcome", "pnl"]
+    columns = ["day", "band", "match", "selection", "prob", "fair_odds", "outcome"]
     _show(frame.sort_values(["day", "band"], ascending=False)[columns])
     for band in ledger.summary_by_band(frame):
         if band["settled"]:
@@ -170,13 +170,13 @@ def cmd_history(args):
           + (f" ({head['void']} void)" if head["void"] else "")
           + f", {head['pending']} pending")
     if head["hit_rate"] is not None:
-        print(f"  hit rate {head['hit_rate']:.1%} against {head['expected']:.1%} claimed")
-    if head["priced"]:
-        print(f"  P&L {head['pnl']:+.2f} over {head['priced']} bets at 1 unit"
-              f"  (ROI {head['roi']:+.1f}%)")
-    if head["unpriced"]:
-        print(f"  {head['unpriced']} settled pick(s) had no quoted price and are "
-              "excluded from P&L")
+        low, high = head["hit_ci"]
+        print(f"  landed {head['hit_rate']:.1%} against {head['expected']:.1%} claimed"
+              f"  (95% interval {low:.1%} to {high:.1%})")
+        inside = low <= head["expected"] <= high
+        print("  the claim sits " + ("inside" if inside else "OUTSIDE")
+              + " that interval, on "
+              + f"{head['settled']} settled pick(s)")
 
     accas = ledger.load_accas()
     if not accas.empty:
@@ -184,7 +184,7 @@ def cmd_history(args):
         print(f"\n== Accumulator picks (a separate book)\n")
         _show(accas.sort_values("issued", ascending=False)[
             ["issued", "legs", "probability", "fair_odds", "outcome",
-             "legs_won", "pnl"]])
+             "legs_won"]])
         print(f"\n  record {acca['wins']}-{acca['losses']}, "
               f"{acca['pending']} pending")
         if acca["hit_rate"] is not None:

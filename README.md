@@ -62,7 +62,7 @@ These compute nothing and write nothing. They print to the terminal.
 | Command | Shows |
 |---|---|
 | `python fb.py best` | the day's pick and the accumulator pick, from the card on disk |
-| `python fb.py history` | the daily pick's record and running P&L |
+| `python fb.py history` | the daily pick's record against what it claimed |
 | `python fb.py evaluate` | the reliability tables, per market and against the closing line |
 | `python fb.py sweep` | the market-fusion weight, 0 (model alone) to 1 (line alone) |
 
@@ -278,8 +278,27 @@ Both are configurable in `confidence/config.py` (`BEST_ODDS_MIN`,
 
 Every best pick of the day is written down in `data/best_picks.csv` before the
 match, and graded once the result arrives. The **History** page shows the lot:
-what was picked, at what price, what happened, and the running P&L at flat
-stakes of one unit.
+what was picked, what it claimed, what happened, and how far the two are apart.
+
+**It reports results, not money, and that is deliberate.** A profit figure needs
+a price the bookmakers actually offered, and the feed quotes 1X2 and the goals
+totals and nothing else. The picker ranks on confidence, and confidence peaks on
+team totals, corners and draw-no-bet — none of which are quoted. Twenty-seven of
+the first thirty settled picks had no price, so the page was showing a P&L
+computed over three bets beside a record computed over thirty, an order of
+magnitude apart and neither labelled. The money went; the record stayed.
+
+That also matches what the project claims. Nothing here says it beats the
+closing line — the Evidence page says the opposite at length. What it claims is
+that a probability means what it says, and testing that needs a result, not a
+price. So the page leads with the record, the claimed rate beside it, and a
+Wilson interval on what landed: the question is not whether the record is ahead
+but whether the claim sits inside that interval, and at this sample size it
+comfortably does.
+
+The `odds` and `pnl` columns are still written when a price happens to exist,
+because the ledger is the one file in the project that cannot be rebuilt and
+throwing away a column is not reversible. Nothing reads them.
 
 The ledger is deliberately dumb and append-only. One row per match day **per
 price band**, and refreshing the card again before kick-off keeps the first
@@ -288,11 +307,8 @@ flattering history and mean nothing. Settlement only ever fills in the empty
 columns. The History page splits the record by band, because a forecast can be
 honest at 77% and overconfident at 45%, and pooling hides exactly that.
 
-Two things it refuses to fudge:
+One thing it refuses to fudge:
 
-* **A pick with no quoted price is graded won or lost but kept out of the P&L.**
-  Settling it at our own fair odds would return exactly zero by construction and
-  look like a result.
 * **A pick still pending long after its match is flagged, not ignored.** Pending
   forever means the result is not being found — usually a club the results file
   spells differently — and left alone it would quietly keep a loss out of the
@@ -311,14 +327,12 @@ wrong match.
 day it was issued, with its legs stored alongside it. A four-leg slip at 33% and
 a single at 62% have nothing to say to each other, so they never share a hit
 rate or a total. A void leg drops out and the slip settles on what is left, as a
-bookmaker would; a slip whose surviving legs were not all quoted stays out of
-the P&L whether it won or lost, since counting its losses and not its wins would
-be worse than counting neither.
+bookmaker would.
 
 The record opens on 12 August 2026 with nine picks — three bands across 14, 15
-and 16 August — the flagship being LASK v Ried, Over 2.5 goals at 1.75. Read the
-hit rate against the confidence rather than the money: at these prices a run of
-twenty either way is ordinary noise.
+and 16 August. Read what landed against what was claimed, and read the interval
+next to both: a run of twenty either way is ordinary noise at this many picks,
+and the page says so rather than letting a reader guess.
 
 ## The pages
 
@@ -326,7 +340,7 @@ twenty either way is ordinary noise.
 |---|---|
 | **Card** | The two headline picks, then everything else filtered by league, market, confidence and price |
 | **Fixtures** | Every match with its headline markets; click a row for all ~45 |
-| **History** | What the daily pick has actually done, and the running P&L |
+| **History** | What the daily pick has actually done, against what it said it would |
 | **Reliability** | Does an 80% pick win 80% of the time — pooled, and per market |
 | **Evidence** | Can a model beat the closing line (no), with the backtest that shows it |
 | **Method** | How a price becomes a probability, and what the thing cannot do |

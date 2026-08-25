@@ -53,6 +53,13 @@ def _num(value, digits=2):
     return NONE if value is None else f"{value:.{digits}f}"
 
 
+def _interval(pair):
+    """A Wilson interval, or the placeholder when there is nothing to bound."""
+    if not pair or pair[0] is None:
+        return NONE
+    return f"{_pct(pair[0], 0)}&ndash;{_pct(pair[1], 0)}"
+
+
 def _best_pick_section(picks):
     """The one bet, in a price range where a single pick is worth making."""
     best = picks.get("best_pick")
@@ -695,28 +702,21 @@ def _acca_history_section(frame):
         detail = " • ".join(f"{leg['match']}: {leg['selection']}" for leg in legs)
         landed = (NONE if row.legs_won != row.legs_won
                   else f"{int(row.legs_won)}/{int(row.legs)}")
-        pnl = (NONE if row.pnl != row.pnl else
-               f'<span style="color:var(--{"pos" if row.pnl >= 0 else "neg"})">'
-               f"{row.pnl:+.2f}</span>")
         rows.append([
             str(row.issued), f"{int(row.legs)}",
             f'<span class="note">{c.e(detail)}</span>',
             _pct(row.probability), _num(row.fair_odds),
-            NONE if row.offered_odds != row.offered_odds else _num(row.offered_odds),
             landed,
             f'<span style="color:var(--{state})">{label}</span>',
-            pnl,
         ])
 
-    money = f"{head['pnl']:+.2f}" if head["priced"] else NONE
     return f"""
 <section class="card">
   <h2>Accumulator picks</h2>
   <p class="note">A separate book. A four-leg slip at 33% and a single at 62%
   have nothing to say to each other, so they never share a hit rate or a total.
   A void leg drops out and the slip settles on what is left, as a bookmaker
-  would; a slip whose surviving legs were not all quoted stays out of the P&amp;L
-  whether it won or lost.</p>
+  would.</p>
   {c.kpis([
       ("Record", f"{head['wins']}&ndash;{head['losses']}",
        f"{head['pending']} still to play"),
@@ -725,10 +725,10 @@ def _acca_history_section(frame):
       ("Legs landing", (f"{head['average_legs_won']:.1f} of "
                         f"{head['average_legs']:.0f}")
        if head["average_legs_won"] is not None else NONE, "on average"),
-      ("P&amp;L", money, f"{head['priced']} priced, {head['unpriced']} not"),
+      ("Slips recorded", f"{head['recorded']}", "one per match day"),
   ])}
-  {c.table(["Issued", "Legs", "Selections", "Chance", "Fair", "Offered",
-            "Landed", "Result", "P&L"], rows, numeric_from=3, raw=True)}
+  {c.table(["Issued", "Legs", "Selections", "Chance", "Fair",
+            "Landed", "Result"], rows, numeric_from=3, raw=True)}
 </section>"""
 
 
@@ -787,7 +787,6 @@ def page_history(links, ctx):
                         subtitle="What the daily picks have actually done.")
 
     head = ledger.summary(frame)
-    curve = ledger.equity(frame)
 
     rows = []
     for row in frame.sort_values("day", ascending=False).itertuples():
@@ -795,9 +794,6 @@ def page_history(links, ctx):
         state, label = OUTCOME_LABEL.get(outcome, ("neutral", outcome))
         score = (NONE if row.home_goals != row.home_goals
                  else f"{int(row.home_goals)}–{int(row.away_goals)}")
-        pnl = (NONE if row.pnl != row.pnl else
-               f'<span style="color:var(--{"pos" if row.pnl >= 0 else "neg"})">'
-               f"{row.pnl:+.2f}</span>")
         # `nan or fallback` returns the nan — NaN is truthy — so the check has
         # to be explicit rather than an `or`.
         league = (row.competition_name if isinstance(row.competition_name, str)
@@ -809,15 +805,11 @@ def page_history(links, ctx):
             c.e(league),
             c.e(row.match), c.e(row.selection),
             _pct(row.prob), _num(row.fair_odds),
-            NONE if row.odds != row.odds else _num(row.odds),
             score,
             f'<span style="color:var(--{state})">{label}</span>',
-            pnl,
         ])
 
     verdict = _history_verdict(head)
-    money = (f"{head['pnl']:+.2f}" if head["priced"] else NONE)
-    roi = (f"{head['roi']:+.1f}%" if head["roi"] is not None else NONE)
 
     behind_note = _results_behind_note(frame, ctx.get("data"))
 
@@ -829,13 +821,15 @@ def page_history(links, ctx):
             "being found — usually a club the results file spells differently. "
             f"Days affected: {', '.join(head['overdue_days'][:5])}.")
 
+    # The page used to carry a profit figure and a running P&L curve. Both
+    # needed an offered price, and the feed quotes 1X2 and the goals totals and
+    # nothing else, so 27 of 30 settled picks had none: the money was computed
+    # over three bets while the record beside it was computed over thirty. Two
+    # numbers an order of magnitude apart, side by side, both unlabelled.
+    #
+    # Neither is missed. The claim this site makes is that a probability means
+    # what it says, and testing that needs a result, not a price.
     unpriced_note = ""
-    if head["unpriced"]:
-        unpriced_note = (
-            f'<p class="note">{head["unpriced"]} settled pick(s) had no quoted '
-            "price, so they are graded won or lost but left out of the P&amp;L. "
-            "Settling those at our own fair odds would return exactly zero by "
-            "construction and look like a result.</p>")
 
     bands = ledger.summary_by_band(frame)
     band_section = ""
@@ -845,7 +839,7 @@ def page_history(links, ctx):
             f"{row['wins']}&ndash;{row['losses']}",
             _pct(row["hit_rate"]),
             _pct(row["expected"]),
-            f"{row['pnl']:+.2f}" if row["priced"] else NONE,
+            _interval(row.get("hit_ci")),
             str(row["pending"]),
         ] for row in bands]
         band_section = f"""
@@ -854,45 +848,43 @@ def page_history(links, ctx):
   <p class="note">Pooling the bands hides the failure worth catching: a forecast
   can be honest at 70% and overconfident at 40%. Read <em>did</em> against
   <em>said</em> in each row, not the money.</p>
-  {c.table(["Band", "Record", "Did", "Said", "P&L", "Pending"], band_rows,
-           numeric_from=1, raw=True)}
+  {c.table(["Band", "Record", "Did", "Said", "95% interval", "Pending"],
+           band_rows, numeric_from=1, raw=True)}
 </section>"""
 
-    chart = ""
-    if curve:
-        chart = """
-<section class="card">
-  <h2>Running P&amp;L</h2>
-  <p class="note">One unit staked per pick, at the price the feed quoted.</p>
-  <div class="chart" id="equity"></div>
-</section>"""
+
+    gap = ""
+    if head["hit_rate"] is not None and head["expected"] is not None:
+        points = (head["hit_rate"] - head["expected"]) * 100
+        gap = f"{points:+.1f} points against what it claimed"
 
     body = f"""
 <section class="card">
   <div class="verdict">
     <div>
-      <div class="hero-label">Profit and loss</div>
-      <div class="hero">{money}
-        <span class="ci">{head['priced']} settled at a price &middot;
-        ROI {roi} &middot; {head['pending']} still to play</span></div>
+      <div class="hero-label">What the picks did</div>
+      <div class="hero">{head['wins']}&ndash;{head['losses']}
+        <span class="ci">{_pct(head['hit_rate'])} landed against
+        {_pct(head['expected'])} claimed &middot;
+        {head['pending']} still to play</span></div>
     </div>
     {verdict}
   </div>
 </section>
 
 {c.kpis([
-    ("Record", f"{head['wins']}&ndash;{head['losses']}",
-     f"{head['void']} void" if head["void"] else "won&ndash;lost"),
-    ("Hit rate", _pct(head["hit_rate"]),
+    ("Landed", _pct(head["hit_rate"]),
      f"said {_pct(head['expected'])}" if head["expected"] is not None else ""),
-    ("Average price", _num(head["average_odds"]), "where one was quoted"),
+    ("95% interval", _interval(head.get("hit_ci")),
+     "on what landed, not what was claimed"),
+    ("Settled", f"{head['settled']}",
+     f"{head['void']} void" if head["void"] else "graded against the result"),
     ("Picks recorded", f"{head['recorded']}", "one per band per match day"),
 ])}
 {behind_note}
 {overdue_note}
 {unpriced_note}
 {band_section}
-{chart}
 
 <section class="card">
   <h2>Every single pick</h2>
@@ -902,40 +894,58 @@ def page_history(links, ctx):
   answer, because a ledger that follows whichever pick currently looks best
   would show a flattering history and mean nothing.</p>
   {c.table(["Day", "Band", "League", "Match", "Selection", "Confidence", "Fair",
-            "Offered", "Score", "Result", "P&L"], rows, numeric_from=5, raw=True)}
+            "Score", "Result"], rows, numeric_from=5, raw=True)}
 </section>
 
 {_acca_history_section(accas)}
 """
     return c.layout(links, "History", "history", body,
-                    page_data={"equity": curve},
                     subtitle="Every best pick of the day, written down before "
                              "the match and graded afterwards.",
                     badges=[f"{head['recorded']} pick"
                             + ("s" if head["recorded"] != 1 else ""),
                             f"{head['settled']} settled",
-                            "flat stakes of 1 unit"])
+                            "graded on the result, not on a price"])
 
 
 def _history_verdict(head):
-    """Say plainly how little a short record proves."""
-    if head["settled"] == 0:
+    """Say plainly how little a short record proves.
+
+    Keyed off whether the claim sits inside the interval rather than off
+    whether the record is ahead. A run of wins and a run of losses are the
+    same event at this sample size, and saying so is the point of the page.
+    """
+    settled = head["settled"]
+    if settled == 0:
         return c.status_block("neutral", "Nothing settled yet",
                               "The first pick is still waiting on its match.")
-    if head["priced"] < 30:
+
+    low, high = head.get("hit_ci") or (None, None)
+    said = head["expected"]
+    if low is None or said is None:
+        return c.status_block("neutral", f"{settled} settled, nothing to read yet",
+                              "A hit rate needs a few dozen results before it "
+                              "says anything at all.")
+
+    inside = low <= said <= high
+    if settled < 100:
         return c.status_block(
             "warning", "Far too early to read anything into this",
-            f"{head['priced']} settled bet(s). At these prices a run of twenty "
-            "either way is ordinary noise; a hit rate only starts meaning "
-            "something in the hundreds.")
-    if head["pnl"] > 0:
+            f"{settled} settled pick(s). The interval on what landed runs "
+            f"{low:.0%} to {high:.0%}, which is wide enough to contain almost "
+            "any honest forecast. A hit rate starts meaning something in the "
+            "hundreds; the reliability tables get there, this does not.")
+    if inside:
         return c.status_block(
-            "neutral", "Ahead, on a sample that cannot prove it",
-            "Profit over this many bets is well inside what luck produces. "
-            "Read the hit rate against the confidence, not the money.")
+            "good", "Landing where it said it would",
+            f"The claimed {said:.1%} sits inside the {low:.0%} to {high:.0%} "
+            "interval on what actually happened, over "
+            f"{settled} settled picks.")
     return c.status_block(
-        "neutral", "Behind, on a sample that cannot prove that either",
-        "Read the hit rate against the confidence, not the money.")
+        "critical", "Not landing where it said it would",
+        f"The claimed {said:.1%} sits outside the {low:.0%} to {high:.0%} "
+        f"interval on what actually happened, over {settled} settled picks. "
+        "That is a calibration failure, not bad luck.")
 
 
 # -- 4. reliability --------------------------------------------------------
