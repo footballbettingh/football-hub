@@ -43,6 +43,21 @@ TELEGRAM_ICON = (
     '-.541-2.081-1.527-1.714l-21.29 8.151c-1.453.564-1.431 1.374-.247 1.741l5.443'
     ' 1.693 12.643-7.911c.595-.394 1.136-.176.691.218z"/></svg>')
 
+# Ko-fi's overlay widget, pasted from their dashboard as given. It stays a
+# plain string rather than going inline in the page shell below: that shell is
+# one long f-string, and every brace in the JS object literal would have to be
+# doubled to survive it — which is exactly the kind of edit that silently rots
+# the next time the snippet is re-pasted from Ko-fi.
+KOFI_WIDGET = """<script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+<script>
+  kofiWidgetOverlay.draw('footballbettinghub', {
+    'type': 'floating-chat',
+    'floating-chat.donateButton.text': 'Support me',
+    'floating-chat.donateButton.background-color': '#f45d22',
+    'floating-chat.donateButton.text-color': '#fff'
+  });
+</script>"""
+
 # 512 square, so the share card is the small-summary kind. Claiming
 # `summary_large_image` with a square logo gets it letterboxed or cropped.
 OG_IMAGE = "og-image.png"
@@ -252,6 +267,7 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
 {data_script}
 <script src="{links.asset('charts.js')}"></script>
 <script src="{links.asset('hub.js')}"></script>
+{KOFI_WIDGET}
 </body></html>"""
 
 
