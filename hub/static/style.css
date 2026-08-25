@@ -286,6 +286,19 @@ footer.site { color: var(--text-secondary); font-size: 12.5px; line-height: 1.65
 footer.site code, .mono { background: var(--neutral-mid); padding: 1px 5px;
   border-radius: 4px; font-size: 12px; font-family: var(--font-mono); }
 footer.site p { max-width: 76ch; }
+/* The underline sits on the span, not the link: an underline running beneath
+   the mark itself reads as a box around it rather than as a link. */
+footer.site .tg a { color: var(--brand); text-decoration: none; }
+footer.site .tg a span {
+  border-bottom: 1px solid color-mix(in srgb, var(--brand) 40%, transparent); }
+footer.site .tg a:hover span { border-bottom-color: var(--brand); }
+/* Both of these undo the blanket `svg` rule above, which exists for the charts.
+   `display: block` there would drop the mark onto its own line; `max-width:
+   100%` keeps a wide chart inside a narrow phone, but a 14px mark has no
+   business shrinking with its container — in a narrow enough one it collapses
+   to nothing at all. */
+footer.site .tg svg { display: inline-block; max-width: none;
+  width: 14px; height: 14px; vertical-align: -3px; margin-right: 5px; }
 .next { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .next a { text-decoration: none; font-size: 13px; padding: 9px 14px; border-radius: 9px;
   border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }

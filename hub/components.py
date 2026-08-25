@@ -29,6 +29,20 @@ SITE_URL = os.environ.get(
 SITE_TAGLINE = ("Calibrated football match probabilities, written down before "
                 "kick-off and graded afterwards.")
 
+# The one place the site points off itself: the Telegram channel the daily pick
+# is posted to.
+TELEGRAM_URL = "https://t.me/football_betting_hub"
+
+# Filled rather than stroked like the ICONS below, because this one is a brand
+# mark and not a status glyph: it is recognised by its silhouette, and at the
+# 14px the footer gives it a 1.8-wide outline would close up into a smudge.
+TELEGRAM_ICON = (
+    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    '<path d="M9.417 15.181l-.397 5.584c.568 0 .814-.244 1.109-.537l2.663-2.545'
+    ' 5.518 4.041c1.012.564 1.725.267 1.998-.931l3.622-16.972.001-.001c.321-1.496'
+    '-.541-2.081-1.527-1.714l-21.29 8.151c-1.453.564-1.431 1.374-.247 1.741l5.443'
+    ' 1.693 12.643-7.911c.595-.394 1.136-.176.691.218z"/></svg>')
+
 # 512 square, so the share card is the small-summary kind. Claiming
 # `summary_large_image` with a square logo gets it letterboxed or cropped.
 OG_IMAGE = "og-image.png"
@@ -231,6 +245,8 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
     fool yourself.</p>
     <p>A research tool, not betting advice. A calibrated probability says how
     often something happens — not whether the price on offer is worth taking.</p>
+    <p class="tg"><a href="{TELEGRAM_URL}" rel="noopener">{TELEGRAM_ICON}<span>Telegram
+    channel</span></a> — the daily pick, posted before kick-off.</p>
   </footer>
 </div>
 {data_script}
