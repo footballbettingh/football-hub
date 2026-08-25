@@ -377,31 +377,47 @@ def page_landing(links, ctx):
     # not need four more tracked-capital labels on a page that had eight of
     # them and was entitled to two.
     #
-    # Step three gets the wider cell because the line above the grid says it is
-    # the one that matters, and a layout that agrees is a layout carrying
-    # information rather than decorating it.
+    # Four cards of prose was the wrong shape: the cards could have been
+    # shuffled and nothing would have broken, which is the tell that a layout
+    # is not carrying its content. This is a pipeline — each stage takes the
+    # number the stage above it produced and hands it on — so it is drawn as
+    # one. The rail is the ordering, which is why there are no 01/02/03
+    # markers; the rail turns from hairline to accent at the calibration,
+    # because that is the stage where the number starts being worth trusting
+    # and it stays trustworthy afterwards.
+    #
+    # Each stage names what it takes in and what it puts out. That line is
+    # literally what the code at that stage does, not a caption.
     steps = [
-        ("First, the closing price", "",
+        ("First, the closing price",
+         "closing line", "fair probability", "",
          "The closing line is the sharpest number a bookmaker publishes. Raw "
          "<code>1/odds</code> sums to about 1.07, and counting that margin as "
-         "information is the easiest way to fool yourself — so it is removed first."),
-        ("Then a model, walked forward", "",
+         "information is the easiest way to fool yourself \u2014 so it is removed first."),
+        ("Then a model, walked forward",
+         "goals", "model probability", "",
          "Team strengths are estimated from goals with a low-score correction, "
          "refitted as the season moves, and every match is predicted using only "
          "what was known before it kicked off."),
-        ("Then the calibration", "wide",
+        ("Then the calibration",
+         "model probability", "calibrated probability", "pivot",
          "The raw number is fitted to what actually happened, on folds it never "
-         "saw. That is the step which makes “62%” mean 62% instead of "
-         "meaning “confident”, and it is the whole difference between a "
-         "forecast you can add up and a number that only sounds sure of itself."),
-        ("Finally, written down and graded", "",
-         "One pick per price band per match day goes into a ledger before kick-off "
-         "and is settled against the result afterwards. The record on this page "
-         "is that file, not a backtest."),
+         "saw. That is the step which makes \u201c62%\u201d mean 62% instead of "
+         "meaning \u201cconfident\u201d."),
+        ("Finally, written down and graded",
+         "calibrated probability", "a graded record", "trusted",
+         "One pick per price band per match day goes into a ledger before "
+         "kick-off and is settled against the result afterwards. The record on "
+         "this page is that file, not a backtest."),
     ]
     step_html = "".join(
-        f'<div class="item {span}"><h3>{c.e(title)}</h3><p>{body}</p></div>'
-        for title, span, body in steps)
+        f'<div class="lstep {state}">'
+        f'<div class="rail" aria-hidden="true"></div>'
+        f'<div class="what"><h3>{c.e(title)}</h3>'
+        f'<div class="io">{c.e(takes)} <span class="arrow">&rarr;</span> '
+        f'{c.e(makes)}</div></div>'
+        f'<p>{body}</p></div>'
+        for title, takes, makes, state, body in steps)
 
     return c.layout(links, "Football Betting Hub", "index", f"""
 <div class="lhero">
@@ -422,7 +438,7 @@ def page_landing(links, ctx):
 
 <div class="lsection">
   <h2 class="lead">Four steps, and the third is the one that matters.</h2>
-  <div class="lgrid">{step_html}</div>
+  <div class="lsteps">{step_html}</div>
 </div>
 
 <div class="lsection">

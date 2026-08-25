@@ -447,21 +447,63 @@ table.cardtable td:nth-child(5), table.cardtable th:nth-child(5) { width: 22%; }
 .lsection > .lead { font-size: clamp(20px, 2.4vw, 27px); font-weight: 650;
   letter-spacing: -0.022em; margin: 0 0 26px; max-width: 30ch; line-height: 1.25; }
 
-/* Two, then one wide, then one. Four equal cards read as four options; this
-   reads as an order, and gives the third step the room the copy above says it
-   deserves. Exactly four cells for exactly four steps, no empty track. */
-.lgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-.lgrid .item.wide { grid-column: 1 / -1; }
-.lgrid .item.wide h3 { font-size: 17px; }
-.lgrid .item.wide p { max-width: 68ch; }
-.lgrid .item { background: var(--surface-1); border: 1px solid var(--border);
-  border-radius: 14px; padding: 24px; }
-.lgrid .item h3 { font-size: 15px; font-weight: 650; margin: 0 0 8px;
+/* ---- how it works: the pipeline ----
+   Not cards. Each stage takes the number the stage above it produced, so the
+   section is drawn as one continuous spine with a node per stage: the rail is
+   what carries the ordering, which is why nothing here is numbered.
+
+   The rail is a hairline down to the calibration and the accent from there on.
+   That is the one piece of colour in the section and it is load-bearing: it
+   marks where the number starts being worth trusting. */
+/* Given a measure rather than the full page width. The prose caps at 62ch for
+   readability, and on a 1385px row that left 500px of nothing to the right of
+   every stage — the same hole the four-card version had, just moved. Bounding
+   the block instead puts that space outside it, where it reads as margin. It
+   is the only unboxed section on the page, so being narrower than the panels
+   around it is a difference in kind rather than an inconsistency. */
+.lsteps { margin-top: 4px; max-width: 900px; }
+.lstep {
+  --rail: var(--border);
+  display: grid;
+  grid-template-columns: 22px minmax(190px, 260px) minmax(0, 1fr);
+  gap: 0 30px;
+  padding: 20px 0 22px;
+  position: relative;
+}
+.lstep.pivot, .lstep.trusted { --rail: var(--series-1); }
+
+/* The spine, drawn per stage so it joins up into one line. */
+.lstep .rail { position: relative; }
+.lstep .rail::before {
+  content: ""; position: absolute; left: 4px; top: 0; bottom: -22px;
+  width: 1px; background: var(--rail);
+}
+.lstep:last-child .rail::before { bottom: auto; height: 26px; }
+.lstep .rail::after {
+  content: ""; position: absolute; left: 0; top: 5px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--page); border: 1.5px solid var(--rail);
+}
+/* The stage the copy above singles out: filled, not just coloured. */
+.lstep.pivot .rail::after {
+  background: var(--series-1); border-color: var(--series-1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1) 18%, transparent);
+}
+
+.lstep h3 { font-size: 15px; font-weight: 650; margin: 0 0 6px;
   letter-spacing: -0.01em; }
-.lgrid .item p { font-size: 13.5px; color: var(--text-secondary); margin: 0;
-  line-height: 1.62; }
-.lgrid .item .n { font-family: var(--font-mono); font-size: 11px; color: var(--brand);
-  letter-spacing: 0.16em; margin-bottom: 12px; }
+.lstep.pivot h3 { color: var(--brand); }
+/* What the stage takes and what it hands on. Mono because it is data, lower
+   case because an uppercase tracked label here would be a fourth eyebrow. */
+.lstep .io { font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5;
+  color: var(--muted); }
+/* The arrow is the operator, not a tick on the rail: it took the rail colour
+   at first and came out at 1.2:1, which is a hairline pretending to be text.
+   Stronger than the words either side of it, because it is the verb. */
+.lstep .io .arrow { color: var(--text-secondary); padding: 0 3px; }
+.lstep p { font-size: 13.5px; color: var(--text-secondary); margin: 0;
+  line-height: 1.62; max-width: 62ch; }
+
 
 /* The limits. Same visual weight as the claims, which is the point. */
 /* The calibration chart: the site's own claim, drawn. The note sits beside it
@@ -502,7 +544,10 @@ table.cardtable td:nth-child(5), table.cardtable th:nth-child(5) { width: 22%; }
 }
 
 @media (max-width: 760px) {
-  .lgrid { grid-template-columns: 1fr; }
+  /* The rail stays: it is the ordering, and it costs 22px. Heading, the
+     in/out line and the prose stack in the column beside it. */
+  .lstep { grid-template-columns: 22px minmax(0, 1fr); gap: 0 18px; }
+  .lstep p { grid-column: 2; margin-top: 12px; max-width: none; }
   .lhero { padding: 38px 24px; border-radius: 16px; }
   .lpick { gap: 20px; padding: 18px; }
   .lpick .nums { margin-left: 0; gap: 22px; }
