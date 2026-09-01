@@ -320,9 +320,15 @@ def wilson(successes, n, z=1.96):
     return (max(0.0, centre - half), min(1.0, centre + half))
 
 
-def summary(frame):
+def summary(frame, today=None):
     """Headline numbers. Everything is out of sample by construction here —
-    every row was written down before the match was played."""
+    every row was written down before the match was played.
+
+    `today` is injectable for the same reason `record` takes it: the overdue
+    count below is measured against the clock, so without a way to pin it a
+    test has to hardcode a date and quietly become a bomb on the day the real
+    clock passes it. One did.
+    """
     frame = frame.copy()
     frame["outcome"] = frame["outcome"].fillna("pending")
     done = frame[frame["outcome"].isin(("won", "lost", "void"))]
@@ -337,9 +343,10 @@ def summary(frame):
     # patience, it is a join that never matched — a team key the results file
     # spells differently. Left unflagged it would sit there forever, quietly
     # keeping a loss out of the record.
+    now = pd.Timestamp.today() if today is None else pd.Timestamp(today)
     overdue = frame[(frame["outcome"] == "pending")
                     & (pd.to_datetime(frame["day"], errors="coerce")
-                       < pd.Timestamp.today() - pd.Timedelta(days=POSTPONEMENT_DAYS + 7))]
+                       < now - pd.Timedelta(days=POSTPONEMENT_DAYS + 7))]
 
     return {
         "recorded": int(len(frame)),
@@ -367,7 +374,7 @@ def summary(frame):
     }
 
 
-def summary_by_band(frame):
+def summary_by_band(frame, today=None):
     """The same numbers, split by price band.
 
     This is the split that actually answers "is it as well calibrated at 40% as
@@ -379,7 +386,7 @@ def summary_by_band(frame):
     out = []
     for band in [b for b in ("safe", "main", "value")
                  if b in set(frame["band"].astype(str))]:
-        head = summary(frame[frame["band"].astype(str) == band])
+        head = summary(frame[frame["band"].astype(str) == band], today)
         out.append({"band": band, **head})
     return out
 
