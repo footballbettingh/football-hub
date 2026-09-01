@@ -352,13 +352,26 @@ def test_a_pick_that_never_settles_is_flagged(path):
     record."""
     ledger.record(pick(day="2026-08-14"), path, today="2026-08-14")
     frame = ledger.load(path)
-    fresh = ledger.summary(frame)
+    # Pinned, not read off the wall clock. Left to the real one this asserted
+    # "a pick for the 14th is not overdue" and became false on the 28th, which
+    # is how it broke five nightly runs without a line of code changing.
+    fresh = ledger.summary(frame, today="2026-08-14")
     assert fresh["overdue"] == 0
 
     frame.loc[0, "day"] = "2020-01-01"
-    stale = ledger.summary(frame)
+    stale = ledger.summary(frame, today="2026-08-14")
     assert stale["overdue"] == 1
     assert stale["overdue_days"] == ["2020-01-01"]
+
+
+def test_overdue_is_measured_against_the_clock_it_is_given(path):
+    """The same ledger is overdue or not depending only on when you ask, so
+    the clock has to be an argument rather than something read from the room."""
+    ledger.record(pick(day="2026-08-14"), path, today="2026-08-14")
+    frame = ledger.load(path)
+
+    assert ledger.summary(frame, today="2026-08-27")["overdue"] == 0
+    assert ledger.summary(frame, today="2026-08-29")["overdue"] == 1
 
 
 def test_summary_of_an_empty_ledger_does_not_divide_by_zero(path):
