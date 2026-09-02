@@ -53,3 +53,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-03,safe,2026-09-01T14:03:38,SPL,Premiership,hibernian,hearts,Hibernian v Hearts,corners7.5_over,corners,Over 7.5 corners,0.76837,1.30146,,0.77379,15145,,,,pending,,
 2026-09-03,main,2026-09-01T14:03:38,BJL,Pro League,anderlecht,kortrijk,Anderlecht v KV Kortrijk,ou2.5_over,ou,Over 2.5 goals,0.62164,1.60866,1.58000,0.65725,37243,,,,pending,,
 2026-09-03,value,2026-09-01T14:03:38,PD,La Liga,sociedad,celta,Real Sociedad v Celta Vigo,btts_yes,btts,Both teams to score,0.45413,2.20200,,0.46558,29097,,,,pending,,
+2026-09-04,safe,2026-09-02T09:11:20,BL2,2. Bundesliga,bielefeld,st pauli,Arminia Bielefeld v FC St. Pauli,ou1.5_over,ou,Over 1.5 goals,0.76832,1.30153,,0.77657,26953,,,,pending,,
+2026-09-04,main,2026-09-02T09:11:20,ARG-LIGAPROF,Liga Profesional,estudiantes rio cuarto,sarmiento junin,Estudiantes de Río Cuarto v Sarmiento de Junin,ou1.5_over,ou,Over 1.5 goals,0.62401,1.60253,1.62000,0.65725,37243,,,,pending,,
+2026-09-04,value,2026-09-02T09:11:20,FL1,Ligue 1,lyon,auxerre,Lyon v Auxerre,corners10.5_under,corners,Under 10.5 corners,0.45373,2.20395,,0.47525,20606,,,,pending,,
