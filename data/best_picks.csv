@@ -56,3 +56,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-04,safe,2026-09-02T09:11:20,BL2,2. Bundesliga,bielefeld,st pauli,Arminia Bielefeld v FC St. Pauli,ou1.5_over,ou,Over 1.5 goals,0.76832,1.30153,,0.77657,26953,,,,pending,,
 2026-09-04,main,2026-09-02T09:11:20,ARG-LIGAPROF,Liga Profesional,estudiantes rio cuarto,sarmiento junin,Estudiantes de Río Cuarto v Sarmiento de Junin,ou1.5_over,ou,Over 1.5 goals,0.62401,1.60253,1.62000,0.65725,37243,,,,pending,,
 2026-09-04,value,2026-09-02T09:11:20,FL1,Ligue 1,lyon,auxerre,Lyon v Auxerre,corners10.5_under,corners,Under 10.5 corners,0.45373,2.20395,,0.47525,20606,,,,pending,,
+2026-09-05,safe,2026-09-03T09:11:31,SD,Segunda División,ceuta,celta fortuna,AD Ceuta FC v Celta Fortuna,ou3.5_under,ou,Under 3.5 goals,0.76913,1.30018,,0.77657,26953,,,,pending,,
+2026-09-05,main,2026-09-03T09:11:31,PPL,Primeira Liga,alverca,sp braga,Alverca v Braga,ou1.5_over,ou,Over 1.5 goals,0.62491,1.60023,,0.65725,37243,,,,pending,,
+2026-09-05,value,2026-09-03T09:11:31,ELC,Championship,west bromwich albion,watford,West Bromwich Albion v Watford,tt1.5_home_over,tt,Home team over 1.5 goals,0.45445,2.20047,,0.47532,18579,,,,pending,,
