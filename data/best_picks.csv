@@ -62,3 +62,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-06,safe,2026-09-04T09:13:49,PD,La Liga,espanyol,sevilla,Espanyol v Sevilla,corners11.5_under,corners,Under 11.5 corners,0.76817,1.30180,,0.77362,15200,,,,pending,,
 2026-09-06,main,2026-09-04T09:13:49,SPL,Premiership,st johnstone,hibernian,St Johnstone v Hibernian,dc_1x,dc,Home or draw (1X),0.62458,1.60108,,0.66007,29227,,,,pending,,
 2026-09-06,value,2026-09-04T09:13:49,GSL,Super League (Greece),atromitos,kalamata,Atromitos Athens v Kalamata FC,corners9.5_over,corners,Over 9.5 corners,0.45451,2.20017,,0.47533,20670,,,,pending,,
+2026-09-07,safe,2026-09-05T09:12:07,BRA-SERIEA,Série A,vitoria,gremio,Vitoria v Grêmio,tt0.5_home_over,tt,Home team over 0.5 goals,0.76918,1.30008,,0.77313,34716,,,,pending,,
+2026-09-07,main,2026-09-05T09:12:07,PPL,Primeira Liga,estoril,arouca,Estoril v Arouca,ou1.5_over,ou,Over 1.5 goals,0.62190,1.60798,,0.65740,37245,,,,pending,,
+2026-09-07,value,2026-09-05T09:12:07,ARG-LIGAPROF,Liga Profesional,racing,atletico tucuman,Racing Club v Atlético Tucuman,btts_yes,btts,Both teams to score,0.45452,2.20014,,0.46548,29273,,,,pending,,
