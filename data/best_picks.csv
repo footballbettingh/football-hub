@@ -65,3 +65,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-07,safe,2026-09-05T09:12:07,BRA-SERIEA,Série A,vitoria,gremio,Vitoria v Grêmio,tt0.5_home_over,tt,Home team over 0.5 goals,0.76918,1.30008,,0.77313,34716,,,,pending,,
 2026-09-07,main,2026-09-05T09:12:07,PPL,Primeira Liga,estoril,arouca,Estoril v Arouca,ou1.5_over,ou,Over 1.5 goals,0.62190,1.60798,,0.65740,37245,,,,pending,,
 2026-09-07,value,2026-09-05T09:12:07,ARG-LIGAPROF,Liga Profesional,racing,atletico tucuman,Racing Club v Atlético Tucuman,btts_yes,btts,Both teams to score,0.45452,2.20014,,0.46548,29273,,,,pending,,
+2026-09-08,safe,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,tt0.5_home_over,tt,Home team over 0.5 goals,0.76918,1.30008,,0.77313,34716,,,,pending,,
+2026-09-08,main,2026-09-06T09:09:58,ARG-LIGAPROF,Liga Profesional,union de santa fe,instituto,Union Santa Fe v Instituto de Córdoba,dc_x2,dc,Draw or away (X2),0.60496,1.65299,,0.66007,29227,,,,pending,,
+2026-09-08,value,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,btts_yes,btts,Both teams to score,0.45452,2.20014,,0.46548,29273,,,,pending,,
