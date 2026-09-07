@@ -68,3 +68,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-08,safe,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,tt0.5_home_over,tt,Home team over 0.5 goals,0.76918,1.30008,,0.77313,34716,,,,pending,,
 2026-09-08,main,2026-09-06T09:09:58,ARG-LIGAPROF,Liga Profesional,union de santa fe,instituto,Union Santa Fe v Instituto de Córdoba,dc_x2,dc,Draw or away (X2),0.60496,1.65299,,0.66007,29227,,,,pending,,
 2026-09-08,value,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,btts_yes,btts,Both teams to score,0.45452,2.20014,,0.46548,29273,,,,pending,,
+2026-09-09,safe,2026-09-07T09:12:41,USA-MLS,MLS,atlanta united,orlando city,Atlanta United FC v Orlando City SC,hcp_away+1.5,hcp,Away +1.5,0.76652,1.30460,,0.77415,9493,,,,pending,,
+2026-09-09,main,2026-09-07T09:12:41,USA-MLS,MLS,philadelphia union,cincinnati,Philadelphia Union v FC Cincinnati,tt1.5_away_under,tt,Away team under 1.5 goals,0.62250,1.60643,,0.65247,62679,,,,pending,,
+2026-09-09,value,2026-09-07T09:12:41,USA-MLS,MLS,d c united,columbus crew,D.C. United v Columbus Crew SC,tt1.5_home_over,tt,Home team over 1.5 goals,0.45212,2.21178,,0.47522,18924,,,,pending,,
