@@ -74,3 +74,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-10,safe,2026-09-08T09:11:05,USA-MLS,MLS,vancouver whitecaps,la galaxy,Vancouver Whitecaps FC v LA Galaxy,tt1.5_away_under,tt,Away team under 1.5 goals,0.76918,1.30008,,0.77313,34716,,,,pending,,
 2026-09-10,main,2026-09-08T09:11:05,USA-MLS,MLS,san diego,san jose earthquakes,San Diego FC v San Jose Earthquakes,tt2.5_home_under,tt,Home team under 2.5 goals,0.61379,1.62921,,0.65247,62679,,,,pending,,
 2026-09-10,value,2026-09-08T09:11:05,USA-MLS,MLS,houston dynamo,real salt lake,Houston Dynamo v Real Salt Lake,btts_no,btts,Not both teams to score,0.45209,2.21197,,0.46548,29273,,,,pending,,
+2026-09-11,safe,2026-09-09T09:13:23,BL1,Bundesliga (Germany),union berlin,schalke,Union Berlin v FC Schalke 04,corners7.5_over,corners,Over 7.5 corners,0.76816,1.30182,,0.77362,15200,,,,pending,,
+2026-09-11,main,2026-09-09T09:13:23,AUT-BUNDESLI,Bundesliga (Austria),ried,salzburg,Ried v RB Salzburg,ou2.5_over,ou,Over 2.5 goals,0.62266,1.60600,1.60000,0.65740,37245,,,,pending,,
+2026-09-11,value,2026-09-09T09:13:23,SA,Serie A,venezia,fiorentina,Venezia v Fiorentina,btts_yes,btts,Both teams to score,0.45209,2.21197,,0.46548,29273,,,,pending,,
