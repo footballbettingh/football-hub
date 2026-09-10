@@ -160,6 +160,9 @@ def cmd_history(args):
         raise SystemExit("No picks recorded yet — run `python fb.py card`.")
 
     head = ledger.summary(frame)
+    aside = ", ".join(part for part in (
+        f"{head['void']} void" if head["void"] else "",
+        f"{head['no_result']} with no result" if head["no_result"] else "") if part)
     columns = ["day", "band", "match", "selection", "prob", "fair_odds", "outcome"]
     _show(frame.sort_values(["day", "band"], ascending=False)[columns])
     for band in ledger.summary_by_band(frame):
@@ -167,7 +170,7 @@ def cmd_history(args):
             print(f"  {band['band']:<6} {band['wins']}-{band['losses']}"
                   f"   did {band['hit_rate']:.1%} vs said {band['expected']:.1%}")
     print(f"\n  record {head['wins']}-{head['losses']}"
-          + (f" ({head['void']} void)" if head["void"] else "")
+          + (f" ({aside})" if aside else "")
           + f", {head['pending']} pending")
     if head["hit_rate"] is not None:
         low, high = head["hit_ci"]
@@ -185,8 +188,9 @@ def cmd_history(args):
         _show(accas.sort_values("issued", ascending=False)[
             ["issued", "legs", "probability", "fair_odds", "outcome",
              "legs_won"]])
-        print(f"\n  record {acca['wins']}-{acca['losses']}, "
-              f"{acca['pending']} pending")
+        print(f"\n  record {acca['wins']}-{acca['losses']}"
+              + (f" ({acca['short']} settled a leg short)" if acca["short"] else "")
+              + f", {acca['pending']} pending")
         if acca["hit_rate"] is not None:
             print(f"  landed {acca['hit_rate']:.1%} against "
                   f"{acca['expected']:.1%} claimed")

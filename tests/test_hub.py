@@ -403,11 +403,31 @@ def test_the_history_page_renders_a_mixed_ledger():
         {"day": "2026-08-16", "competition": "PD", "competition_name": "La Liga",
          "match": "e v f", "selection": "Draw no bet", "prob": 0.61,
          "fair_odds": 1.64, "odds": 1.70, "outcome": "pending"},
+        {"day": "2026-08-17", "competition": "SD", "competition_name": "Segunda",
+         "match": "g v h", "selection": "Over 7.5 corners", "prob": 0.73,
+         "fair_odds": 1.37, "odds": None, "outcome": ledger.NO_RESULT, "pnl": None},
     ]).reindex(columns=ledger.COLUMNS)
 
     html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
     assert "a v b" in html and "Pending" in html
     assert "2–1" in html                      # the score of the settled match
+    assert "nan" not in html.lower()
+
+
+def test_a_bet_with_no_result_says_so_rather_than_reading_as_pending():
+    """The distinction the state exists for. A row with no score and no grade
+    must not come out of the page looking like a bet that might still land."""
+    from hub import ledger
+    frame = pd.DataFrame([
+        {"day": "2026-08-17", "competition": "SD", "competition_name": "Segunda",
+         "match": "g v h", "selection": "Over 7.5 corners", "prob": 0.73,
+         "fair_odds": 1.37, "odds": None, "outcome": ledger.NO_RESULT, "pnl": None},
+    ]).reindex(columns=ledger.COLUMNS)
+
+    html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
+    assert "No result" in html
+    assert "1 pick(s) settled with no result" in html
+    assert "Pending" not in html
     assert "nan" not in html.lower()
 
 

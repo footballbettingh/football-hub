@@ -36,6 +36,20 @@ STAKE = 1.0
 # How far a fixture may move and still be recognised as the one we bet on.
 POSTPONEMENT_DAYS = 7
 
+# The outcome of a bet whose match never arrived. Not a fifth kind of result —
+# it is the absence of one, recorded so that it stops being mistaken for a bet
+# that is merely waiting. Money-wise it behaves as a void: nothing staked comes
+# back changed. It is kept apart from "void" all the same, because void means
+# the match was played and the market had no answer, and the two say very
+# different things about the feed.
+NO_RESULT = "no result"
+
+# Every outcome that means the row is finished with, and the subset of those
+# that actually tested the forecast. A no-result bet is settled and must leave
+# the pending count; it is not decided and must stay out of the hit rate.
+SETTLED = ("won", "lost", "void", NO_RESULT)
+UNDECIDED = ("void", NO_RESULT)
+
 COLUMNS = [
     "day", "band", "recorded_at", "competition", "competition_name",
     "home", "away", "match", "key", "group", "selection",
@@ -250,6 +264,35 @@ def _result_for(row, history, resolvers=None):
     return within.loc[(within["date"] - day).abs().idxmin()]
 
 
+def _answer_is_in(competition, day, history):
+    """Has this competition played on past the window this bet could settle in?
+
+    The test for giving up on a bet, and it is evidence rather than patience.
+    A result more than `POSTPONEMENT_DAYS` after the match day cannot settle
+    this bet anyway — beyond that the rearranged fixture is a different match —
+    so once the results file carries one, everything it is ever going to say
+    about our match has been said. If the match is not in there, it is not
+    coming.
+
+    Which leaves the case that must NOT be given up on: a league whose feed has
+    simply gone quiet. Its last result is older than the deadline, the answer is
+    not in, and the bet stays pending — which is the honest thing to show,
+    because we genuinely do not know. Timing the bet out on a fixed number of
+    days would have closed those as though we did.
+
+    Rests on `load_history` dropping fixtures with no score, so the latest date
+    in it is a match that was actually played rather than one that is merely
+    scheduled. Were that to change, this would start closing bets early.
+    """
+    if history is None or history.empty:
+        return False
+    in_comp = history[history["competition"] == competition]
+    if in_comp.empty:
+        return False
+    deadline = pd.to_datetime(day) + pd.Timedelta(days=POSTPONEMENT_DAYS)
+    return bool(in_comp["date"].max() > deadline)
+
+
 def _grade(key, match):
     """won / lost / void for one selection on one finished match."""
     outcomes = goal_results(match["home_goals"], match["away_goals"])
@@ -270,13 +313,20 @@ def profit(outcome, odds, stake=STAKE):
         return stake * (float(odds) - 1.0)
     if outcome == "lost":
         return -stake
-    if outcome == "void":
+    if outcome in UNDECIDED:
         return 0.0
     return np.nan
 
 
 def settle(history, path=LEDGER_CSV):
-    """Fill in results for any pending pick whose match has been played."""
+    """Fill in results for any pending pick whose match has been played.
+
+    Or record that there will not be one. A bet with no result was previously
+    indistinguishable from a bet still to play, so a fixture that was never
+    rearranged, or one the results file spells in a way we cannot read, sat at
+    "pending" for as long as the ledger existed — quietly out of the record,
+    and quietly implying it might still land.
+    """
     frame = load(path)
     pending = frame["outcome"].fillna("pending") == "pending"
     if not pending.any():
@@ -287,14 +337,17 @@ def settle(history, path=LEDGER_CSV):
     for index in frame.index[pending]:
         row = frame.loc[index]
         match = _result_for(row, history, resolvers)
-        if match is None:
-            continue
-        outcome = _grade(row["key"], match)
+        outcome = None if match is None else _grade(row["key"], match)
         if outcome is None:
-            continue
-        frame.loc[index, "played_on"] = match["date"].strftime("%Y-%m-%d")
-        frame.loc[index, "home_goals"] = int(match["home_goals"])
-        frame.loc[index, "away_goals"] = int(match["away_goals"])
+            if not _answer_is_in(row["competition"], row["day"], history):
+                continue                   # still to play, or still to arrive
+            outcome = NO_RESULT
+        # A match found but ungradeable — played, with nothing in the file
+        # about the market that was bet — still has a score worth writing down.
+        if match is not None:
+            frame.loc[index, "played_on"] = match["date"].strftime("%Y-%m-%d")
+            frame.loc[index, "home_goals"] = int(match["home_goals"])
+            frame.loc[index, "away_goals"] = int(match["away_goals"])
         frame.loc[index, "outcome"] = outcome
         frame.loc[index, "pnl"] = profit(outcome, row["odds"])
         frame.loc[index, "settled_at"] = datetime.now().isoformat(timespec="seconds")
@@ -331,18 +384,20 @@ def summary(frame, today=None):
     """
     frame = frame.copy()
     frame["outcome"] = frame["outcome"].fillna("pending")
-    done = frame[frame["outcome"].isin(("won", "lost", "void"))]
-    decided = done[done["outcome"] != "void"]
+    done = frame[frame["outcome"].isin(SETTLED)]
+    decided = done[~done["outcome"].isin(UNDECIDED)]
     priced = done[done["pnl"].notna()]
 
     wins = int((decided["outcome"] == "won").sum())
     pnl = float(priced["pnl"].sum()) if len(priced) else 0.0
     staked = float(len(priced) * STAKE)
 
-    # A pick still pending long after its match should have been played is not
-    # patience, it is a join that never matched — a team key the results file
-    # spells differently. Left unflagged it would sit there forever, quietly
-    # keeping a loss out of the record.
+    # What is left pending long after its match should have been played. Once
+    # `settle` can record a missing result, this no longer catches the fixture
+    # that was never rearranged or the club spelled two ways — those are closed
+    # as no-result. What reaches it now is a league whose results have stopped
+    # arriving altogether, which is worth saying out loud, because nothing else
+    # on the page distinguishes a quiet feed from a quiet week.
     now = pd.Timestamp.today() if today is None else pd.Timestamp(today)
     overdue = frame[(frame["outcome"] == "pending")
                     & (pd.to_datetime(frame["day"], errors="coerce")
@@ -355,6 +410,7 @@ def summary(frame, today=None):
         "pending": int((frame["outcome"] == "pending").sum()),
         "settled": int(len(done)),
         "void": int((done["outcome"] == "void").sum()),
+        "no_result": int((done["outcome"] == NO_RESULT).sum()),
         "wins": wins,
         "losses": int(len(decided)) - wins,
         "hit_rate": float(wins / len(decided)) if len(decided) else None,
@@ -397,7 +453,8 @@ ACCA_COLUMNS = [
     "issued", "recorded_at", "legs", "target_odds", "min_leg_odds",
     "probability", "fair_odds", "offered_odds", "weakest_leg",
     "first_day", "last_day", "selections",
-    "legs_won", "legs_void", "outcome", "pnl", "settled_at",
+    "legs_won", "legs_void", "settled_probability",
+    "outcome", "pnl", "settled_at",
 ]
 
 ACCA_TEXT = ("issued", "recorded_at", "first_day", "last_day", "selections",
@@ -459,10 +516,14 @@ def settle_accas(history, path=ACCA_CSV):
     """Grade any slip whose every leg has now been played.
 
     Void legs drop out and the slip settles on what is left, which is what a
-    bookmaker does. A slip is only priced if EVERY surviving leg had a quoted
-    price — and if it is unpriced it stays out of the P&L whether it won or
-    lost, because counting the losses and not the wins would be worse than
-    counting neither.
+    bookmaker does. So does a leg with no result: one fixture that was never
+    rearranged used to hold a whole slip at "pending" indefinitely, which put
+    three otherwise decided slips out of the record for a month. A slip on
+    which nothing is left standing is void.
+
+    A slip is only priced if EVERY surviving leg had a quoted price — and if it
+    is unpriced it stays out of the P&L whether it won or lost, because counting
+    the losses and not the wins would be worse than counting neither.
     """
     frame = load_accas(path)
     pending = frame["outcome"].fillna("pending") == "pending"
@@ -478,12 +539,16 @@ def settle_accas(history, path=ACCA_CSV):
             match = _result_for({"competition": leg["competition"],
                                  "home": leg["home"], "away": leg["away"],
                                  "day": leg["date"]}, history, resolvers)
-            graded.append(None if match is None else _grade(leg["key"], match))
+            outcome = None if match is None else _grade(leg["key"], match)
+            if outcome is None and _answer_is_in(leg["competition"],
+                                                 leg["date"], history):
+                outcome = NO_RESULT
+            graded.append(outcome)
         if any(outcome is None for outcome in graded):
             continue                       # a leg is still to play
 
         alive = [(leg, outcome) for leg, outcome in zip(legs, graded)
-                 if outcome != "void"]
+                 if outcome not in UNDECIDED]
         wins = sum(1 for _, outcome in alive if outcome == "won")
         if not alive:
             outcome, pnl = "void", 0.0
@@ -498,7 +563,17 @@ def settle_accas(history, path=ACCA_CSV):
             pnl = -STAKE if priced else np.nan
 
         frame.loc[index, "legs_won"] = wins
+        # Legs that dropped out, for either reason: void on the result, or no
+        # result to be void on.
         frame.loc[index, "legs_void"] = len(legs) - len(alive)
+        # What the slip that actually ran claimed. A four-fold graded on three
+        # legs is a likelier bet than the one written down, so checking what
+        # landed against the four-leg claim would credit the forecast for a leg
+        # nothing ever tested. Only filled where a leg dropped; the recorded
+        # claim is not touched, because settlement only ever fills in blanks.
+        chances = [leg.get("prob") for leg, _ in alive]
+        if alive and len(alive) != len(legs) and all(p is not None for p in chances):
+            frame.loc[index, "settled_probability"] = float(np.prod(chances))
         frame.loc[index, "outcome"] = outcome
         frame.loc[index, "pnl"] = pnl
         frame.loc[index, "settled_at"] = datetime.now().isoformat(timespec="seconds")
@@ -512,21 +587,28 @@ def settle_accas(history, path=ACCA_CSV):
 def acca_summary(frame):
     frame = frame.copy()
     frame["outcome"] = frame["outcome"].fillna("pending")
-    done = frame[frame["outcome"].isin(("won", "lost", "void"))]
-    decided = done[done["outcome"] != "void"]
+    done = frame[frame["outcome"].isin(SETTLED)]
+    decided = done[~done["outcome"].isin(UNDECIDED)]
     priced = done[done["pnl"].notna()]
 
     wins = int((decided["outcome"] == "won").sum())
     pnl = float(priced["pnl"].sum()) if len(priced) else 0.0
+    claimed = decided["settled_probability"].where(
+        decided["settled_probability"].notna(), decided["probability"])
     return {
         "recorded": int(len(frame)),
         "pending": int((frame["outcome"] == "pending").sum()),
+        # Slips that settled a leg short — void on the result, or with no
+        # result at all. Worth its own number: a four-fold graded on three legs
+        # is a different bet from the one that was written down.
+        "short": int((done["legs_void"].fillna(0) > 0).sum()),
         "settled": int(len(done)),
         "wins": wins,
         "losses": int(len(decided)) - wins,
         "hit_rate": float(wins / len(decided)) if len(decided) else None,
-        # The product of the legs' probabilities, which is what the slip claimed.
-        "expected": float(decided["probability"].mean()) if len(decided) else None,
+        # The product of the legs' probabilities, which is what the slip
+        # claimed — of the legs that actually ran, where some dropped out.
+        "expected": float(claimed.mean()) if len(decided) else None,
         "priced": int(len(priced)),
         "unpriced": int(len(done) - len(priced)),
         "pnl": pnl,

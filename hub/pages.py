@@ -724,7 +724,11 @@ def page_fixtures(links, ctx):
 # -- 3. history ------------------------------------------------------------
 
 OUTCOME_LABEL = {"won": ("good", "Won"), "lost": ("critical", "Lost"),
-                 "void": ("neutral", "Void"), "pending": ("neutral", "Pending")}
+                 "void": ("neutral", "Void"), "pending": ("neutral", "Pending"),
+                 # Not a result. The match never arrived, and saying so is the
+                 # whole point of the state: "Pending" on a bet from six weeks
+                 # ago reads as a bet that might still land.
+                 ledger.NO_RESULT: ("neutral", "No result")}
 
 
 def _acca_history_section(frame):
@@ -774,11 +778,31 @@ def _acca_history_section(frame):
       ("Legs landing", (f"{head['average_legs_won']:.1f} of "
                         f"{head['average_legs']:.0f}")
        if head["average_legs_won"] is not None else NONE, "on average"),
-      ("Slips recorded", f"{head['recorded']}", "one per match day"),
+      ("Slips recorded", f"{head['recorded']}",
+       f"{head['short']} settled a leg short" if head.get("short")
+       else "one per match day"),
   ])}
   {c.table(["Issued", "Legs", "Selections", "Chance", "Fair",
             "Landed", "Result"], rows, numeric_from=3, raw=True)}
 </section>"""
+
+
+def _settled_note(head):
+    """What the settled count is made of, where it is not all results."""
+    parts = [f"{head['void']} void" if head.get("void") else "",
+             f"{head['no_result']} with no result" if head.get("no_result") else ""]
+    return ", ".join(part for part in parts if part) or "graded against the result"
+
+
+def _no_result_note(head):
+    if not head.get("no_result"):
+        return ""
+    return c.status_block(
+        "neutral", f"{head['no_result']} pick(s) settled with no result",
+        "Their match was never played within the week a postponed fixture is "
+        "still counted as the same one, and the league has since played on "
+        "past it. The stake is returned, so these sit outside the hit rate and "
+        "outside the P&amp;L — but they are closed, not waiting.")
 
 
 def _results_behind_note(frame, data):
@@ -861,6 +885,7 @@ def page_history(links, ctx):
     verdict = _history_verdict(head)
 
     behind_note = _results_behind_note(frame, ctx.get("data"))
+    no_result_note = _no_result_note(head)
 
     overdue_note = ""
     if head.get("overdue"):
@@ -926,11 +951,11 @@ def page_history(links, ctx):
      f"said {_pct(head['expected'])}" if head["expected"] is not None else ""),
     ("95% interval", _interval(head.get("hit_ci")),
      "on what landed, not what was claimed"),
-    ("Settled", f"{head['settled']}",
-     f"{head['void']} void" if head["void"] else "graded against the result"),
+    ("Settled", f"{head['settled']}", _settled_note(head)),
     ("Picks recorded", f"{head['recorded']}", "one per band per match day"),
 ])}
 {behind_note}
+{no_result_note}
 {overdue_note}
 {unpriced_note}
 {band_section}

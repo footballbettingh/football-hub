@@ -196,10 +196,63 @@ def test_a_postponed_match_is_still_the_same_bet(path):
 
 def test_a_match_rearranged_months_later_is_not(path):
     """Beyond a week the "same" fixture is a different game in different
-    circumstances, and the price we recorded no longer described it."""
+    circumstances, and the price we recorded no longer described it.
+
+    So the bet gets no result — and the ledger records it as having none rather
+    than leaving it pending, because the league has plainly played on past it.
+    """
     ledger.record(pick(), path, today="2026-08-12")
     ledger.settle(history([("AUT-BUNDESLI", "lask", "ried", "2026-11-20", 3, 0)]), path)
+    row = ledger.load(path).iloc[0]
+    assert row["outcome"] == ledger.NO_RESULT
+    assert row["played_on"] != row["played_on"]      # nothing to point at
+
+
+def test_a_quiet_feed_is_not_a_missing_result(path):
+    """The difference the whole state turns on. A league that has published
+    nothing since before our match has not told us the match did not happen —
+    it has told us nothing, and "pending" is the honest word for that."""
+    quiet = history([("AUT-BUNDESLI", "sturm", "salzburg", "2026-08-09", 1, 0)])
+    ledger.record(pick(), path, today="2026-08-12")
+    assert ledger.settle(quiet, path) == 0
     assert ledger.load(path).iloc[0]["outcome"] == "pending"
+
+
+def test_the_league_playing_on_closes_the_bet(path):
+    """The same ledger, once the league has played past the week a postponed
+    fixture would still have counted in. Nothing more is coming."""
+    moved_on = history([("AUT-BUNDESLI", "sturm", "salzburg", "2026-08-30", 1, 0)])
+    ledger.record(pick(), path, today="2026-08-12")
+    assert ledger.settle(moved_on, path) == 1
+    row = ledger.load(path).iloc[0]
+    assert row["outcome"] == ledger.NO_RESULT
+    assert row["pnl"] == 0.0                 # the stake comes back
+
+
+def test_a_bet_with_no_result_is_settled_but_not_decided(path):
+    """It has to leave the pending count without entering the hit rate. Landing
+    in either of the other two would be a lie about a bet nobody could grade."""
+    ledger.record(pick(), path, today="2026-08-12")
+    ledger.settle(history([("AUT-BUNDESLI", "sturm", "salzburg", "2026-08-30", 1, 0)]),
+                  path)
+    head = ledger.summary(ledger.load(path), today="2026-09-10")
+    assert head["pending"] == 0
+    assert head["settled"] == 1
+    assert head["no_result"] == 1
+    assert head["wins"] == 0 and head["losses"] == 0
+    assert head["hit_rate"] is None
+    # And it is not overdue either — overdue is for what is still unanswered.
+    assert head["overdue"] == 0
+
+
+def test_an_unpriced_bet_with_no_result_stays_out_of_the_money(path):
+    """Same rule as everywhere else in this file: no quoted price, no P&L."""
+    ledger.record(pick(odds=None), path, today="2026-08-12")
+    ledger.settle(history([("AUT-BUNDESLI", "sturm", "salzburg", "2026-08-30", 1, 0)]),
+                  path)
+    row = ledger.load(path).iloc[0]
+    assert row["outcome"] == ledger.NO_RESULT
+    assert row["pnl"] != row["pnl"]
 
 
 def test_settling_twice_changes_nothing(path):
@@ -292,6 +345,67 @@ def test_a_void_leg_drops_out_and_the_slip_settles_on_the_rest(acca_path):
     assert row["outcome"] == "won"
     assert row["legs_void"] == 1
     assert row["pnl"] == pytest.approx(0.75)      # the surviving leg alone
+
+
+def test_a_leg_with_no_result_drops_out_like_a_void_one(acca_path):
+    """One fixture that was never rearranged used to hold a whole slip at
+    "pending" indefinitely. It drops out instead, and the slip settles on what
+    is left — at the price of what is left, not the price that was written
+    down."""
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    settled = ledger.settle_accas(
+        history([("AUT-BUNDESLI", "lask", "ried", "2026-08-14", 2, 1),
+                 ("AUT-BUNDESLI", "sturm", "salzburg", "2026-08-30", 1, 0)]),
+        acca_path)
+    row = ledger.load_accas(acca_path).iloc[0]
+    assert settled == 1
+    assert row["outcome"] == "won"
+    assert row["legs_won"] == 1
+    assert row["legs_void"] == 1
+    assert row["pnl"] == pytest.approx(0.75)      # the surviving leg alone
+    assert ledger.acca_summary(ledger.load_accas(acca_path))["short"] == 1
+
+
+def test_a_short_slip_is_measured_against_what_it_actually_ran(acca_path):
+    """A four-fold graded on three legs was a likelier bet than the one written
+    down, so checking what landed against the four-leg claim would credit the
+    forecast for a leg nothing ever tested. The recorded claim stays put — the
+    adjusted one goes in a column that was empty."""
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    ledger.settle_accas(
+        history([("AUT-BUNDESLI", "lask", "ried", "2026-08-14", 2, 1),
+                 ("AUT-BUNDESLI", "sturm", "salzburg", "2026-08-30", 1, 0)]),
+        acca_path)
+    frame = ledger.load_accas(acca_path)
+    assert frame.iloc[0]["settled_probability"] == pytest.approx(0.58)
+    assert frame.iloc[0]["probability"] == pytest.approx(0.33)
+    assert ledger.acca_summary(frame)["expected"] == pytest.approx(0.58)
+
+
+def test_a_slip_that_kept_every_leg_keeps_its_original_claim(acca_path):
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    ledger.settle_accas(history([("AUT-BUNDESLI", "lask", "ried", "2026-08-14", 2, 1),
+                                 ("AUT-BUNDESLI", "a", "b", "2026-08-15", 3, 1)]),
+                        acca_path)
+    frame = ledger.load_accas(acca_path)
+    settled_claim = frame.iloc[0]["settled_probability"]
+    assert settled_claim != settled_claim                # left empty
+    assert ledger.acca_summary(frame)["expected"] == pytest.approx(0.33)
+
+
+def test_a_slip_still_waits_while_the_league_is_only_quiet(acca_path):
+    """The counterpart. The second leg is missing either way; what decides it
+    is whether the league has published anything past the week in which that
+    leg could still have been settled."""
+    settled = ledger.settle_accas(
+        history([("AUT-BUNDESLI", "lask", "ried", "2026-08-14", 2, 1)]), acca_path)
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    settled = ledger.settle_accas(
+        history([("AUT-BUNDESLI", "lask", "ried", "2026-08-14", 2, 1),
+                 ("AUT-BUNDESLI", "sturm", "salzburg", "2026-08-16", 1, 0)]),
+        acca_path)
+    assert settled == 0
+    assert ledger.load_accas(acca_path).iloc[0]["outcome"] == "pending"
 
 
 def test_an_unpriced_slip_is_graded_but_kept_out_of_the_money(acca_path):
