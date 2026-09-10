@@ -26,6 +26,39 @@ COLUMNS = ["date", "competition", "match", "home_team", "away_team", "key", "gro
            "new_team", "validated", "implied_resid"]
 
 
+def drop_quiet_leagues(fixtures, history, progress=print, today=None):
+    """Fixtures minus the leagues whose results have stopped arriving.
+
+    A league can be in season, priceable, and quoted happily by the price feed
+    while its results feed is dead, and every bet taken on it in that state is
+    unsettleable — not lost, not void, just permanently pending, because a feed
+    that says nothing is not evidence that nothing happened.
+
+    So this is where it has to be stopped. Everything downstream only describes
+    the bet after it exists: the ledger cannot grade it, the History page can
+    only report that it is waiting. This is the one place that keeps it from
+    being taken.
+
+    `today` is injectable for the reason it is everywhere else in this project:
+    the rule is measured against the clock, so a test that cannot pin it has to
+    hardcode dates and quietly becomes a bomb on the day the real clock walks
+    past them. One did.
+    """
+    silent = leagues.quiet(history, today)
+    skipped = sorted(set(fixtures.loc[fixtures["competition"].isin(silent),
+                                      "competition"]))
+    if not skipped:
+        return fixtures
+    for code in skipped:
+        progress(f"! Not pricing {leagues.label(code)} — its results stopped "
+                 f"arriving, so a bet on it could never be graded")
+    kept = fixtures[~fixtures["competition"].isin(silent)]
+    if kept.empty:
+        raise SystemExit("Every league with an upcoming fixture has gone quiet "
+                         "on results. Fetch results before pricing anything.")
+    return kept
+
+
 def build(progress=print, weight=None, devig_method=None):
     history = cf_data.load_history()
     fixtures = cf_data.load_fixtures()
@@ -34,6 +67,7 @@ def build(progress=print, weight=None, devig_method=None):
         # already been played, which is what an off-season looks like.
         raise SystemExit("Every fixture on file has already kicked off. "
                          "Fetch new prices to get the next round.")
+    fixtures = drop_quiet_leagues(fixtures, history, progress)
     progress(f"{len(fixtures)} upcoming fixtures, "
              f"{fixtures['competition'].nunique()} competitions")
 

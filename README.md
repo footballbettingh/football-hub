@@ -195,6 +195,16 @@ would a full refresh cost? — gets answered before anything is spent. It writes
 `data/leagues.json`, and **Fetch new prices** then follows that plan instead of
 only refreshing the files that already exist.
 
+A league is left out of that plan if its **results have stopped arriving**, even
+when the price feed is happy to sell it. Russia's Premier League published its
+last result on 2 August 2026 and was still quoted for weeks afterwards; every
+bet taken on it in that window can never be graded, and unlike an abandoned
+fixture it cannot even be recorded as having no result, because a feed that says
+nothing is not evidence that nothing happened. Twenty-one days behind is the
+line — in-season leagues run two to ten days behind even through an
+international break — and a league returns to the card by itself the day its
+results resume.
+
 As of August 2026 that is **31 leagues, about 124 credits** for a full fetch
 against a 500/month free tier — which turns a six-league card of 70 fixtures
 into a 31-league one of 334. Nine competitions in the dataset have no feed at
@@ -307,12 +317,22 @@ flattering history and mean nothing. Settlement only ever fills in the empty
 columns. The History page splits the record by band, because a forecast can be
 honest at 77% and overconfident at 45%, and pooling hides exactly that.
 
-One thing it refuses to fudge:
+Two things it refuses to fudge:
 
-* **A pick still pending long after its match is flagged, not ignored.** Pending
-  forever means the result is not being found — usually a club the results file
-  spells differently — and left alone it would quietly keep a loss out of the
-  record.
+* **A bet whose match never arrived is recorded as having no result**, not left
+  at "pending" where it reads as a bet that might still land. The test is
+  evidence rather than a timeout: a result more than a week after the match day
+  could not settle the bet anyway, so once the league has played on past that,
+  everything the results file is ever going to say has been said. It settles as
+  a void does — stake back, out of the hit rate — and on an accumulator the leg
+  drops out and the rest of the slip is graded. A slip graded on three of four
+  legs is then compared against the three legs' own claim, not the four-leg one
+  it was written down with, which would credit the forecast for a leg nothing
+  tested.
+* **What is still pending long afterwards is flagged, not ignored.** After the
+  above, that can only be a league whose results have stopped arriving
+  altogether — which is worth saying out loud, because nothing else on the page
+  tells a quiet feed from a quiet week.
 
 Matches are found by competition and both team keys rather than by date, so a
 postponement of up to a week is still the same bet; beyond that it is treated as

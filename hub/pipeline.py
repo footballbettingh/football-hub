@@ -133,14 +133,26 @@ def discover_leagues(progress=print):
     live = {s["key"]: s for s in odds_api.list_sports() if s.get("group") == "Soccer"}
     progress(f"The Odds API has {len(live)} soccer leagues in season right now.")
 
-    history = pd.read_csv(vb_config.DATA_DIR / "history.csv", usecols=["competition"])
+    # The full loader rather than the competition column alone: `quiet` below
+    # needs the date of the last result, and needs it to be a result — a row
+    # for a fixture that has not been played yet would make a dead feed look
+    # current.
+    history = cf_data.load_history()
     have_history = set(history["competition"].unique())
+    silent = leagues.quiet(history)
     tracked = set(sports_tracked())
 
-    plan, missing = [], []
+    plan, missing, stopped = [], [], []
     for code, sport in sorted(leagues.SPORT_KEYS.items()):
         if code not in have_history:
             continue                     # nothing to price it against
+        if code in silent:
+            # In season as far as the API is concerned, and priced happily, but
+            # nothing it sells could ever be graded. Buying it is worse than
+            # useless: it costs credits and fills the ledger with bets that
+            # stay pending for good.
+            stopped.append((code, sport))
+            continue
         if sport not in live:
             missing.append((code, sport))
             continue
@@ -153,6 +165,10 @@ def discover_leagues(progress=print):
     if missing:
         progress(f"Out of season or unmapped ({len(missing)}): "
                  + ", ".join(code for code, _ in missing))
+    if stopped:
+        progress(f"Results have stopped arriving for {len(stopped)}, so they are "
+                 "left out until they resume: "
+                 + ", ".join(leagues.label(code) for code, _ in stopped))
 
     unknown = sorted(set(live) - set(leagues.BY_SPORT))
     if unknown:

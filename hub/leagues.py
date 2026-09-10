@@ -9,12 +9,18 @@ Two separate questions that used to be tangled together:
   Odds API's key, and it is *never trusted blindly*: `discover` asks the API
   which leagues are actually in season (a free call) and reports what matched.
   A wrong key here costs a skipped league and a warning, not a wasted credit.
+* **Are its results still arriving?** `quiet` answers that, and it is the
+  question the other two do not cover: a league can be priceable and in season
+  and still have a results feed that has stopped, which makes every bet on it
+  unsettleable.
 
 The card can only price a fixture whose competition also exists in history —
 team strengths are ratios against a league average, so a Championship side
 priced off Premier League parameters is not a worse forecast, it is a
 meaningless one.
 """
+
+import pandas as pd
 
 # code -> (competition name, country)
 NAMES = {
@@ -154,3 +160,37 @@ def labels_for(codes):
     return {code: name(code, with_country=len(plain[NAMES[code][0]]) > 1)
             if code in NAMES else code
             for code in codes}
+
+
+# How far behind a league's results may fall before it stops being priced.
+#
+# Not a guess. Every league in season sits between two and ten days behind,
+# even through an international break, because the sources publish weekly.
+# Russia's Premier League stopped publishing on 2 August 2026 and was 39 days
+# behind by the time anyone noticed — while The Odds API went on listing it as
+# in season and selling prices for it. Every bet taken on it in between could
+# never be graded, and unlike a fixture that was abandoned it cannot even be
+# recorded as having no result: a feed that says nothing is not evidence that
+# nothing happened. So the only fix is to stop taking the bet.
+RESULTS_STALE_DAYS = 21
+
+
+def quiet(history, today=None):
+    """Competitions whose results have stopped arriving.
+
+    Expects played matches — `confidence.data.load_history` output, where rows
+    with no score are already gone, so the newest date is a match that happened
+    rather than one that is merely scheduled.
+
+    A league between rounds is not quiet: it is the gap since the last result
+    that counts, and three weeks of it means the feed has broken, not that
+    nobody played. The price of being wrong is one round of picks skipped after
+    a mid-season break longer than that, and the league comes back on its own
+    the day results resume — which is the right way round, because the other
+    kind of mistake does not heal.
+    """
+    if history is None or len(history) == 0:
+        return set()
+    now = pd.Timestamp(today) if today is not None else pd.Timestamp.today()
+    latest = history.groupby("competition")["date"].max()
+    return set(latest.index[latest < now - pd.Timedelta(days=RESULTS_STALE_DAYS)])

@@ -79,6 +79,82 @@ def test_no_league_is_mapped_onto_a_cup():
 
 # -- links: the one thing both delivery modes share ------------------------
 
+# -- leagues whose results have stopped arriving ---------------------------
+
+def _results(rows):
+    """rows: (competition, last result date)."""
+    return pd.DataFrame([{"competition": comp, "date": pd.Timestamp(day)}
+                         for comp, day in rows])
+
+
+def test_a_league_still_publishing_results_is_not_quiet():
+    frame = _results([("PL", "2026-09-06"), ("SA", "2026-08-31")])
+    assert leagues.quiet(frame, today="2026-09-10") == set()
+
+
+def test_a_league_that_has_stopped_publishing_is():
+    """The case this exists for. The Odds API still listed Russia's Premier
+    League as in season and still sold prices for it, five weeks after the
+    results feed went silent."""
+    frame = _results([("PL", "2026-09-06"), ("RUS-PREMIERL", "2026-08-02")])
+    assert leagues.quiet(frame, today="2026-09-10") == {"RUS-PREMIERL"}
+
+
+def test_quiet_is_measured_against_the_clock_it_is_given():
+    frame = _results([("RUS-PREMIERL", "2026-08-02")])
+    assert leagues.quiet(frame, today="2026-08-20") == set()
+    assert leagues.quiet(frame, today="2026-08-24") == {"RUS-PREMIERL"}
+
+
+def test_an_empty_history_leaves_every_league_alone():
+    """Never mistake having no data for having a broken feed — on a fresh
+    install that would silently price nothing at all."""
+    assert leagues.quiet(pd.DataFrame(columns=["competition", "date"])) == set()
+    assert leagues.quiet(None) == set()
+
+
+def test_a_quiet_league_comes_back_the_day_results_resume():
+    frame = _results([("RUS-PREMIERL", "2026-08-02")])
+    assert leagues.quiet(frame, today="2026-09-10") == {"RUS-PREMIERL"}
+    resumed = pd.concat([frame, _results([("RUS-PREMIERL", "2026-09-09")])])
+    assert leagues.quiet(resumed, today="2026-09-10") == set()
+
+
+def _upcoming(rows):
+    """rows: (competition, match)."""
+    return pd.DataFrame([{"competition": comp, "match": match}
+                         for comp, match in rows])
+
+
+def test_a_quiet_league_never_reaches_the_card(capsys):
+    """The guard that matters. Downstream can only describe the bet once it
+    exists; this is the only place that stops it being taken."""
+    history = _results([("PL", "2026-09-06"), ("RUS-PREMIERL", "2026-08-02")])
+    fixtures = _upcoming([("PL", "a v b"), ("RUS-PREMIERL", "c v d"),
+                          ("RUS-PREMIERL", "e v f")])
+
+    kept = card.drop_quiet_leagues(fixtures, history, today="2026-09-10")
+
+    assert list(kept["match"]) == ["a v b"]
+    assert "Premier League (Russia)" in capsys.readouterr().out
+
+
+def test_a_card_with_nothing_left_says_why():
+    """Rather than the message about every fixture having kicked off, which
+    would send someone to fetch prices they already have."""
+    history = _results([("RUS-PREMIERL", "2026-08-02")])
+    with pytest.raises(SystemExit, match="quiet"):
+        card.drop_quiet_leagues(_upcoming([("RUS-PREMIERL", "c v d")]), history,
+                                today="2026-09-10")
+
+
+def test_a_healthy_card_is_passed_through_untouched():
+    history = _results([("PL", "2026-09-06")])
+    fixtures = _upcoming([("PL", "a v b")])
+    assert card.drop_quiet_leagues(fixtures, history,
+                                   today="2026-09-10") is fixtures
+
+
 def test_server_links_are_routes_and_static_links_are_files():
     server, static = c.Links("server"), c.Links("static")
     assert server.href("index") == "/"
