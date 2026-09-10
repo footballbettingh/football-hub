@@ -126,6 +126,24 @@ def _upcoming(rows):
                          for comp, match in rows])
 
 
+def test_a_league_you_have_taken_on_yourself_stays_on_the_card(capsys, monkeypatch):
+    """The opt-in. The feed is still dead — `quiet` still says so — but the
+    card keeps pricing it, because you have undertaken to look the results up.
+    """
+    monkeypatch.setattr(leagues, "GRADED_BY_HAND", {"RUS-PREMIERL"})
+    history = _results([("PL", "2026-09-06"), ("RUS-PREMIERL", "2026-08-02")])
+    fixtures = _upcoming([("PL", "a v b"), ("RUS-PREMIERL", "c v d")])
+
+    assert leagues.quiet(history, today="2026-09-10") == {"RUS-PREMIERL"}
+    assert leagues.skipped(history, today="2026-09-10") == set()
+
+    kept = card.drop_quiet_leagues(fixtures, history, today="2026-09-10")
+
+    assert list(kept["match"]) == ["a v b", "c v d"]
+    # And it says so, because taking the bet is now a commitment to grade it.
+    assert "check and enter yourself" in capsys.readouterr().out
+
+
 def test_a_quiet_league_never_reaches_the_card(capsys):
     """The guard that matters. Downstream can only describe the bet once it
     exists; this is the only place that stops it being taken."""

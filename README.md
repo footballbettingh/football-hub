@@ -205,6 +205,13 @@ line — in-season leagues run two to ten days behind even through an
 international break — and a league returns to the card by itself the day its
 results resume.
 
+If you would rather keep betting one of them and look the results up yourself,
+add its code to `GRADED_BY_HAND` in `hub/leagues.py`. It stays on the card, the
+build says so every time it prices it, and every bet on it settles only from a
+score you enter in `data/manual_results.csv`. The list is empty by default,
+because a bet nobody gets round to checking does not fail loudly — it sits at
+pending for good.
+
 As of August 2026 that is **31 leagues, about 124 credits** for a full fetch
 against a 500/month free tier — which turns a six-league card of 70 fixtures
 into a 31-league one of 334. Nine competitions in the dataset have no feed at

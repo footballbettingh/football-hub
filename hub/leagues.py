@@ -176,6 +176,17 @@ def labels_for(codes):
 # nothing happened. So the only fix is to stop taking the bet.
 RESULTS_STALE_DAYS = 21
 
+# Leagues kept on the card anyway, because you have taken on grading them
+# yourself. A bet on one of these can only ever settle from a score typed into
+# `data/manual_results.csv` after you have looked it up, and every row it
+# grades that way is labelled as hand-entered on the History page.
+#
+# Empty by default, and it wants to stay a short list. Each entry is a standing
+# promise to go and check results by hand for as long as the feed stays dead —
+# and a bet nobody gets round to checking does not fail loudly, it just sits at
+# pending for good, which is the exact hole all of this was built to close.
+GRADED_BY_HAND = set()
+
 
 def quiet(history, today=None):
     """Competitions whose results have stopped arriving.
@@ -203,3 +214,13 @@ def quiet(history, today=None):
     now = pd.Timestamp(today) if today is not None else pd.Timestamp.today()
     latest = history.groupby("competition")["date"].max()
     return set(latest.index[latest < now - pd.Timedelta(days=RESULTS_STALE_DAYS)])
+
+
+def skipped(history, today=None):
+    """The quiet leagues the card should actually drop.
+
+    `quiet` states a fact about the feed; this applies the decision. A league
+    you have opted to grade by hand is still quiet — nothing has started
+    publishing again — but it stays on the card, and the results are on you.
+    """
+    return quiet(history, today) - GRADED_BY_HAND

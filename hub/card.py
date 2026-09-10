@@ -44,7 +44,11 @@ def drop_quiet_leagues(fixtures, history, progress=print, today=None):
     hardcode dates and quietly becomes a bomb on the day the real clock walks
     past them. One did.
     """
-    silent = leagues.quiet(history, today)
+    silent = leagues.skipped(history, today)
+    for code in sorted(leagues.GRADED_BY_HAND & leagues.quiet(history, today)):
+        progress(f"Pricing {leagues.label(code)} even though its results have "
+                 f"stopped arriving — its bets settle only from scores you "
+                 f"check and enter yourself")
     skipped = sorted(set(fixtures.loc[fixtures["competition"].isin(silent),
                                       "competition"]))
     if not skipped:

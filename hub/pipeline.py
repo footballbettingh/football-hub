@@ -139,7 +139,7 @@ def discover_leagues(progress=print):
     # current.
     history = cf_data.load_history()
     have_history = set(history["competition"].unique())
-    silent = leagues.quiet(history)
+    silent = leagues.skipped(history)
     tracked = set(sports_tracked())
 
     plan, missing, stopped = [], [], []
