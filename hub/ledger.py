@@ -24,7 +24,7 @@ from datetime import date, datetime
 import numpy as np
 import pandas as pd
 
-from confidence import config as cf_config
+from confidence import config as cf_config, data as cf_data
 from confidence.markets import corner_results, goal_results
 from confidence.teams import build_resolver
 from valuebets import config as vb_config
@@ -55,6 +55,11 @@ COLUMNS = [
     "home", "away", "match", "key", "group", "selection",
     "prob", "fair_odds", "odds", "hit_rate", "hit_rate_n",
     "played_on", "home_goals", "away_goals", "outcome", "pnl", "settled_at",
+    # Where the score came from: "feed", or "hand" for the handful of results
+    # the source is never going to publish and somebody checked themselves. The
+    # row has to say so — it is the one number on the page a reader cannot go
+    # and verify, so it must not look identical to the ones they can.
+    "result_source",
 ]
 
 # What a row without a band is. Rows written before the slate existed were all
@@ -67,7 +72,7 @@ DEFAULT_BAND = "main"
 # version — so they are pinned to object up front.
 TEXT_COLUMNS = ("day", "band", "recorded_at", "competition", "competition_name",
                 "home", "away", "match", "key", "group", "selection",
-                "played_on", "outcome", "settled_at")
+                "played_on", "outcome", "settled_at", "result_source")
 
 
 def load(path=LEDGER_CSV):
@@ -286,6 +291,10 @@ def _answer_is_in(competition, day, history):
     """
     if history is None or history.empty:
         return False
+    # Feed rows only, for the same reason `leagues.quiet` uses them: this asks
+    # whether the SOURCE has moved on, and a result someone typed in for one
+    # match is no evidence that it has.
+    history = cf_data.from_feed(history)
     in_comp = history[history["competition"] == competition]
     if in_comp.empty:
         return False
@@ -348,6 +357,8 @@ def settle(history, path=LEDGER_CSV):
             frame.loc[index, "played_on"] = match["date"].strftime("%Y-%m-%d")
             frame.loc[index, "home_goals"] = int(match["home_goals"])
             frame.loc[index, "away_goals"] = int(match["away_goals"])
+            frame.loc[index, "result_source"] = (
+                "hand" if bool(match.get(cf_data.MANUAL, False)) else "feed")
         frame.loc[index, "outcome"] = outcome
         frame.loc[index, "pnl"] = profit(outcome, row["odds"])
         frame.loc[index, "settled_at"] = datetime.now().isoformat(timespec="seconds")
@@ -411,6 +422,11 @@ def summary(frame, today=None):
         "settled": int(len(done)),
         "void": int((done["outcome"] == "void").sum()),
         "no_result": int((done["outcome"] == NO_RESULT).sum()),
+        # `.get`: summary is handed hand-built frames all over the tests and
+        # the landing page, and a missing column must read as zero rather than
+        # take the page down.
+        "by_hand": int((frame.get("result_source") == "hand").sum())
+                   if "result_source" in frame else 0,
         "wins": wins,
         "losses": int(len(decided)) - wins,
         "hit_rate": float(wins / len(decided)) if len(decided) else None,

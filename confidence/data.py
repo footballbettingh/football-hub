@@ -15,6 +15,9 @@ import pandas as pd
 from . import config
 from .teams import normalize
 
+# Marks a row that was typed in rather than fetched. See `_with_manual_results`.
+MANUAL = "manual"
+
 
 def parse_dates(series, source=""):
     """Parse a date column that may hold two spellings of the same day.
@@ -76,6 +79,14 @@ def load_history(path=None) -> pd.DataFrame:
             df[col] = pd.NA
 
     df = df.dropna(subset=["home_goals", "away_goals"])
+    df[MANUAL] = False
+    # Alongside whichever history was actually read, not alongside the
+    # configured one. A caller that names its own CSV — every test that builds
+    # a two-row history does — must not silently inherit the results typed in
+    # on the developer's machine.
+    df = _with_manual_results(df, Path(source).with_name(
+        config.MANUAL_RESULTS_CSV.name))
+
     df["home_goals"] = df["home_goals"].astype(int)
     df["away_goals"] = df["away_goals"].astype(int)
     df["total_goals"] = df["home_goals"] + df["away_goals"]
@@ -84,6 +95,62 @@ def load_history(path=None) -> pd.DataFrame:
 
     df = df.sort_values(["date", "competition", "home"]).reset_index(drop=True)
     return df
+
+
+def _with_manual_results(history, path=None):
+    """History plus any result entered by hand, marked as such.
+
+    A last resort, for the match the feed is never going to publish. The score
+    is the one thing on this site a reader cannot check for themselves, so it
+    does not get to look like the rest: the row carries `manual`, the feed wins
+    any fixture both of them have, and the code that judges whether a league's
+    results are still arriving ignores these entirely — one row typed in by
+    hand says nothing about whether the feed has come back to life.
+    """
+    source = path or config.MANUAL_RESULTS_CSV
+    if not Path(source).exists():
+        return history
+    try:
+        extra = pd.read_csv(source)
+    except pd.errors.EmptyDataError:
+        # A file someone created and has not filled in yet. Nothing to add is
+        # not an error — and this file is far too optional to be allowed to
+        # take the whole site down. A malformed one still raises, because a
+        # result quietly dropped is worse than a loud failure.
+        return history
+    if extra.empty:
+        return history
+
+    extra["date"] = parse_dates(extra["date"], str(source))
+    extra["home"] = extra["home_team"].map(normalize)
+    extra["away"] = extra["away_team"].map(normalize)
+    extra[MANUAL] = True
+    # Typed rather than pd.NA: a column of bare NA arrives as object, and
+    # concatenating an all-NA column against a float one is deprecated in
+    # pandas and warns on every single load. Taking the dtype from the frame it
+    # is about to join gives the concat nothing left to infer.
+    for column in history.columns:
+        if column not in extra.columns:
+            extra[column] = pd.Series(index=extra.index, dtype=history[column].dtype)
+
+    joined = pd.concat([history, extra[history.columns]], ignore_index=True)
+    # Feed first, so `keep="first"` drops the hand-typed row on the day the
+    # feed finally publishes the match. That is the direction that must win.
+    return joined.drop_duplicates(subset=["competition", "date", "home", "away"],
+                                  keep="first")
+
+
+def from_feed(history):
+    """History minus anything entered by hand.
+
+    For the two questions that are about the FEED rather than about football:
+    has this league stopped publishing, and is a bet's result ever going to
+    arrive. A row someone typed in must not answer either of them yes.
+    """
+    columns = getattr(history, "columns", ())
+    if history is None or len(history) == 0 or MANUAL not in columns:
+        return history
+    return history[~history[MANUAL].fillna(False).astype(bool)]
 
 
 def load_fixtures(source_dir=None, include_started=False, now=None) -> pd.DataFrame:

@@ -805,6 +805,27 @@ def _no_result_note(head):
         "outside the P&amp;L — but they are closed, not waiting.")
 
 
+def _by_hand_note(frame, head):
+    """Say which scores were not fetched.
+
+    Everything else on this page can be checked against a public results file.
+    These cannot: the source never published them and somebody looked them up
+    themselves. That is a worse kind of number, and the page has no business
+    presenting it as though it were the same kind.
+    """
+    if not head.get("by_hand"):
+        return ""
+    typed = frame[frame.get("result_source").eq("hand")] if "result_source" in frame         else frame.iloc[0:0]
+    matches = ", ".join(sorted({str(row.match) for row in typed.itertuples()
+                                if isinstance(row.match, str)})[:4])
+    return c.status_block(
+        "neutral", f"{head['by_hand']} result(s) here were entered by hand",
+        f"The results feed for their league stopped publishing and has not "
+        f"resumed, so the score was checked and typed in rather than fetched "
+        f"({c.e(matches)}). Every other row on this page was graded against a "
+        f"file anyone can download.")
+
+
 def _results_behind_note(frame, data):
     """Pending because the match has not been played, or because nobody fetched
     the result? The page should say which.
@@ -886,6 +907,7 @@ def page_history(links, ctx):
 
     behind_note = _results_behind_note(frame, ctx.get("data"))
     no_result_note = _no_result_note(head)
+    by_hand_note = _by_hand_note(frame, head)
 
     overdue_note = ""
     if head.get("overdue"):
@@ -956,6 +978,7 @@ def page_history(links, ctx):
 ])}
 {behind_note}
 {no_result_note}
+{by_hand_note}
 {overdue_note}
 {unpriced_note}
 {band_section}

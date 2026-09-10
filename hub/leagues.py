@@ -22,6 +22,8 @@ meaningless one.
 
 import pandas as pd
 
+from confidence import data as cf_data
+
 # code -> (competition name, country)
 NAMES = {
     # football-data.co.uk main section
@@ -190,6 +192,13 @@ def quiet(history, today=None):
     kind of mistake does not heal.
     """
     if history is None or len(history) == 0:
+        return set()
+    # Feed rows only. A result typed in by hand is a fact about one match, not
+    # evidence that the source has started publishing again — counting it would
+    # put the league straight back on the card on the strength of the very row
+    # that was needed because the league is not covered.
+    history = cf_data.from_feed(history)
+    if len(history) == 0:
         return set()
     now = pd.Timestamp(today) if today is not None else pd.Timestamp.today()
     latest = history.groupby("competition")["date"].max()

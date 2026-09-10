@@ -20,6 +20,11 @@ reports/
 !data/best_picks.csv
 !data/best_accas.csv
 
+# ...and the handful of results the feed is never going to publish, typed in
+# after being checked by hand. Derived from nothing, so a fetch cannot rebuild
+# them either.
+!data/manual_results.csv
+
 # The price files are derived and normally ignored, but a set of them was
 # force-added once as a cold-start seed: a runner with no cache has no prices,
 # and therefore no fixture list and no card, and the month's Odds API credits

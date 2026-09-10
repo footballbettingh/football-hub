@@ -22,6 +22,13 @@ DATA_DIR = Path(os.environ.get("CF_DATA_DIR", PROJECT_ROOT / "data"))
 REPORT_DIR = Path(os.environ.get("CF_REPORT_DIR", PROJECT_ROOT / "reports"))
 
 HISTORY_CSV = SOURCE_DATA / "history.csv"
+
+# Results the feed never published, entered by hand. Kept in its own file
+# rather than merged into history.csv, which every fetch overwrites — and kept
+# separate for a second reason: a row in here is not evidence of anything the
+# way a feed row is, and the code that asks "are this league's results still
+# arriving?" has to be able to tell the two apart.
+MANUAL_RESULTS_CSV = SOURCE_DATA / "manual_results.csv"
 FIXTURE_GLOB = "odds_*.csv"
 
 PREDICTIONS_CSV = DATA_DIR / "predictions.csv"

@@ -490,6 +490,47 @@ def test_the_history_page_renders_a_mixed_ledger():
     assert "nan" not in html.lower()
 
 
+def test_a_hand_entered_score_is_labelled_as_one():
+    """It is the only number on the page a reader cannot go and check, so it
+    must not be presented as though it were the same kind as the rest."""
+    from hub import ledger
+    frame = pd.DataFrame([
+        {"day": "2026-08-14", "competition": "RUS-PREMIERL",
+         "competition_name": "Premier League (Russia)",
+         "match": "Gazovik Orenburg v Lokomotiv Moscow",
+         "selection": "Away team over 1.5 goals", "prob": 0.45,
+         "fair_odds": 2.22, "odds": None, "home_goals": 1, "away_goals": 1,
+         "outcome": "lost", "pnl": None, "played_on": "2026-08-14",
+         "result_source": "hand"},
+        {"day": "2026-08-15", "competition": "PL", "competition_name": "Premier League",
+         "match": "a v b", "selection": "Over 2.5 goals", "prob": 0.62,
+         "fair_odds": 1.61, "odds": 1.75, "home_goals": 2, "away_goals": 1,
+         "outcome": "won", "pnl": 0.75, "played_on": "2026-08-15",
+         "result_source": "feed"},
+    ]).reindex(columns=ledger.COLUMNS)
+
+    html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
+
+    assert "1 result(s) here were entered by hand" in html
+    assert "Gazovik Orenburg v Lokomotiv Moscow" in html
+    assert ledger.summary(frame, today="2026-09-10")["by_hand"] == 1
+
+
+def test_a_ledger_with_nothing_typed_in_says_nothing_about_it():
+    from hub import ledger
+    frame = pd.DataFrame([
+        {"day": "2026-08-15", "competition": "PL", "competition_name": "Premier League",
+         "match": "a v b", "selection": "Over 2.5 goals", "prob": 0.62,
+         "fair_odds": 1.61, "odds": 1.75, "home_goals": 2, "away_goals": 1,
+         "outcome": "won", "pnl": 0.75, "played_on": "2026-08-15",
+         "result_source": "feed"},
+    ]).reindex(columns=ledger.COLUMNS)
+
+    html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
+
+    assert "entered by hand" not in html
+
+
 def test_a_bet_with_no_result_says_so_rather_than_reading_as_pending():
     """The distinction the state exists for. A row with no score and no grade
     must not come out of the page looking like a bet that might still land."""
