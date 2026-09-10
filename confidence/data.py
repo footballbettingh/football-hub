@@ -62,12 +62,14 @@ def load_history(path=None) -> pd.DataFrame:
     df = pd.read_csv(source)
 
     df["date"] = parse_dates(df["date"], str(source))
-    # history.csv already carries normalised keys; recompute only if absent so
-    # this still works on a hand-made CSV.
-    df["home"] = df["home_key"] if "home_key" in df else df["home_team"].map(normalize)
-    df["away"] = df["away_key"] if "away_key" in df else df["away_team"].map(normalize)
-    df["home"] = df["home"].map(normalize)
-    df["away"] = df["away"].map(normalize)
+    # Keyed from the provider's own name where there is one, not from the key
+    # stored beside it. The stored key was normalised by whatever version of
+    # the rules was installed on the day the file was fetched, and normalising
+    # is lossy: a fix to those rules cannot recover "Wisła Płock" from the
+    # "wis a p ock" an older build wrote down. Falling back to the stored key
+    # keeps a hand-made CSV working.
+    df["home"] = (df["home_team"] if "home_team" in df else df["home_key"]).map(normalize)
+    df["away"] = (df["away_team"] if "away_team" in df else df["away_key"]).map(normalize)
 
     for col in HISTORY_COLUMNS:
         if col not in df.columns:
@@ -114,8 +116,11 @@ def load_fixtures(source_dir=None, include_started=False, now=None) -> pd.DataFr
     df = pd.concat(frames, ignore_index=True)
 
     df["fetched_at"] = pd.to_datetime(df.get("fetched_at"), errors="coerce", utc=True)
-    df["home"] = df["home_key"].map(normalize) if "home_key" in df else df["home_team"].map(normalize)
-    df["away"] = df["away_key"].map(normalize) if "away_key" in df else df["away_team"].map(normalize)
+    # As in `load_history`: the provider's name first, the key beside it only
+    # as a fallback, so a stale price file cannot pin a fixture to a spelling
+    # the rules have since learned to read.
+    df["home"] = (df["home_team"] if "home_team" in df else df["home_key"]).map(normalize)
+    df["away"] = (df["away_team"] if "away_team" in df else df["away_key"]).map(normalize)
 
     if not include_started:
         df = df[_not_started(df, now)]

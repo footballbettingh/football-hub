@@ -90,6 +90,12 @@ ALIASES = {
 FUZZY_THRESHOLD = 0.87
 
 
+TRANSLITERATE = str.maketrans({
+    "ł": "l", "ø": "o", "đ": "d", "ð": "d", "þ": "th",
+    "ı": "i", "ß": "ss", "æ": "ae", "œ": "oe",
+})
+
+
 def normalize(name: str) -> str:
     """Fold a club name to a comparable key."""
     if not name:
@@ -98,6 +104,10 @@ def normalize(name: str) -> str:
     text = unicodedata.normalize("NFKD", str(name))
     text = "".join(c for c in text if not unicodedata.combining(c))
     text = text.lower()
+    # NFKD does not reach these: a stroke through an L is a different letter,
+    # not a combining mark, so "Wrocław" survived as far as the filter below
+    # and left as "wroc aw". Same for ø, ß and the rest.
+    text = text.translate(TRANSLITERATE)
     text = text.replace("&", " and ")
     text = re.sub(r"[^a-z0-9]+", " ", text).strip()
 
