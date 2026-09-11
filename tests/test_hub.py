@@ -508,9 +508,7 @@ def test_the_history_page_renders_a_mixed_ledger():
     assert "nan" not in html.lower()
 
 
-def test_a_hand_entered_score_is_labelled_as_one():
-    """It is the only number on the page a reader cannot go and check, so it
-    must not be presented as though it were the same kind as the rest."""
+def test_a_hand_entered_score_is_graded_like_any_other():
     from hub import ledger
     frame = pd.DataFrame([
         {"day": "2026-08-14", "competition": "RUS-PREMIERL",
@@ -520,33 +518,78 @@ def test_a_hand_entered_score_is_labelled_as_one():
          "fair_odds": 2.22, "odds": None, "home_goals": 1, "away_goals": 1,
          "outcome": "lost", "pnl": None, "played_on": "2026-08-14",
          "result_source": "hand"},
-        {"day": "2026-08-15", "competition": "PL", "competition_name": "Premier League",
-         "match": "a v b", "selection": "Over 2.5 goals", "prob": 0.62,
-         "fair_odds": 1.61, "odds": 1.75, "home_goals": 2, "away_goals": 1,
-         "outcome": "won", "pnl": 0.75, "played_on": "2026-08-15",
-         "result_source": "feed"},
     ]).reindex(columns=ledger.COLUMNS)
 
     html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
 
-    assert "1 result(s) here were entered by hand" in html
-    assert "Gazovik Orenburg v Lokomotiv Moscow" in html
-    assert ledger.summary(frame, today="2026-09-10")["by_hand"] == 1
-
-
-def test_a_ledger_with_nothing_typed_in_says_nothing_about_it():
-    from hub import ledger
-    frame = pd.DataFrame([
-        {"day": "2026-08-15", "competition": "PL", "competition_name": "Premier League",
-         "match": "a v b", "selection": "Over 2.5 goals", "prob": 0.62,
-         "fair_odds": 1.61, "odds": 1.75, "home_goals": 2, "away_goals": 1,
-         "outcome": "won", "pnl": 0.75, "played_on": "2026-08-15",
-         "result_source": "feed"},
-    ]).reindex(columns=ledger.COLUMNS)
-
-    html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
-
+    assert "Gazovik Orenburg v Lokomotiv Moscow" in html and "1–1" in html
     assert "entered by hand" not in html
+
+
+# -- pages -----------------------------------------------------------------
+
+def _singles(count):
+    from hub import ledger
+    return pd.DataFrame([
+        {"day": str(pd.Timestamp("2026-01-01") + pd.Timedelta(days=n))[:10],
+         "competition": "PL", "competition_name": "Premier League",
+         "match": f"home{n} v away{n}", "selection": "Over 2.5 goals",
+         "prob": 0.6, "fair_odds": 1.67, "odds": None, "outcome": "pending",
+         "pnl": None} for n in range(count)]).reindex(columns=ledger.COLUMNS)
+
+
+def test_a_short_table_has_no_pager():
+    html = c.table(["a"], [["1"], ["2"]], per_page=2)
+    assert "pager" not in html and "data-page" not in html
+
+
+def test_a_long_table_opens_on_its_first_page():
+    html = c.table(["a"], [[str(n)] for n in range(5)], per_page=2)
+
+    assert html.count('data-page="0">') == 2               # showing
+    assert html.count('data-page="1" hidden>') == 2
+    assert html.count('data-page="2" hidden>') == 1        # the remainder
+    assert '<button type="button" data-page="0" aria-current="page">1</button>' in html
+    assert '<button type="button" data-page="2">3</button>' in html
+    assert 'data-step="-1" aria-label="Previous page" disabled' in html
+    assert "data-collapse" in html          # numbered, so it may fold
+
+
+def test_history_pages_the_singles_fifty_at_a_time():
+    html = pages.render("history", c.Links("server"),
+                        dict(EMPTY, ledger=_singles(pages.PICKS_PER_PAGE + 1)))
+
+    assert 'aria-label="Pages of single picks"' in html
+    # Newest first, so it is the oldest pick that is pushed onto page two.
+    assert '<tr data-page="1" hidden><td>2026-01-01</td>' in html
+    assert html.count('<tr data-page="0">') == pages.PICKS_PER_PAGE
+
+
+def test_the_accumulator_book_pages_thirty_slips_at_a_time(tmp_path):
+    days = [str(pd.Timestamp("2026-01-01") + pd.Timedelta(days=n))[:10]
+            for n in range(pages.SLIPS_PER_PAGE + 1)]
+    html = pages._acca_history_section(_book(tmp_path, *[(day, 4) for day in days]))
+
+    assert 'aria-label="Pages of 4-leg slips"' in html
+    assert html.count('<tr data-page="0">') == pages.SLIPS_PER_PAGE
+    assert html.count('<tr data-page="1" hidden>') == 1
+
+
+def test_fixtures_show_one_match_day_at_a_time():
+    selections = [
+        {"date": day, "competition": "E0", "competition_name": "Premier League",
+         "match": match, "new_team": False, "key": "home", "prob": 0.5}
+        for day, match in (("2026-09-12", "a v b"), ("2026-09-13", "c v d"),
+                           ("2026-09-13", "e v f"))]
+    html = pages.render("fixtures", c.Links("server"),
+                        dict(EMPTY, picks={"selections": selections}))
+
+    assert '<tr data-match="a v b" data-page="0">' in html
+    assert '<tr data-match="c v d" data-page="1" hidden>' in html
+    assert 'aria-label="Match days">' in html          # every day, never folded
+    assert 'Sat 12 Sep <span class="n">1</span>' in html
+    assert 'Sun 13 Sep <span class="n">2</span>' in html
+    assert "tablewrap tall" not in html                    # no inner scroll
 
 
 def test_a_bet_with_no_result_says_so_rather_than_reading_as_pending():

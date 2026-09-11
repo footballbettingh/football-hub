@@ -422,11 +422,6 @@ def summary(frame, today=None):
         "settled": int(len(done)),
         "void": int((done["outcome"] == "void").sum()),
         "no_result": int((done["outcome"] == NO_RESULT).sum()),
-        # `.get`: summary is handed hand-built frames all over the tests and
-        # the landing page, and a missing column must read as zero rather than
-        # take the page down.
-        "by_hand": int((frame.get("result_source") == "hand").sum())
-                   if "result_source" in frame else 0,
         "wins": wins,
         "losses": int(len(decided)) - wins,
         "hit_rate": float(wins / len(decided)) if len(decided) else None,

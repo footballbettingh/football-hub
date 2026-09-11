@@ -284,11 +284,16 @@ def kpis(cells):
         f'<div class="m">{m}</div></div>' for k, v, m in cells) + "</div>")
 
 
-def table(columns, rows, numeric_from=None, classes="", raw=False):
+def table(columns, rows, numeric_from=None, classes="", raw=False,
+          per_page=None, pages_label="Pages"):
     """Static table. `numeric_from` right-aligns columns at that index onward.
 
     `raw=True` trusts the cells to be HTML already — used where a cell carries
     a coloured span. Everything else is escaped.
+
+    `per_page` splits a table that only ever grows into pages of that many
+    rows, in the order given, with a pager under it. Every row is still on the
+    page; see `pager`.
     """
     def cls(i):
         return ' class="num"' if numeric_from is not None and i >= numeric_from else ""
@@ -296,12 +301,55 @@ def table(columns, rows, numeric_from=None, classes="", raw=False):
     def cell(value):
         return value if raw else e(value)
 
+    paged = per_page is not None and len(rows) > per_page
+
+    def page_of(index):
+        if not paged:
+            return ""
+        page = index // per_page
+        return f' data-page="{page}"' + (" hidden" if page else "")
+
     head = "".join(f"<th{cls(i)}>{e(c)}</th>" for i, c in enumerate(columns))
     body = "".join(
-        "<tr>" + "".join(f"<td{cls(i)}>{cell(c)}</td>" for i, c in enumerate(row)) + "</tr>"
-        for row in rows)
-    return (f'<div class="tablewrap"><table class="{classes}"><thead><tr>{head}</tr></thead>'
+        f"<tr{page_of(n)}>"
+        + "".join(f"<td{cls(i)}>{cell(c)}</td>" for i, c in enumerate(row)) + "</tr>"
+        for n, row in enumerate(rows))
+    html = (f'<div class="tablewrap"><table class="{classes}"><thead><tr>{head}</tr></thead>'
             f"<tbody>{body}</tbody></table></div>")
+    if not paged:
+        return html
+    count = -(-len(rows) // per_page)
+    numbers = [(str(n), str(n + 1)) for n in range(count)]
+    return (f'<div class="paged">{html}'
+            f'{pager(numbers, pages_label, collapse=True)}</div>')
+
+
+def pager(pages, label="Pages", collapse=False):
+    """One button per page of a table whose rows carry `data-page`.
+
+    `pages` is (key, label) pairs, the label already HTML. Every row is on the
+    page with all but the first page hidden, and this is drawn in that state,
+    so the file reads correctly before hub.js runs; the script only moves
+    between pages. Moving is not a trip to the server, because the static
+    export has none.
+
+    `collapse` lets a long run of numbered pages fold down to the ends and
+    the neighbours of the current one. Named pages, like the days of the
+    fixture list, are few, and each one is worth seeing.
+    """
+    buttons = []
+    for index, (key, text) in enumerate(pages):
+        current = ' aria-current="page"' if index == 0 else ""
+        buttons.append(f'<button type="button" data-page="{e(key)}"{current}>'
+                       f'{text}</button>')
+    last = " disabled" if len(pages) < 2 else ""
+    folds = " data-collapse" if collapse else ""
+    return (f'<nav class="pager" aria-label="{e(label)}"{folds}>'
+            '<button type="button" data-step="-1" aria-label="Previous page" '
+            'disabled>&lsaquo;</button>'
+            f'{"".join(buttons)}'
+            f'<button type="button" data-step="1" aria-label="Next page"{last}>'
+            '&rsaquo;</button></nav>')
 
 
 def insight_card(insight, heading_level="h3"):

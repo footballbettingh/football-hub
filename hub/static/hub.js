@@ -1,4 +1,5 @@
-/* Interactive behaviour: the card, the fixture list, the reliability table.
+/* Interactive behaviour: the card, the fixture list, the reliability table,
+ * and the pages of every table long enough to have them.
  *
  * Plain ES5 in an IIFE, same as charts.js — no build step, and the file works
  * unchanged whether it is served by the local server or opened from disk.
@@ -19,6 +20,71 @@
   // the same glyph as the minus in the row above it.
   function pct(v, d) { return v === null || v === undefined ? '–' : (v * 100).toFixed(d === undefined ? 1 : d) + '%'; }
   function num(v, d) { return v === null || v === undefined ? '–' : v.toFixed(d === undefined ? 2 : d); }
+
+  // ---- pages: a long table, one page at a time -------------------------
+  // pages.py puts every row on the page, marks each with its page, hides all
+  // but the first and draws the buttons in that state; this only moves
+  // between them. Past seven numbered pages the buttons collapse to the
+  // first, the last and the two either side of the current, so a ledger
+  // thousands of rows long still has a pager one line high. Named pages (the
+  // fixture days) never collapse: pages.py leaves `data-collapse` off them.
+  //
+  // `apply(page)` decides which rows show; by default, that page's. The
+  // fixtures pass their own, because a search there looks across every day.
+  function pager(box, apply) {
+    if (box.pager) return box.pager;
+    var nav = box.querySelector('nav.pager');
+    if (!nav) return null;
+    var buttons = [].slice.call(nav.querySelectorAll('button[data-page]'));
+    var prev = nav.querySelector('button[data-step="-1"]');
+    var next = nav.querySelector('button[data-step="1"]');
+    var rows = [].slice.call(box.querySelectorAll('tr[data-page]'));
+    var at = 0;
+    apply = apply || function (page) {
+      rows.forEach(function (tr) { tr.hidden = tr.getAttribute('data-page') !== page; });
+    };
+
+    function go(index, scroll) {
+      at = Math.max(0, Math.min(buttons.length - 1, index));
+      var last = buttons.length - 1;
+      var many = nav.hasAttribute('data-collapse') && buttons.length > 7;
+      [].slice.call(nav.querySelectorAll('.gap')).forEach(function (gap) {
+        nav.removeChild(gap);
+      });
+      buttons.forEach(function (button, i) {
+        if (i === at) button.setAttribute('aria-current', 'page');
+        else button.removeAttribute('aria-current');
+        button.hidden = many && i > 0 && i < last && Math.abs(i - at) > 1;
+      });
+      buttons.forEach(function (button, i) {
+        if (i > 0 && !button.hidden && buttons[i - 1].hidden) {
+          var gap = document.createElement('span');
+          gap.className = 'gap';
+          gap.textContent = '…';
+          nav.insertBefore(gap, button);
+        }
+      });
+      prev.disabled = at === 0;
+      next.disabled = at === last;
+      apply(buttons[at].getAttribute('data-page'));
+      // Paging from the buttons under a table would otherwise leave you at the
+      // foot of the new page, looking at its last row rather than its first.
+      if (scroll && box.getBoundingClientRect().top < 0) box.scrollIntoView();
+    }
+
+    nav.addEventListener('click', function (event) {
+      var button = event.target.closest('button');
+      if (!button || button.disabled) return;
+      var step = button.getAttribute('data-step');
+      go(step ? at + parseInt(step, 10) : buttons.indexOf(button), true);
+      // An arrow that has just reached the end goes disabled, and would drop
+      // the keyboard focus onto the body with it.
+      if (button.disabled) buttons[at].focus({ preventScroll: true });
+    });
+    box.pager = { nav: nav };
+    go(0);
+    return box.pager;
+  }
 
   // ---- unpacking the card ----------------------------------------------
   // The card arrives as arrays against a column list, with the strings that
@@ -243,22 +309,29 @@
     show();
   })();
 
-  // ---- fixtures: search, and expand a row into every market ------------
+  // ---- fixtures: a day at a time, search, and expand a row -------------
   (function fixtures() {
     var table = document.querySelector('table.fixtures');
     if (!table || !D.card) return;
     var rows = [].slice.call(table.querySelectorAll('tbody tr'));
     var search = $('fx-q'), count = $('fx-count');
+    var day = '0';
+    var days = pager(table.closest('.paged'), function (page) { day = page; filter(); });
 
     function filter() {
       var q = (search.value || '').toLowerCase();
+      // A search looks across every day — the team you are after may not play
+      // on the one showing — so the day buttons stand aside while it does.
+      if (days) days.nav.hidden = !!q;
       var shown = 0;
       rows.forEach(function (tr) {
-        var hit = !q || tr.getAttribute('data-match').toLowerCase().indexOf(q) >= 0;
+        var hit = q ? tr.getAttribute('data-match').toLowerCase().indexOf(q) >= 0
+          : tr.getAttribute('data-page') === day;
         tr.hidden = !hit;
         if (hit) shown++;
+        // An open row's markets go and come back with it.
         var detail = tr.nextElementSibling;
-        if (detail && detail.classList.contains('detail')) detail.hidden = !hit || detail.hidden;
+        if (detail && detail.classList.contains('detail')) detail.hidden = !hit;
       });
       count.textContent = shown + ' of ' + rows.length + ' fixtures';
     }
@@ -320,4 +393,10 @@
     scope.addEventListener('input', render);
     render();
   })();
+
+  // ---- every other paged table: the History books ----------------------
+  // Last, so a page with its own rules has already claimed its table.
+  [].slice.call(document.querySelectorAll('.paged')).forEach(function (box) {
+    pager(box);
+  });
 })();

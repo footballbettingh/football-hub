@@ -382,10 +382,9 @@ For the match a dead feed is never going to publish, `data/manual_results.csv`
 takes a score checked by hand — date, competition, both team names as the
 results file spells them, the goals, and a note saying where it was checked.
 It is the only file here whose contents nobody can verify from a public source,
-so it is fenced off accordingly: the row is marked, the History page says which
-scores were typed in and which were fetched, a real result overwrites it the
-day the feed publishes one, and neither *has this league gone quiet* nor *is
-this bet's result ever coming* is allowed to look at it. Otherwise one row
+so it is fenced off accordingly: the row is marked, a real result overwrites it
+the day the feed publishes one, and neither *has this league gone quiet* nor
+*is this bet's result ever coming* is allowed to look at it. Otherwise one row
 entered by hand would put a dead league straight back on the card.
 
 Matches are found by competition and both team keys rather than by date, so a

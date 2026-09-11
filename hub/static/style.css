@@ -278,6 +278,25 @@ tr.muted td { color: var(--muted); }
   border-radius: 7px; border: 1px solid var(--border); background: var(--page);
   color: var(--text-primary); }
 .filters .count { font-size: 12px; color: var(--text-secondary); margin-left: auto; }
+
+/* ---- pages of a long table ---- */
+.pager { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 12px; }
+.pager[hidden], .pager [hidden] { display: none; }
+.pager button { font: inherit; font-size: 12.5px; cursor: pointer; min-width: 32px;
+  padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--page); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.pager button:hover:not(:disabled) { color: var(--text-primary); border-color: var(--series-1); }
+.pager button[aria-current="page"] { color: var(--text-primary); font-weight: 600;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
+.pager button:disabled { opacity: .4; cursor: default; }
+.pager .gap { color: var(--muted); padding: 0 4px; }
+.pager .n { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+/* The day buttons sit above their table rather than under it. */
+.paged > .pager:first-child { margin: 0 0 12px; }
+/* Paging scrolls the table's top back into view; this keeps it clear of the
+   sticky topbar rather than tucked under it. */
+.paged { scroll-margin-top: 72px; }
 .empty { padding: 26px; text-align: center; color: var(--text-secondary); font-size: 13px; }
 
 

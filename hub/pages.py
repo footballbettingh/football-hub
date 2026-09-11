@@ -660,6 +660,13 @@ HEADLINE = [("1x2_home", "Home", ""), ("1x2_draw", "Draw", ""),
             ("ou3.5_over", "O3.5", "col-extra")]
 
 
+def _day_label(day):
+    """A day's pager button reads "Tue 1 Sep"; a string that is no date as is."""
+    stamp = pd.to_datetime(day, errors="coerce")
+    # The day by hand: "%-d" is the unpadded one, and Windows does not know it.
+    return str(day) if pd.isna(stamp) else f"{stamp:%a} {stamp.day} {stamp:%b}"
+
+
 def page_fixtures(links, ctx):
     picks = ctx["picks"]
     if not picks:
@@ -678,6 +685,14 @@ def page_fixtures(links, ctx):
         if row["key"] in wanted:
             entry["probs"][row["key"]] = row["prob"]
 
+    # One page per match day. A weekend across thirty-odd leagues is most of the
+    # card on its own, and one list running every day into the next put the day
+    # you wanted a long scroll below the one you did not.
+    days = sorted({entry["date"] for entry in matches.values()})
+    page_of = {day: index for index, day in enumerate(days)}
+    per_day = {day: sum(entry["date"] == day for entry in matches.values())
+               for day in days}
+
     # Built by hand rather than through `c.table`, because each row carries the
     # match name as an attribute: clicking one expands every market for that
     # fixture, and matching on the rendered cell text would break the moment a
@@ -688,32 +703,42 @@ def page_fixtures(links, ctx):
             f'<td class="num {css}">{_pct(entry["probs"].get(key), 0)}</td>'
             for key, _, css in HEADLINE)
         flag = ' <span class="tag warn">new team</span>' if entry["new_team"] else ""
+        page = page_of[entry["date"]]
         rows.append(
-            f'<tr data-match="{c.e(entry["match"])}">'
+            f'<tr data-match="{c.e(entry["match"])}" data-page="{page}"'
+            f'{" hidden" if page else ""}>'
             f'<td class="nowrap">{c.e(entry["date"])}</td>'
             f'<td class="col-league">{c.e(entry["competition_name"])}</td>'
             f'<td>{c.e(entry["match"])}{flag}</td>{cells}</tr>')
 
     headers = "".join(f'<th class="num {css}">{c.e(label)}</th>'
                       for _, label, css in HEADLINE)
-    fixture_table = f"""<div class="tablewrap tall"><table class="sticky fixtures">
+    fixture_table = f"""<div class="tablewrap"><table class="fixtures">
     <thead><tr><th class="nowrap">Date</th><th class="col-league">League</th>
     <th>Match</th>{headers}</tr></thead>
     <tbody>{''.join(rows)}</tbody></table></div>"""
+    day_pager = c.pager(
+        [(str(page_of[day]),
+          f'{c.e(_day_label(day))} <span class="n">{per_day[day]}</span>')
+         for day in days], "Match days")
 
     body = f"""
 <section class="card">
   <h2>{len(rows)} fixtures</h2>
-  <p class="note">The headline markets for every match on the card. Click a row to
-  see every selection for that fixture, ranked. “New team” means one side has no
-  history in this competition — a promoted club or a cup tie — so the price is
-  carrying almost the whole forecast.</p>
+  <p class="note">The headline markets for every match on the card, one match day
+  at a time; the search looks across all of them. Click a row to see every
+  selection for that fixture, ranked. “New team” means one side has no history in
+  this competition — a promoted club or a cup tie — so the price is carrying
+  almost the whole forecast.</p>
   <div class="filters">
     <label class="visually-hidden" for="fx-q">Search team or match</label>
     <input id="fx-q" type="search" placeholder="Search team or match" size="22">
     <span class="count" id="fx-count"></span>
   </div>
-  {fixture_table}
+  <div class="paged">
+    {day_pager}
+    {fixture_table}
+  </div>
 </section>
 """
     return c.layout(links, "Fixtures", "fixtures", body,
@@ -730,6 +755,12 @@ OUTCOME_LABEL = {"won": ("good", "Won"), "lost": ("critical", "Lost"),
                  # whole point of the state: "Pending" on a bet from six weeks
                  # ago reads as a bet that might still land.
                  ledger.NO_RESULT: ("neutral", "No result")}
+
+# Rows per page of the two books. Both grow every match day and are never
+# trimmed, so unpaged they end up a list thousands of rows long. A slip lists
+# every leg and runs to several lines where a single takes one, hence fewer.
+PICKS_PER_PAGE = 50
+SLIPS_PER_PAGE = 30
 
 
 def _acca_history_section(frame):
@@ -814,7 +845,8 @@ def _acca_book(frame, head, hidden=False):
        " &middot; ".join(part for part in (since, short) if part)),
   ])}
   {c.table(["Issued", "Selections", "Chance", "Fair", "Landed", "Result"],
-           rows, numeric_from=2, raw=True)}
+           rows, numeric_from=2, raw=True, per_page=SLIPS_PER_PAGE,
+           pages_label=f"Pages of {head['legs']}-leg slips")}
 </div>"""
 
 
@@ -834,27 +866,6 @@ def _no_result_note(head):
         "still counted as the same one, and the league has since played on "
         "past it. The stake is returned, so these sit outside the hit rate and "
         "outside the P&amp;L — but they are closed, not waiting.")
-
-
-def _by_hand_note(frame, head):
-    """Say which scores were not fetched.
-
-    Everything else on this page can be checked against a public results file.
-    These cannot: the source never published them and somebody looked them up
-    themselves. That is a worse kind of number, and the page has no business
-    presenting it as though it were the same kind.
-    """
-    if not head.get("by_hand"):
-        return ""
-    typed = frame[frame.get("result_source").eq("hand")] if "result_source" in frame         else frame.iloc[0:0]
-    matches = ", ".join(sorted({str(row.match) for row in typed.itertuples()
-                                if isinstance(row.match, str)})[:4])
-    return c.status_block(
-        "neutral", f"{head['by_hand']} result(s) here were entered by hand",
-        f"The results feed for their league stopped publishing and has not "
-        f"resumed, so the score was checked and typed in rather than fetched "
-        f"({c.e(matches)}). Every other row on this page was graded against a "
-        f"file anyone can download.")
 
 
 def _results_behind_note(frame, data):
@@ -938,7 +949,6 @@ def page_history(links, ctx):
 
     behind_note = _results_behind_note(frame, ctx.get("data"))
     no_result_note = _no_result_note(head)
-    by_hand_note = _by_hand_note(frame, head)
 
     overdue_note = ""
     if head.get("overdue"):
@@ -1009,7 +1019,6 @@ def page_history(links, ctx):
 ])}
 {behind_note}
 {no_result_note}
-{by_hand_note}
 {overdue_note}
 {unpriced_note}
 {band_section}
@@ -1022,7 +1031,8 @@ def page_history(links, ctx):
   answer, because a ledger that follows whichever pick currently looks best
   would show a flattering history and mean nothing.</p>
   {c.table(["Day", "Band", "League", "Match", "Selection", "Confidence", "Fair",
-            "Score", "Result"], rows, numeric_from=5, raw=True)}
+            "Score", "Result"], rows, numeric_from=5, raw=True,
+           per_page=PICKS_PER_PAGE, pages_label="Pages of single picks")}
 </section>
 
 {_acca_history_section(accas)}
