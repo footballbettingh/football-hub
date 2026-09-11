@@ -50,9 +50,7 @@ REFIT_DAYS = 7
 MIN_TRAIN_MATCHES = 200
 
 HALF_LIFE_DAYS = 180
-SHRINKAGE_GAMES = 5.0
 RIDGE = 0.05
-MAX_GOALS = 12
 
 # How much of a fitted corner strength to keep, as a fraction. Every other
 # market on the card is fused with a closing line and the line does the

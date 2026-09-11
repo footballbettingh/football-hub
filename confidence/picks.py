@@ -79,6 +79,15 @@ def _fixture_market(row, method):
     handicap or draw-no-bet, which is exactly the signature of a missing rho:
     those four are pinned by the three 1X2 prices alone. The three that suffer
     are the ones most of the slate is picked from.
+
+    That consistency holds for the leagues the main results source covers,
+    which carry a closing totals price. The extra countries — Argentina,
+    Brazil, the MLS, Japan and the rest — have 1X2 only in their history, so
+    their walk-forward never saw a total and the card now prices them with one
+    the backtest could not. Wherever it could be tested the price made every
+    derived market better or left it alone, so this is the right direction to
+    differ in; it is still a difference, and it is written here so that nobody
+    mistakes it for none.
     """
     prices = (_fixture_prices(row, FIXTURE_1X2_CONS)
               or _fixture_prices(row, FIXTURE_1X2_BEST))
