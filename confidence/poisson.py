@@ -65,12 +65,13 @@ class PoissonModel:
 
     def __init__(self, count_cols=("home_goals", "away_goals"),
                  half_life_days=180, ridge=0.05, dixon_coles=True,
-                 max_goals=12):
+                 max_goals=12, shrink=1.0):
         self.count_cols = count_cols
         self.half_life_days = half_life_days
         self.ridge = ridge
         self.dixon_coles = dixon_coles
         self.max_goals = max_goals
+        self.shrink = float(shrink)
 
         self.teams = None
         self.index = {}
@@ -161,9 +162,22 @@ class PoissonModel:
         theta = self._warm_start = result.x
         attack, defence = theta[:n], theta[n:2 * n]
         # Ridge already centres these; pin it exactly so parameters stay
-        # comparable between refits.
-        self.attack = attack - attack.mean()
-        self.defence = defence - defence.mean()
+        # comparable between refits. The warm start keeps the unshrunk fit, so
+        # shrinking never compounds across refits.
+        #
+        # `shrink` is 1 for anything that gets fused with a closing line,
+        # because the line does the shrinking. Corners have no line behind
+        # them and nothing else holds them in: unshrunk, the fitted lambdas
+        # come out about twice as spread as reality. Regressing the actual
+        # total corners on the predicted total over 31,773 matches gives a
+        # slope of 0.558 — the top decile predicts 11.6 and delivers 10.8, the
+        # bottom predicts 8.2 and delivers 8.9. At a 10.5 line that is eight
+        # to ten points of probability, and in opposite directions either side
+        # of the league mean, which is precisely the error a per-group
+        # calibrator cannot repair: it is monotone, and over and under on the
+        # same line are wrong opposite ways at the same probability.
+        self.attack = (attack - attack.mean()) * self.shrink
+        self.defence = (defence - defence.mean()) * self.shrink
         self.home_adv, self.base = float(theta[2 * n]), float(theta[2 * n + 1])
         self.converged = bool(result.success)
         return self

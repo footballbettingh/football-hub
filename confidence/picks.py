@@ -114,7 +114,8 @@ def price_fixtures(history, fixtures, calibrators=None, weight=None,
         if len(corner_train) >= min_train:
             corners = PoissonModel(("home_corners", "away_corners"),
                                    dixon_coles=False, half_life_days=half_life_days,
-                                   ridge=ridge, max_goals=CORNER_MAX)
+                                   ridge=ridge, max_goals=CORNER_MAX,
+                                   shrink=config.CORNER_SHRINK)
             corners.fit(corner_train, as_of=as_of)
 
         # The two providers spell half the clubs differently — the price feed

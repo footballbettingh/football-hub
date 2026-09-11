@@ -53,6 +53,25 @@ SHRINKAGE_GAMES = 5.0
 RIDGE = 0.05
 MAX_GOALS = 12
 
+# How much of a fitted corner strength to keep, as a fraction. Every other
+# market on the card is fused with a closing line and the line does the
+# shrinking; corners are quoted by nobody here, so the raw team strengths go
+# out unchecked and come out roughly twice as spread as reality — actual total
+# corners regressed on predicted has slope 0.558 over 31,773 matches.
+#
+# Rebuilt at 0.55, the slope comes back to 0.859, the corner-market Brier
+# falls from 0.2229 to 0.2209, and the spread between the best- and
+# worst-behaved corner selection inside the main pick band falls from 15.8
+# points to 5.9. The Brier sweep is flat between 0.41 and 0.55 — 0.00008 of
+# Brier across that whole range — so it was settled on the metric that maps to
+# the picks instead: mean absolute band gap, which prefers 0.55 to 0.468 in all
+# three pick bands. A negative binomial on top of this was tried and bought
+# almost nothing: the error was in the lambdas, not in the shape. Corners are
+# still overdispersed against a Poisson (variance / mean of 1.18, against 1.02
+# for goals) and the slope is not yet 1.0, so this is a large improvement
+# rather than a repair.
+CORNER_SHRINK = 0.55
+
 # Weight on the market-implied score matrix when fusing it with the model's.
 # 1.0 = trust the closing line completely. Measured, not guessed: see
 # `python cf.py sweep`, and the table in the README.

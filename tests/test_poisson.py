@@ -31,6 +31,53 @@ def synthetic_league(n_teams=12, rounds=6, seed=0, strengths=None):
     return pd.DataFrame(rows), teams, attack
 
 
+def test_shrinking_pulls_the_strengths_toward_the_league_average():
+    """Every other market on the card is fused with a closing line and the line
+    does the shrinking. Corners are quoted by nobody here, so nothing holds the
+    fitted strengths in: unshrunk they came out about twice as spread as
+    reality — actual total corners regressed on predicted had a slope of 0.558
+    over 31,773 matches, the top decile predicting 11.6 and delivering 10.8.
+    """
+    matches, teams, _ = synthetic_league()
+    full = PoissonModel(("home_goals", "away_goals"), dixon_coles=False).fit(matches)
+    half = PoissonModel(("home_goals", "away_goals"), dixon_coles=False,
+                        shrink=0.5).fit(matches)
+
+    assert np.allclose(half.attack, full.attack * 0.5)
+    assert np.allclose(half.defence, full.defence * 0.5)
+    # The league itself does not move — only how far from it a team is allowed
+    # to sit. Shrinking the mean would be a different and much worse bug.
+    assert half.base == pytest.approx(full.base)
+    assert half.home_adv == pytest.approx(full.home_adv)
+
+
+def test_shrinking_square_roots_a_lambda_rather_than_halving_it():
+    """The strengths enter through exp(), so halving them takes the square root
+    of the ratio to the league average. That is why the shrink is a fraction of
+    a coefficient and not a fraction of a lambda: the two are not the same
+    number, and calibrating one while documenting the other would be a slow
+    thing to find."""
+    matches, teams, _ = synthetic_league()
+    full = PoissonModel(("home_goals", "away_goals"), dixon_coles=False).fit(matches)
+    half = PoissonModel(("home_goals", "away_goals"), dixon_coles=False,
+                        shrink=0.5).fit(matches)
+
+    average = np.exp(full.base + full.home_adv)
+    lam_full, _ = full.expected_counts(teams[0], teams[1])
+    lam_half, _ = half.expected_counts(teams[0], teams[1])
+    assert lam_half / average == pytest.approx((lam_full / average) ** 0.5)
+
+
+def test_a_shrink_of_one_changes_nothing():
+    """The default has to be exactly the old behaviour, or every market that
+    already had a line behind it quietly moves."""
+    matches, _, _ = synthetic_league()
+    plain = PoissonModel(("home_goals", "away_goals")).fit(matches)
+    unity = PoissonModel(("home_goals", "away_goals"), shrink=1.0).fit(matches)
+    assert np.allclose(plain.attack, unity.attack)
+    assert np.allclose(plain.defence, unity.defence)
+
+
 def test_pmf_matches_scipy():
     from scipy.stats import poisson as scipy_poisson
     for lam in (0.2, 1.4, 6.0):

@@ -504,10 +504,26 @@ The short version, with the measurements in
    and lands on the three markets most of the slate is picked from.
 3. Fuse in a joint-MLE goals model at **10%**. Measured, not assumed: 0.90 beats
    both 0.75 and the pure market, paired by match at p = 2.3e-07.
-4. **Calibrate** per market with isotonic regression fitted only on earlier
+4. **Shrink the corner strengths to 55%** before reading a corner line off
+   them. Corners are the one market here with no closing line behind them, so
+   nothing else holds the fitted strengths in and they came out about twice as
+   spread as reality: actual total corners regressed on predicted had a slope
+   of 0.558 over 31,773 matches, the top decile predicting 11.6 and delivering
+   10.8, the bottom predicting 8.2 and delivering 8.9. At a 10.5 line that is
+   eight to ten points of probability, in opposite directions either side of
+   the league average — which is exactly the error a per-group calibrator
+   cannot repair, because it is monotone and over and under on the same line
+   are wrong opposite ways at the same probability. Shrunk, the slope comes
+   back to 0.86 and the spread between the best- and worst-behaved corner
+   selection inside one confidence band falls from 15.8 points to 5.9. On the
+   picks themselves the corner selections in the main band went from landing
+   7.7 points below their claim to 0.8 points above it. It is an improvement
+   and not a repair: corners are still overdispersed against a Poisson
+   (variance / mean of 1.18, against 1.02 for goals).
+5. **Calibrate** per market with isotonic regression fitted only on earlier
    matches. Over 45,484 out-of-sample matches every confidence band lands within
    0.16pp of what it claimed.
-5. **Cap** each market at the highest confidence its own record supports.
+6. **Cap** each market at the highest confidence its own record supports.
    Corners stop at 85% and BTTS at 70% because they overstated themselves above
    that; the rest stop where the sample runs out.
 

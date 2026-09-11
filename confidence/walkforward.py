@@ -112,7 +112,7 @@ def _run_competition(sub, refit_days, min_train, devig_method, half_life_days,
                               ridge=ridge, max_goals=12)
     corners = PoissonModel(("home_corners", "away_corners"), dixon_coles=False,
                            half_life_days=half_life_days, ridge=ridge,
-                           max_goals=CORNER_MAX)
+                           max_goals=CORNER_MAX, shrink=config.CORNER_SHRINK)
     corners_fitted = False
 
     last_fit = None
