@@ -297,8 +297,11 @@ def recalibrate(progress=print, weight=None, folds=5):
         "built": time.strftime("%Y-%m-%d %H:%M")})
     production.save(cf_config.CALIBRATION_JSON)
     write_reliability(keys, calibrated, results, scored)
+    factors = write_pick_factors(keys, calibrated, results, scored)
     progress(f"Calibrators -> {cf_config.CALIBRATION_JSON}")
     progress(f"Reliability -> {cf_config.RELIABILITY_CSV}")
+    progress(f"Pick factors -> {cf_config.PICK_FACTORS_CSV} "
+             f"({len(factors):,} selection/price cells)")
     return {k: round(v, 5) for k, v in scores.items()}
 
 
@@ -315,6 +318,22 @@ def write_reliability(keys, calibrated, results, scored):
             frames.append(block)
     table = pd.concat(frames, ignore_index=True)
     table.to_csv(cf_config.RELIABILITY_CSV, index=False, float_format="%.5f")
+    return table
+
+
+def write_pick_factors(keys, calibrated, results, scored):
+    """What each selection has done at each price, for the slate's tie-break.
+
+    Its own file rather than more rows in reliability.csv. That table is a
+    public answer to "does an 80% pick win 80% of the time" and the Reliability
+    page reads every scope in it into a market dropdown; forty-six selections
+    times a few dozen price cells would bury it, and `group_ceilings` walks the
+    same rows expecting each scope to be a market group.
+    """
+    table = evaluate.key_price_factors(
+        keys, calibrated, results, scored,
+        step=cf_config.PICK_FACTOR_STEP, min_n=cf_config.PICK_FACTOR_MIN_N)
+    table.to_csv(cf_config.PICK_FACTORS_CSV, index=False, float_format="%.5f")
     return table
 
 

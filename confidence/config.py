@@ -34,6 +34,7 @@ FIXTURE_GLOB = "odds_*.csv"
 PREDICTIONS_CSV = DATA_DIR / "predictions.csv"
 CALIBRATION_JSON = DATA_DIR / "calibration.json"
 RELIABILITY_CSV = DATA_DIR / "reliability.csv"
+PICK_FACTORS_CSV = DATA_DIR / "pick_factors.csv"
 PICKS_CSV = DATA_DIR / "picks.csv"
 
 # -- modelling defaults ----------------------------------------------------
@@ -115,6 +116,38 @@ PICK_DAYS = 3
 ACCA_LEGS = 4
 ACCA_TARGET_ODDS = 3.0
 ACCA_MAX_LEGS = 6
+
+# Choosing between selections that are all on the same price.
+#
+# A price band is 30 to 80 odds-points wide and the picks occupy one and a
+# half of them: ranking on probability inside a band always returns the
+# shortest price in it, so the band names a target price rather than a range.
+# What actually decides the pick is the tie-break between the dozens of
+# selections sitting on that price, and that used to be `hit_rate_n` — how
+# many rows the market has in the reliability table. That is a fact about the
+# dataset, not about the bet.
+#
+# So the price stays and the tie-break changes. Everything within
+# PICK_PRICE_TOLERANCE of the shortest price available in the band competes,
+# and the winner is the selection whose own key has come closest to its claim
+# AT THAT PRICE — measured on a log grid of PICK_FACTOR_STEP, needing
+# PICK_FACTOR_MIN_N graded bets before a cell is allowed to speak.
+#
+# Worth being plain about the size of this, and about how well it is measured.
+# On the model as it now stands, backtested over 2,445 historical picks, it is
+# worth +3.07 points in the safe band, +1.60 in main and -0.86 in value: +1.27
+# pooled, against a standard error of about 1.4 points a band. Run against the
+# model as it was before the corner shrink the same test gave +0.25 / +0.76 /
+# +1.51, +0.84 pooled. The aggregate sign is stable across both; the per-band
+# split is not, which is what one standard error looks like at eight hundred
+# picks a band. Do not read the band numbers as a ranking of the bands.
+#
+# The price it buys does not move — 1.3016 to 1.3020, 1.6033 to 1.6042, 2.2069
+# to 2.2069 — which is the whole point: it changes which selection is taken,
+# not what is being bought. What really justifies it is what it replaces.
+PICK_PRICE_TOLERANCE = 0.05
+PICK_FACTOR_STEP = 1.025
+PICK_FACTOR_MIN_N = 300
 
 # A price a Dixon-Coles Poisson cannot represent. Over 56,856 historical
 # matches only 15 exceeded 2pp — Udinese v Roma in April 2024 is the worst, a

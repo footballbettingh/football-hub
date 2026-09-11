@@ -65,6 +65,44 @@ def test_the_band_record_can_outrank_a_bigger_claim():
     assert picks_mod.best_of_day(table)["match"] == "quiet v honest"
 
 
+def test_a_near_tie_goes_to_the_record_at_that_price():
+    """Ranking on probability inside a price band always returns the band's
+    shortest price, and dozens of selections sit on it — so what actually picks
+    the bet is the tie-break. It used to be `hit_rate_n`, the number of rows the
+    market has in the reliability table, which prefers whichever market has the
+    most history and says nothing about whether this bet wins."""
+    table = card([
+        {"match": "big v sample", "prob": 0.6250, "key": "tt1.5_home_over",
+         "group": "tt", "hit_rate_n": 60000, "key_factor": 0.90},
+        {"match": "kept v word", "prob": 0.6240, "key": "corners7.5_over",
+         "group": "corners", "hit_rate_n": 15000, "key_factor": 1.00},
+    ])
+    assert picks_mod.best_of_day(table)["match"] == "kept v word"
+
+
+def test_the_record_at_a_price_cannot_overturn_a_real_gap_in_the_claim():
+    """The tie-break only ever decides between bets the score cannot tell
+    apart. Four points of claimed probability is not a tie, however well the
+    longer one's market has behaved — otherwise the factor would quietly trade
+    price for record and change what a band means."""
+    table = card([
+        {"match": "clearly v better", "prob": 0.620, "key_factor": 0.90},
+        {"match": "slightly v worse", "prob": 0.580, "key_factor": 1.00},
+    ])
+    assert picks_mod.best_of_day(table)["match"] == "clearly v better"
+
+
+def test_a_selection_nobody_has_checked_is_not_treated_as_a_bad_one():
+    """No measured record at this price means no evidence, not evidence of a
+    problem. Sending those to the back would penalise the rarer markets for
+    being rare."""
+    table = card([
+        {"match": "never v measured", "prob": 0.6250, "key_factor": None},
+        {"match": "came v short", "prob": 0.6240, "key_factor": 0.85},
+    ])
+    assert picks_mod.best_of_day(table)["match"] == "never v measured"
+
+
 def test_the_discount_keeps_the_order_inside_a_band():
     """A hit rate is shared by thousands of selections. Ranking on it directly
     would collapse them all to one score and make the order arbitrary; a factor

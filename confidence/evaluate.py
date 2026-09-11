@@ -164,6 +164,65 @@ def reliability(keys, probs, results, rows=None, groups=None, bands=BANDS):
     return pd.DataFrame(out)
 
 
+def price_bin(probs, step):
+    """Which log-price cell each probability falls in.
+
+    Bins on the fair PRICE rather than the probability, because that is the
+    axis the slate selects along: the cell edges are step**k, so a cell is a
+    constant percentage of price wide wherever it sits, and 1.30 and 2.20 get
+    neighbourhoods of the same relative tightness.
+    """
+    probs = np.clip(np.asarray(probs, dtype=float), 1e-9, 1 - 1e-9)
+    return np.floor(np.log(1.0 / probs) / np.log(step)).astype(int)
+
+
+def key_price_factors(keys, probs, results, rows=None, step=1.025, min_n=300):
+    """What each selection has actually done at each price it is sold at.
+
+    `reliability` answers "does an 80% pick win 80% of the time" for a whole
+    market group. This answers the narrower question the slate needs and that
+    one cannot: among the selections sitting on the SAME price, which of them
+    keep their word?
+
+    They differ by a lot, and a per-group calibrator cannot fix it. Inside the
+    60-64% band the corner lines alone spanned 15.8 points between the best-
+    and worst-behaved selection, in both directions at once — and isotonic
+    regression is monotone, so a single curve for the group cannot pull one up
+    while pushing the other down.
+
+    `factor` is actual / predicted, capped at 1, on the same one-sided rule as
+    `confidence_score`: landing more often than claimed is a forecast being
+    modest and costs the reader nothing, landing less often is the failure this
+    project exists to avoid. Cells with fewer than `min_n` graded bets are left
+    out entirely rather than quoted from noise.
+    """
+    out = []
+    rows = slice(None) if rows is None else rows
+    for i, key in enumerate(keys):
+        p = probs[rows][:, i]
+        r = results[rows][:, i]
+        valid = (r >= 0) & np.isfinite(p) & (p > 0) & (p < 1)
+        if not valid.any():
+            continue
+        p, y = p[valid], r[valid].astype(float)
+        cells = price_bin(p, step)
+        for cell in np.unique(cells):
+            pick = cells == cell
+            n = int(pick.sum())
+            if n < min_n:
+                continue
+            predicted, actual = float(p[pick].mean()), float(y[pick].mean())
+            out.append({
+                "key": key, "bin": int(cell),
+                "odds_low": float(step ** int(cell)),
+                "odds_high": float(step ** (int(cell) + 1)),
+                "n": n, "predicted": predicted, "actual": actual,
+                "factor": min(1.0, actual / predicted) if predicted else 1.0,
+            })
+    return pd.DataFrame(out, columns=["key", "bin", "odds_low", "odds_high",
+                                      "n", "predicted", "actual", "factor"])
+
+
 def group_summary(keys, probs, results, rows=None, threshold=0.75):
     """Brier, log loss and top-band accuracy for every market group."""
     out = []

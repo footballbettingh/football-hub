@@ -89,7 +89,12 @@ def build(progress=print, weight=None, devig_method=None):
 
     reliability = (pd.read_csv(cf_config.RELIABILITY_CSV)
                    if cf_config.RELIABILITY_CSV.exists() else None)
-    table = picks_mod.attach_hit_rates(table, reliability)
+    factors = (pd.read_csv(cf_config.PICK_FACTORS_CSV)
+               if cf_config.PICK_FACTORS_CSV.exists() else None)
+    if factors is None:
+        progress("! No pick factors yet — the slate will fall back to the band "
+                 "record to break ties. Run Recalibrate.")
+    table = picks_mod.attach_hit_rates(table, reliability, factors)
     table.to_csv(cf_config.PICKS_CSV, index=False, float_format="%.5f")
 
     payload = to_payload(table, fixtures, reliability, calibrators)

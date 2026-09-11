@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from confidence import markets, picks as picks_mod, predict, walkforward
+from confidence import evaluate, markets, picks as picks_mod, predict, walkforward
 from confidence.calibrate import Calibrators
 from confidence.poisson import BlendedGoalsModel, score_matrix
 
@@ -310,6 +310,40 @@ def test_a_fixture_with_no_totals_price_is_still_priced():
                                      calibrators=None, weight=0.9, min_train=60)
     assert not table.empty
     assert table["prob"].between(0, 1).all()
+
+
+def test_a_selection_that_overstates_itself_at_a_price_is_marked_down():
+    """One calibrator per market group cannot fix this and never could: inside
+    a single confidence band the corner lines spanned 15.8 points between the
+    best- and worst-behaved selection, in both directions at once, and isotonic
+    regression is monotone."""
+    keys = ["ou2.5_over", "btts_yes", "corners9.5_over"]
+    n = 800
+    probs = np.full((n, 3), 0.625, dtype=np.float32)
+    results = np.zeros((n, 3), dtype=np.int8)
+    results[:500, 0] = 1        # landed 62.5%, exactly what it claimed
+    results[:400, 1] = 1        # landed 50.0%, twelve points short
+    results[:700, 2] = 1        # landed 87.5%, a forecast being modest
+
+    table = evaluate.key_price_factors(keys, probs, results, min_n=100)
+    factor = table.set_index("key")["factor"]
+    assert factor["ou2.5_over"] == pytest.approx(1.0)
+    assert factor["btts_yes"] == pytest.approx(0.5 / 0.625)
+    # Capped at 1: landing more often than claimed costs the reader nothing,
+    # and rewarding it would let a lucky run outrank an honest one.
+    assert factor["corners9.5_over"] == pytest.approx(1.0)
+    # All three sit on the same price, so all three land in the same cell.
+    assert table["bin"].nunique() == 1
+
+
+def test_a_price_cell_nobody_has_tested_says_nothing_at_all():
+    """Absent rather than quoted from noise — `_rank` reads a missing cell as
+    "nobody has checked", which is not the same as a factor of 1 arrived at
+    from nine bets."""
+    keys = ["ou2.5_over"]
+    probs = np.full((50, 1), 0.625, dtype=np.float32)
+    results = np.zeros((50, 1), dtype=np.int8)
+    assert evaluate.key_price_factors(keys, probs, results, min_n=300).empty
 
 
 def test_every_priced_selection_is_a_known_key():

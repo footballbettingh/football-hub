@@ -246,12 +246,37 @@ def group_ceilings(reliability, min_n=MIN_BAND_SAMPLE, max_gap=MAX_OVERSTATEMENT
     return out
 
 
-def attach_hit_rates(picks, reliability):
+def key_factors(picks, factors):
+    """Each pick's own selection's record at its own price, or NaN.
+
+    NaN rather than 1.0 where no cell matched, so `_rank` can tell "this
+    selection has kept its word at this price" from "nobody has checked yet"
+    and decide for itself what to do with the difference.
+    """
+    if picks.empty:
+        return np.array([], dtype=float)
+    if factors is None or getattr(factors, "empty", True):
+        return np.full(len(picks), np.nan)
+    cells = evaluate.price_bin(picks["prob"].to_numpy(dtype=float),
+                               config.PICK_FACTOR_STEP)
+    table = {(row.key, int(row.bin)): float(row.factor)
+             for row in factors.itertuples()}
+    return np.array([table.get((key, int(cell)), np.nan)
+                     for key, cell in zip(picks["key"].to_numpy(), cells)])
+
+
+def attach_hit_rates(picks, reliability, factors=None):
     """What each pick's confidence band actually did, in its own market.
 
     Its own market where the evidence supports it: a band with fewer than
     `MIN_BAND_SAMPLE` bets in that group falls back to the all-markets row
     rather than quoting a hit rate off nine historical bets.
+
+    `factors` is the finer-grained table from `evaluate.key_price_factors` —
+    what this exact selection has done at this exact price. It is what breaks
+    the near-tie between the dozens of picks that share a price; the band
+    record is what gets quoted to the reader, and stays the coarser number
+    because it is the one with a sample worth quoting.
     """
     picks = picks.copy()
     if picks.empty or reliability is None or reliability.empty:
@@ -259,6 +284,7 @@ def attach_hit_rates(picks, reliability):
         picks["hit_rate_predicted"] = np.nan
         picks["hit_rate_n"] = 0
         picks["validated"] = True
+        picks["key_factor"] = key_factors(picks, factors)
         return picks
 
     overall = reliability[reliability["scope"] == "all"].sort_values("band_low")
@@ -289,6 +315,7 @@ def attach_hit_rates(picks, reliability):
         prob <= ceilings.get(group, 1.0) + 1e-9
         for prob, group in zip(probs, picks["group"].to_numpy())
     ]
+    picks["key_factor"] = key_factors(picks, factors)
     return picks
 
 
@@ -367,15 +394,51 @@ def _with_score(picks):
 
 
 def _rank(picks):
-    """Score first, then the weight of evidence behind the band.
+    """Score first, then what the selection itself has done at that price.
 
-    Whole blocks of the card share a score — the accumulator's legs sit exactly
-    on the qualifying threshold by construction, so dozens of candidates tie.
-    Breaking those ties by how many historical bets the band was measured on
-    makes the choice reproducible and prefers the better-tested market.
+    Whole blocks of the card share a score to within a fraction of a point.
+    Ranking on probability inside a price band always returns the band's
+    shortest price — `safe` spans 1.30 to 1.60, and all 27 safe picks in the
+    ledger sit between 1.3000 and 1.3142 — so dozens of selections arrive at
+    essentially the same number, and the accumulator's legs sit exactly on
+    the qualifying threshold by construction. Treating the fourth decimal of a
+    calibrated probability as an ordering is false precision.
+
+    So scores within `PICK_PRICE_TOLERANCE` of each other are called a tie, and
+    the tie goes to the selection whose own key has come closest to its claim
+    at this price. That used to go to `hit_rate_n`: the number of rows the
+    market has in the reliability table, which is a fact about the dataset
+    rather than about the bet, and which simply handed the pick to whichever
+    market had the most history.
+
+    Tiering rather than filtering is the point. `score` still separates
+    candidates that are genuinely far apart, so a band that came up fifteen
+    points short still loses to an honest one a few points longer — the
+    tie-break only ever decides between bets the score cannot tell apart.
+
+    A key with no measured record at this price is read as 1.0 rather than
+    sent to the back: absent evidence is not evidence of a bad selection, and
+    the alternative penalises the rarer markets for being rare.
     """
-    columns = ["score"] + [c for c in ("hit_rate_n", "prob") if c in picks.columns]
-    return _with_score(picks).sort_values(columns, ascending=False)
+    out = _with_score(picks)
+    step = 1.0 + config.PICK_PRICE_TOLERANCE
+    # Anchored on the best score in front of us rather than on a fixed grid.
+    # Fixed buckets put a boundary at an arbitrary price, and two candidates a
+    # tenth of a point apart either side of one would never compete; anchoring
+    # makes the leader tier 0 and lets everything within the tolerance of it in.
+    #
+    # `ceil`, not `floor`: the ratio to the best score is at most 1, so its log
+    # is at most 0, and flooring would put every score below the maximum in a
+    # tier of its own — leaving the tie-break to fire only on exact ties, which
+    # is to say almost never.
+    scores = out["score"].clip(lower=1e-9)
+    out["score_tier"] = np.ceil(
+        np.log(scores / scores.max()) / np.log(step))
+    out["_factor"] = (out["key_factor"].astype(float).fillna(1.0)
+                      if "key_factor" in out.columns else 1.0)
+    columns = ["score_tier", "_factor", "score"]
+    columns += [c for c in ("hit_rate_n", "prob") if c in out.columns]
+    return out.sort_values(columns, ascending=False)
 
 
 def best_of_day(picks, odds_min=None, odds_max=None, day=None,
