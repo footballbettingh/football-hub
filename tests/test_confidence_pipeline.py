@@ -346,6 +346,27 @@ def test_a_price_cell_nobody_has_tested_says_nothing_at_all():
     assert evaluate.key_price_factors(keys, probs, results, min_n=300).empty
 
 
+def test_a_second_club_is_not_priced_as_the_first():
+    """Two names in one league landing on one club is a second club read as
+    the first: it is how Independiente Rivadavia was priced as Independiente,
+    and never once flagged as a team the model did not know."""
+    history, teams = fake_history()
+    rival = f"{teams[0]} Rivadavia"
+    fixtures = pd.DataFrame({
+        "date": [pd.Timestamp("2022-06-01")] * 2, "competition": ["TEST"] * 2,
+        "home": [teams[0], teams[2]], "away": [teams[1], rival.lower()],
+        "home_team": [teams[0], teams[2]], "away_team": [teams[1], rival],
+        "home_odds_cons": [2.2, 2.0], "draw_odds_cons": [3.4, 3.4],
+        "away_odds_cons": [3.3, 3.8],
+    })
+    table = picks_mod.price_fixtures(history, fixtures, calibrators=None,
+                                     weight=0.9, min_train=60)
+    second = table[table["away_team"] == rival]
+    assert (second["away"] == rival.lower()).all() and second["new_team"].all()
+    first = table[table["home_team"] == teams[0]]
+    assert (first["home"] == teams[0]).all() and not first["new_team"].any()
+
+
 def test_every_priced_selection_is_a_known_key():
     history, teams = fake_history()
     fixtures = pd.DataFrame({

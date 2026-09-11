@@ -123,7 +123,12 @@ def price_fixtures(history, fixtures, calibrators=None, weight=None,
         # unresolved the team is unknown to the model (priced at league average
         # and flagged new) AND the pick can never be matched to its result, so
         # it sits pending forever with nothing to say why.
-        resolver = build_resolver(set(train["home"]) | set(train["away"]))
+        #
+        # Built over the whole league's fixtures at once, so that two names
+        # landing on one club can be caught — the one mistake the resolver
+        # cannot see a name at a time. See `teams.build_resolver`.
+        resolver = build_resolver(set(train["home"]) | set(train["away"]),
+                                  names=set(block["home"]) | set(block["away"]))
 
         for fixture in block.itertuples():
             rows.extend(_price_one(fixture, model, corners, weight, devig_method,

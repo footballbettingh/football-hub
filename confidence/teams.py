@@ -120,6 +120,17 @@ ALIASES = {
     "d c united": "dc united",
     "wolves": "wolverhampton wanderers",
     "la galaxy": "los angeles galaxy",
+
+    # Two that were not merely unmatched but matched WRONG, which is worse: the
+    # club was priced as another club, never flagged as new, and its bets were
+    # looked for among the other club's fixtures. The results file writes
+    # "Ind. Rivadavia", so the feed's "Independiente Rivadavia" fell through to
+    # the one candidate its name contains — Independiente of Avellaneda, a
+    # different club in the same league. "Shenzhen Peng City" fell through to
+    # "Shenzhen", a club dissolved in 2023; the results file knows the current
+    # one by its pinyin, Xinpengcheng.
+    "ind rivadavia": "independiente rivadavia",
+    "shenzhen peng city": "shenzhen xinpengcheng",
 }
 
 
@@ -148,6 +159,21 @@ def normalize(name) -> str:
     return ALIASES.get(" ".join(tokens), " ".join(tokens))
 
 
+def _explained_by(candidate, tokens):
+    """Whether every word of `candidate` is a word of the name, or the start of one.
+
+    "ind rivadavia" is explained by "Independiente Rivadavia": "ind" is how the
+    results file shortens the first word and the second is there as it is.
+    Three letters at least, so a stray initial cannot explain anything.
+    """
+    return all(any(_covers(word, token) for token in tokens)
+               for word in candidate.split())
+
+
+def _covers(word, token):
+    return word == token or (len(word) >= 3 and token.startswith(word))
+
+
 def resolve(name, candidates):
     """Map a name onto one of `candidates`, or None if it is ambiguous."""
     key = normalize(name)
@@ -166,15 +192,37 @@ def resolve(name, candidates):
 
     shorter = [c for c in candidates if set(c.split()) < tokens]
     if len(shorter) == 1:
-        return shorter[0]
+        # A unique shorter name is an answer only if nothing else could be. The
+        # word it leaves over is the clue: "Independiente Rivadavia" contains
+        # "independiente", but "rivadavia" is left over, and another candidate
+        # — "ind rivadavia" — carries it and is accounted for word by word by
+        # the name. Either club could be meant, so neither is chosen.
+        leftover = tokens - set(shorter[0].split())
+        rivals = [c for c in candidates if c != shorter[0]
+                  and any(_covers(word, token) for word in c.split()
+                          for token in leftover)
+                  and _explained_by(c, tokens)]
+        return None if rivals else shorter[0]
     longer = [c for c in candidates if set(c.split()) > tokens]
     if len(longer) == 1:
         return longer[0]
     return None
 
 
-def build_resolver(candidates):
-    """Cache `resolve` over one competition's team set."""
+def build_resolver(candidates, names=()):
+    """Cache `resolve` over one competition's team set.
+
+    `names`, where given, is every name about to be looked up together — one
+    league's fixtures on one card. Two different names landing on the same
+    club is the failure `resolve` cannot see from one name at a time, and it
+    is almost never two spellings of one club: it is a second club being read
+    as the first, which is exactly how Independiente Rivadavia became
+    Independiente. So wherever it happens, a name that got there by a fuzzy
+    match is left unresolved: priced at league average and flagged as new,
+    which a reader can see, rather than priced as a club it is not, which
+    nobody can. Two spellings that normalise to the club itself are one club
+    and are left alone.
+    """
     candidates = set(candidates)
     cache = {}
 
@@ -183,4 +231,14 @@ def build_resolver(candidates):
             cache[name] = resolve(name, candidates)
         return cache[name]
 
+    claimed = {}
+    for name in set(names):
+        club = lookup(name)
+        if club is not None:
+            claimed.setdefault(club, set()).add(name)
+    for club, claimants in claimed.items():
+        if len(claimants) > 1:
+            for name in claimants:
+                if normalize(name) != club:
+                    cache[name] = None
     return lookup
