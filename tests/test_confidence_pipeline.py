@@ -261,6 +261,57 @@ def test_calibrated_picks_stay_ordered_within_a_group():
     assert list(out) == sorted(out, reverse=True)
 
 
+def _one_fixture(teams, **extra):
+    return pd.DataFrame({
+        "date": [pd.Timestamp("2022-06-01")], "competition": ["TEST"],
+        "home": [teams[0]], "away": [teams[1]],
+        "home_team": [teams[0]], "away_team": [teams[1]],
+        "home_odds_cons": [2.2], "draw_odds_cons": [3.4], "away_odds_cons": [3.3],
+        **{k: [v] for k, v in extra.items()},
+    })
+
+
+def test_the_card_prices_off_the_totals_line_when_the_feed_carries_one():
+    """The feed sells Over/Under 2.5 in the same call that already paid for
+    1X2, on about nine fixtures in ten. With it the implied fit has three
+    prices for three parameters and rho is free to absorb the low-scoring,
+    draw-heavy structure independent Poissons get wrong; without it rho stays
+    at whatever the goals model guessed and every market that depends on the
+    SHAPE of the scoreline is priced off that guess.
+
+    The card used to throw it away, which meant it ran a different procedure
+    from the walk-forward that validated it.
+    """
+    history, teams = fake_history()
+    priced = lambda fixtures: picks_mod.price_fixtures(
+        history, fixtures, calibrators=None, weight=0.9,
+        min_train=60).set_index("key")["prob_raw"]
+
+    without = priced(_one_fixture(teams))
+    with_total = priced(_one_fixture(teams, over25_odds_cons=1.90,
+                                     under25_odds_cons=1.95))
+
+    # The shape markets move a long way...
+    assert abs(with_total["btts_yes"] - without["btts_yes"]) > 0.05
+    assert abs(with_total["ou2.5_over"] - without["ou2.5_over"]) > 0.05
+    # ...and the match result barely at all, because the three 1X2 prices pin
+    # it either way. A totals line that moved 1X2 would mean the fit was
+    # trading away a price it is supposed to reproduce exactly.
+    assert abs(with_total["1x2_home"] - without["1x2_home"]) < 0.02
+    assert abs(with_total["dc_1x"] - without["dc_1x"]) < 0.02
+
+
+def test_a_fixture_with_no_totals_price_is_still_priced():
+    """One league in ten is quoted 1X2 only, and half a market is worse than
+    none: normalising over one side of a total would produce a confident
+    number rather than a missing one."""
+    history, teams = fake_history()
+    table = picks_mod.price_fixtures(history, _one_fixture(teams, over25_odds_cons=1.90),
+                                     calibrators=None, weight=0.9, min_train=60)
+    assert not table.empty
+    assert table["prob"].between(0, 1).all()
+
+
 def test_every_priced_selection_is_a_known_key():
     history, teams = fake_history()
     fixtures = pd.DataFrame({

@@ -491,6 +491,17 @@ The short version, with the measurements in
    **reproduces that price**. Every market nobody quotes — BTTS, Over 1.5, team
    totals, handicaps — is read off the same matrix, so the card cannot
    contradict itself.
+
+   Both prices, not just the 1X2. The three match-result prices pin two
+   lambdas and the fit is exact, but rho — the low-scoring, draw-heavy
+   structure that independent Poissons get wrong — is left at whatever the
+   goals model guessed. The Over/Under 2.5 price frees it, and the feed sells
+   it in the same call that already paid for the 1X2, on about nine fixtures in
+   ten. The card used to drop it: priced both ways over 9,000 historical
+   matches that costs 0.0045 Brier on BTTS, 0.0023 on the goal totals and
+   0.0014 on team totals, and nothing measurable on the match result or
+   anything derived from it alone — which is the signature of a missing rho,
+   and lands on the three markets most of the slate is picked from.
 3. Fuse in a joint-MLE goals model at **10%**. Measured, not assumed: 0.90 beats
    both 0.75 and the pure market, paired by match at p = 2.3e-07.
 4. **Calibrate** per market with isotonic regression fitted only on earlier

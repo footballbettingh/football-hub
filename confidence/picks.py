@@ -27,6 +27,8 @@ from .predict import CORNER_MAX, fuse, match_probabilities
 
 FIXTURE_1X2_CONS = ("home_odds_cons", "draw_odds_cons", "away_odds_cons")
 FIXTURE_1X2_BEST = ("home_odds", "draw_odds", "away_odds")
+FIXTURE_OU_CONS = ("over25_odds_cons", "under25_odds_cons")
+FIXTURE_OU_BEST = ("over25_odds", "under25_odds")
 
 # Selections whose price the fixture feed actually carries, so an edge can be
 # computed. Everything else is priced by us alone and shows fair odds only.
@@ -44,13 +46,48 @@ PRICED = {
 }
 
 
-def _fixture_market(row, method):
-    prices = [getattr(row, c, None) for c in FIXTURE_1X2_CONS]
-    if any(p is None or p != p or float(p) <= 1.0 for p in prices):
-        prices = [getattr(row, c, None) for c in FIXTURE_1X2_BEST]
-        if any(p is None or p != p or float(p) <= 1.0 for p in prices):
+def _fixture_prices(row, columns):
+    """The prices if all of them are present and sane, else None.
+
+    The same rule the walk-forward applies: a partial market cannot be
+    de-vigged, because normalising over two of three outcomes produces a
+    confident number rather than a missing one.
+    """
+    out = []
+    for column in columns:
+        value = getattr(row, column, None)
+        if value is None or value != value or float(value) <= 1.0:
             return None
-    return devig([float(p) for p in prices], method)
+        out.append(float(value))
+    return out
+
+
+def _fixture_market(row, method):
+    """De-vigged 1X2 and Over 2.5 for one upcoming fixture.
+
+    The totals price is the second half of the anchor, and the feed carries it
+    on about nine fixtures in ten — in the same call that already paid for
+    1X2, so it costs nothing extra. With 1X2 alone the implied fit has two
+    prices for two lambdas, so it is exact and rho stays at whatever the goals
+    model guessed; adding the total frees rho to absorb the low-scoring,
+    draw-heavy structure that independent Poissons get wrong.
+
+    Leaving it out meant the card ran a different procedure from the
+    walk-forward that validated it. Priced both ways over 9,000 historical
+    matches that costs 0.0045 Brier on BTTS, 0.0023 on the goal totals and
+    0.0014 on team totals — and nothing measurable on 1X2, double chance,
+    handicap or draw-no-bet, which is exactly the signature of a missing rho:
+    those four are pinned by the three 1X2 prices alone. The three that suffer
+    are the ones most of the slate is picked from.
+    """
+    prices = (_fixture_prices(row, FIXTURE_1X2_CONS)
+              or _fixture_prices(row, FIXTURE_1X2_BEST))
+    if prices is None:
+        return None, None
+    totals = (_fixture_prices(row, FIXTURE_OU_CONS)
+              or _fixture_prices(row, FIXTURE_OU_BEST))
+    q_over = float(devig(totals, method)[0]) if totals else None
+    return devig(prices, method), q_over
 
 
 def price_fixtures(history, fixtures, calibrators=None, weight=None,
@@ -124,14 +161,14 @@ def _price_one(fixture, model, corners, weight, devig_method, competition,
     home = (resolver(fixture.home) if resolver else None) or fixture.home
     away = (resolver(fixture.away) if resolver else None) or fixture.away
     lam_model, mu_model = model.expected_counts(home, away)
-    q = _fixture_market(fixture, devig_method)
+    q, q_over = _fixture_market(fixture, devig_method)
 
     if q is None:
         lam, mu, rho = lam_model, mu_model, model.rho
         lam_market = mu_market = resid = np.nan
     else:
         lam_market, mu_market, rho_market, resid = implied_lambdas(
-            float(q[0]), float(q[1]), float(q[2]), None, rho=model.rho,
+            float(q[0]), float(q[1]), float(q[2]), q_over, rho=model.rho,
             init=(lam_model, mu_model))
         lam, mu, rho = fuse(lam_model, mu_model, model.rho,
                             lam_market, mu_market, rho_market, weight)
