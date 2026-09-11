@@ -294,12 +294,32 @@ def acca(**overrides):
     return base
 
 
-def test_one_accumulator_per_day_it_was_issued(acca_path):
+def test_one_accumulator_per_size_per_day_it_was_issued(acca_path):
     assert ledger.record_acca(acca(), acca_path, today="2026-08-12")
     assert ledger.record_acca(acca(probability=0.9), acca_path,
                               today="2026-08-12") is None
+    assert ledger.record_acca(acca(legs=3), acca_path, today="2026-08-12")
     assert ledger.record_acca(acca(), acca_path, today="2026-08-13")
-    assert list(ledger.load_accas(acca_path)["issued"]) == ["2026-08-12", "2026-08-13"]
+    frame = ledger.load_accas(acca_path)
+    assert list(zip(frame["issued"], frame["legs"])) == [
+        ("2026-08-12", 2), ("2026-08-12", 3), ("2026-08-13", 2)]
+
+
+def test_each_slip_size_keeps_its_own_record(acca_path):
+    """A two-leg slip and a three-leg one cannot share a hit rate, any more
+    than a slip and a single can."""
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    ledger.record_acca(acca(legs=3, probability=0.2), acca_path, today="2026-08-13")
+    ledger.record_acca(acca(legs=3, probability=0.2), acca_path, today="2026-08-14")
+    ledger.settle_accas(history([("AUT-BUNDESLI", "lask", "ried", "2026-08-14", 2, 1),
+                                 ("AUT-BUNDESLI", "a", "b", "2026-08-15", 3, 1)]),
+                        acca_path)
+
+    two, three = ledger.acca_summary_by_legs(ledger.load_accas(acca_path))
+    assert (two["legs"], two["recorded"], two["expected"]) == (2, 1, pytest.approx(0.33))
+    assert (three["legs"], three["recorded"], three["expected"]) == (3, 2, pytest.approx(0.2))
+    # Each record starts the day its size was first written down.
+    assert (two["since"], three["since"]) == ("2026-08-12", "2026-08-13")
 
 
 def test_an_accumulator_wins_only_when_every_leg_does(acca_path):
@@ -567,7 +587,7 @@ def test_an_empty_league_name_falls_back_to_the_code(path):
 
 def test_a_recorded_slip_comes_back_in_the_shape_the_card_renders(acca_path):
     ledger.record_acca(acca(), acca_path, today="2026-08-12")
-    slip = ledger.recorded_acca("2026-08-12", acca_path)
+    slip = ledger.recorded_accas("2026-08-12", acca_path)["2"]
 
     assert slip["legs"] == 2
     assert slip["probability"] == pytest.approx(0.33)
@@ -576,12 +596,22 @@ def test_a_recorded_slip_comes_back_in_the_shape_the_card_renders(acca_path):
     assert slip["recorded_at"]
 
 
+def test_every_size_recorded_on_a_day_comes_back_under_its_own_count(acca_path):
+    ledger.record_acca(acca(), acca_path, today="2026-08-12")
+    ledger.record_acca(acca(legs=3, probability=0.2), acca_path, today="2026-08-12")
+    ledger.record_acca(acca(legs=4), acca_path, today="2026-08-13")
+
+    slips = ledger.recorded_accas("2026-08-12", acca_path)
+    assert sorted(slips) == ["2", "3"]
+    assert slips["3"]["probability"] == pytest.approx(0.2)
+
+
 def test_a_day_with_no_slip_recorded_has_nothing_to_show(acca_path):
     ledger.record_acca(acca(), acca_path, today="2026-08-12")
-    assert ledger.recorded_acca("2026-08-13", acca_path) is None
+    assert ledger.recorded_accas("2026-08-13", acca_path) == {}
 
 
 def test_an_unpriced_slip_reads_back_with_no_offered_price(acca_path):
     ledger.record_acca(acca(offered_odds=None), acca_path, today="2026-08-12")
-    slip = ledger.recorded_acca("2026-08-12", acca_path)
+    slip = ledger.recorded_accas("2026-08-12", acca_path)["2"]
     assert slip["offered_odds"] is None

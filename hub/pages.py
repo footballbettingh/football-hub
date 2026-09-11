@@ -13,6 +13,7 @@ from datetime import datetime
 
 import pandas as pd
 
+from confidence import config as cf_config
 from confidence.markets import GROUPS
 
 from . import artifacts, components as c, ledger
@@ -192,24 +193,24 @@ def _slate_section(picks):
 
 
 def _acca_recorded_note(acca, legs):
-    """Which size is the one in the record, and when it went down.
+    """That every size is in the record, and when the default went down.
 
-    Only the default is ever recorded — `record_acca` is handed that slip and
-    no other — so the dropdown mixes one bet that will be graded with four that
-    will not. Unlabelled, all five read as part of the record.
+    Until 11 September 2026 only the default was, and the dropdown mixed one
+    bet that would be graded with four that would not. Now each size is written
+    down the first time it appears in a day, and History follows each one.
     """
     when = ""
     stamp = (acca or {}).get("recorded_at")
     if stamp:
         try:
-            when = (f" Today's went down at "
+            when = (f" Today's {legs}-leg slip went down at "
                     f"{datetime.fromisoformat(str(stamp)):%H:%M} and has not "
                     f"been revised since.")
         except (TypeError, ValueError):
             when = ""
-    return (f'<p class="note">The {legs}-leg slip is the one written into the '
-            f'record each day and graded afterwards; the other sizes are '
-            f're-priced on every build and are here for comparison.{when}</p>')
+    return (f'<p class="note">Every size is written into the record the first '
+            f'time it appears each day and graded afterwards — History keeps '
+            f'a separate record for each.{when}</p>')
 
 
 def _accumulator_section(picks):
@@ -746,7 +747,42 @@ def _acca_history_section(frame):
   written down each day you refresh the card.</div></div>
 </section>"""
 
-    head = ledger.acca_summary(frame)
+    sizes = ledger.acca_summary_by_legs(frame)
+    shown = next((size["legs"] for size in sizes
+                  if size["legs"] == cf_config.ACCA_LEGS), sizes[0]["legs"])
+    legs = pd.to_numeric(frame["legs"], errors="coerce")
+    books = "".join(
+        _acca_book(frame[legs == size["legs"]], size, hidden=size["legs"] != shown)
+        for size in sizes)
+
+    # One size needs no picker, and would only look like a control that does
+    # nothing. It stays hidden until a second size has been written down.
+    picker = ""
+    if len(sizes) > 1:
+        options = "".join(
+            f'<option value="{size["legs"]}"'
+            f'{" selected" if size["legs"] == shown else ""}>'
+            f'{size["legs"]} legs</option>' for size in sizes)
+        picker = f"""<div class="filters">
+    <label class="visually-hidden" for="acca-book-size">Legs per slip</label>
+    <select id="acca-book-size">{options}</select>
+  </div>"""
+
+    return f"""
+<section class="card">
+  <h2>Accumulator picks</h2>
+  <p class="note">A separate book. A four-leg slip at 33% and a single at 62%
+  have nothing to say to each other, so they never share a hit rate or a total —
+  and nor do two slip sizes, so each keeps its own record, starting the day it
+  was first written down. A void leg drops out and the slip settles on what is
+  left, as a bookmaker would.</p>
+  {picker}
+  {books}
+</section>"""
+
+
+def _acca_book(frame, head, hidden=False):
+    """One slip size's record: the numbers, then every slip behind them."""
     rows = []
     for row in frame.sort_values("issued", ascending=False).itertuples():
         outcome = row.outcome if isinstance(row.outcome, str) else "pending"
@@ -756,20 +792,16 @@ def _acca_history_section(frame):
         landed = (NONE if row.legs_won != row.legs_won
                   else f"{int(row.legs_won)}/{int(row.legs)}")
         rows.append([
-            str(row.issued), f"{int(row.legs)}",
+            str(row.issued),
             f'<span class="note">{c.e(detail)}</span>',
             _pct(row.probability), _num(row.fair_odds),
             landed,
             f'<span style="color:var(--{state})">{label}</span>',
         ])
 
-    return f"""
-<section class="card">
-  <h2>Accumulator picks</h2>
-  <p class="note">A separate book. A four-leg slip at 33% and a single at 62%
-  have nothing to say to each other, so they never share a hit rate or a total.
-  A void leg drops out and the slip settles on what is left, as a bookmaker
-  would.</p>
+    since = f"since {pd.Timestamp(head['since']):%d %b}" if head.get("since") else ""
+    short = f"{head['short']} settled a leg short" if head.get("short") else ""
+    return f"""<div class="acca-book" data-legs="{head['legs']}"{" hidden" if hidden else ""}>
   {c.kpis([
       ("Record", f"{head['wins']}&ndash;{head['losses']}",
        f"{head['pending']} still to play"),
@@ -779,12 +811,11 @@ def _acca_history_section(frame):
                         f"{head['average_legs']:.0f}")
        if head["average_legs_won"] is not None else NONE, "on average"),
       ("Slips recorded", f"{head['recorded']}",
-       f"{head['short']} settled a leg short" if head.get("short")
-       else "one per match day"),
+       " &middot; ".join(part for part in (since, short) if part)),
   ])}
-  {c.table(["Issued", "Legs", "Selections", "Chance", "Fair",
-            "Landed", "Result"], rows, numeric_from=3, raw=True)}
-</section>"""
+  {c.table(["Issued", "Selections", "Chance", "Fair", "Landed", "Result"],
+           rows, numeric_from=2, raw=True)}
+</div>"""
 
 
 def _settled_note(head):

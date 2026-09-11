@@ -183,17 +183,20 @@ def cmd_history(args):
 
     accas = ledger.load_accas()
     if not accas.empty:
-        acca = ledger.acca_summary(accas)
         print(f"\n== Accumulator picks (a separate book)\n")
-        _show(accas.sort_values("issued", ascending=False)[
+        _show(accas.sort_values(["issued", "legs"], ascending=False)[
             ["issued", "legs", "probability", "fair_odds", "outcome",
              "legs_won"]])
-        print(f"\n  record {acca['wins']}-{acca['losses']}"
-              + (f" ({acca['short']} settled a leg short)" if acca["short"] else "")
-              + f", {acca['pending']} pending")
-        if acca["hit_rate"] is not None:
-            print(f"  landed {acca['hit_rate']:.1%} against "
-                  f"{acca['expected']:.1%} claimed")
+        print()
+        # One line per size: a two-leg slip and a six-leg one share no total.
+        for acca in ledger.acca_summary_by_legs(accas):
+            line = (f"  {acca['legs']} legs  record {acca['wins']}-{acca['losses']}"
+                    + (f" ({acca['short']} settled a leg short)" if acca["short"] else "")
+                    + f", {acca['pending']} pending, since {acca['since']}")
+            if acca["hit_rate"] is not None:
+                line += (f"   landed {acca['hit_rate']:.1%} against "
+                         f"{acca['expected']:.1%} claimed")
+            print(line)
 
 
 def cmd_evidence(args):

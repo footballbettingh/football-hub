@@ -56,7 +56,7 @@ ARTIFACTS = (
     Artifact("ledger", "Daily-pick record", DATA_DIR / "best_picks.csv",
              "refresh-picks", note="written before each match, then graded"),
     Artifact("accas", "Accumulator record", DATA_DIR / "best_accas.csv",
-             "refresh-picks", note="one slip a day, kept in its own book"),
+             "refresh-picks", note="one slip per size a day, kept in its own book"),
 )
 
 BY_KEY = {a.key: a for a in ARTIFACTS}

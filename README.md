@@ -398,10 +398,12 @@ that could be two clubs stays unmatched rather than being graded against the
 wrong match.
 
 **The accumulator keeps its own book** in `data/best_accas.csv` — one slip per
-day it was issued, with its legs stored alongside it. A four-leg slip at 33% and
-a single at 62% have nothing to say to each other, so they never share a hit
-rate or a total. A void leg drops out and the slip settles on what is left, as a
-bookmaker would.
+size (two legs to six) per day it was issued, with its legs stored alongside it.
+A four-leg slip at 33% and a single at 62% have nothing to say to each other, so
+they never share a hit rate or a total, and nor do two slip sizes: History shows
+one size at a time. Until 11 September 2026 only the four-leg slip was written
+down, so the other sizes' records start there. A void leg drops out and the slip
+settles on what is left, as a bookmaker would.
 
 The record opens on 12 August 2026 with nine picks — three bands across 14, 15
 and 16 August. Read what landed against what was claimed, and read the interval

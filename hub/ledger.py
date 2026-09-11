@@ -492,17 +492,23 @@ def load_accas(path=ACCA_CSV):
 
 
 def record_acca(acca, path=ACCA_CSV, today=None):
-    """One accumulator per day it was issued.
+    """One accumulator per size per day it was issued.
 
     Keyed on the issue date rather than a match day, because a slip spans
     several: it is today's slip, placed today, at today's prices. Rebuilding
     the card again this afternoon keeps this morning's answer.
+
+    And on the size, because the card offers two legs to six and a size that
+    is never written down can never be checked. Until 11 September 2026 only
+    the four-leg slip was, so the other sizes' records start there.
     """
     if not acca:
         return None
     frame = load_accas(path)
     issued = pd.to_datetime(today or date.today()).strftime("%Y-%m-%d")
-    if (frame["issued"].astype(str) == issued).any():
+    same = ((frame["issued"].astype(str) == issued)
+            & (pd.to_numeric(frame["legs"], errors="coerce") == int(acca["legs"])))
+    if same.any():
         return None
 
     row = {
@@ -631,7 +637,21 @@ def acca_summary(frame):
         "roi": float(pnl / (len(priced) * STAKE) * 100) if len(priced) else None,
         "average_legs_won": float(decided["legs_won"].mean()) if len(decided) else None,
         "average_legs": float(decided["legs"].mean()) if len(decided) else None,
+        "since": str(frame["issued"].astype(str).min()) if len(frame) else None,
     }
+
+
+def acca_summary_by_legs(frame):
+    """The same numbers, one slip size at a time.
+
+    A two-leg slip at 57% and a six-leg one at 19% cannot share a hit rate any
+    more than a slip and a single can, so each size is its own record.
+    """
+    if frame.empty:
+        return []
+    legs = pd.to_numeric(frame["legs"], errors="coerce")
+    return [{"legs": size, **acca_summary(frame[legs == size])}
+            for size in sorted(set(legs.dropna().astype(int)))]
 
 
 def acca_legs(row):
@@ -642,8 +662,9 @@ def acca_legs(row):
         return []
 
 
-def recorded_acca(issued=None, path=ACCA_CSV):
-    """The slip written down on this day, in the shape the card renders.
+def recorded_accas(issued=None, path=ACCA_CSV):
+    """The slips written down on this day, by size, in the shape the card
+    renders.
 
     The same failure the slate had, on a shorter fuse. This book is keyed on
     the day the slip was issued, so the first build of the morning writes it
@@ -652,18 +673,23 @@ def recorded_acca(issued=None, path=ACCA_CSV):
     agree; a second build after new odds land and the page advertises a slip
     the record has never heard of.
 
-    Returns None where nothing has been recorded for the day, which is the
-    normal state of affairs right up until the first build.
+    Keyed by leg count as a string, the way the card keys its sizes. Empty
+    where nothing has been recorded for the day, which is the normal state of
+    affairs right up until the first build.
     """
     frame = load_accas(path)
     if frame.empty:
-        return None
+        return {}
     issued = pd.to_datetime(issued or date.today()).strftime("%Y-%m-%d")
-    rows = frame[frame["issued"].astype(str) == issued]
-    if rows.empty:
-        return None
+    out = {}
+    for _, row in frame[frame["issued"].astype(str) == issued].iterrows():
+        slip = _recorded_slip(row)
+        if slip:
+            out[str(slip["legs"])] = slip
+    return out
 
-    row = rows.iloc[-1]
+
+def _recorded_slip(row):
     legs = acca_legs(row)
     if not legs:
         # A slip whose legs did not survive the round trip is worse than no

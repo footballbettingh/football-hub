@@ -224,6 +224,25 @@
     render();
   })();
 
+  // ---- history: the accumulator book, one slip size at a time ----------
+  // Every size is already on the page, rendered by pages.py; this only picks
+  // which one is showing, so a static export behaves the same with or without
+  // it — the default size is the one left visible.
+  (function accumulatorBook() {
+    var select = $('acca-book-size');
+    if (!select) return;
+    var books = [].slice.call(document.querySelectorAll('.acca-book'));
+
+    function show() {
+      books.forEach(function (book) {
+        book.hidden = book.getAttribute('data-legs') !== select.value;
+      });
+    }
+
+    select.addEventListener('input', show);
+    show();
+  })();
+
   // ---- fixtures: search, and expand a row into every market ------------
   (function fixtures() {
     var table = document.querySelector('table.fixtures');

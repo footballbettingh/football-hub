@@ -111,11 +111,12 @@ def build(progress=print, weight=None, devig_method=None):
         progress("No new picks to record — every day and band on the slate is "
                  "already in the ledger")
 
-    slip = ledger.record_acca(
-        (payload.get("accumulators") or {}).get(payload.get("acca_default")))
-    if slip:
-        progress(f"Recorded today's {slip['legs']}-leg accumulator: "
-                 f"{slip['probability']:.1%} at {slip['fair_odds']:.2f}")
+    accas = payload.get("accumulators") or {}
+    for size in sorted(accas, key=int):
+        slip = ledger.record_acca(accas[size])
+        if slip:
+            progress(f"Recorded today's {slip['legs']}-leg accumulator: "
+                     f"{slip['probability']:.1%} at {slip['fair_odds']:.2f}")
 
     # And then show what the ledger says, not what was just priced. Everything
     # above is a fresh opinion about days that mostly already have one.
@@ -123,10 +124,9 @@ def build(progress=print, weight=None, devig_method=None):
         progress(f"Showing the recorded {changed['band']} pick for "
                  f"{changed['day']} ({changed['recorded']}) instead of today's "
                  f"re-priced {changed['repriced']}")
-    swapped = _apply_acca_ledger(payload)
-    if swapped:
-        progress(f"Showing the accumulator recorded at {swapped['at']} rather "
-                 f"than today's re-priced one")
+    for swapped in _apply_acca_ledger(payload):
+        progress(f"Showing the {swapped['legs']}-leg accumulator recorded at "
+                 f"{swapped['at']} rather than today's re-priced one")
         progress(f"  recorded:  {swapped['recorded']}")
         progress(f"  re-priced: {swapped['repriced']}")
 
@@ -234,33 +234,29 @@ def _acca_line(acca):
 
 
 def _apply_acca_ledger(payload, path=None):
-    """Show the slip that was written down, where one already has been.
+    """Show the slips that were written down, where they already have been.
 
-    Only the default leg count is ever recorded — `record_acca` is handed that
-    one alone — so only that one is replaced. The other sizes stay live, and
-    the page says so rather than letting them pass as part of the record.
+    Every size is recorded, each under its own leg count, so each is replaced
+    by its own record. A size the card can no longer build today still shows:
+    it is going to be graded, so it is still what the page should name.
 
-    Returns what the two disagreed about, for the job log, or None.
+    Returns what the two disagreed about, size by size, for the job log.
     """
     accas = payload.get("accumulators") or {}
-    recorded = ledger.recorded_acca(path=path or ledger.ACCA_CSV)
+    recorded = ledger.recorded_accas(path=path or ledger.ACCA_CSV)
     if not recorded:
-        return None
+        return []
 
-    # Filed under the leg count it was actually recorded at, and selected. If
-    # ACCA_LEGS changed after a slip was written down, the recorded one is
-    # still the bet that will be graded, so it is still the one to show.
-    key = str(int(recorded["legs"]))
-    fresh = accas.get(key)
-    accas[key] = _plain(recorded)
+    changed = []
+    for key in sorted(recorded, key=int):
+        slip, fresh = recorded[key], accas.get(key)
+        accas[key] = _plain(slip)
+        if fresh and _acca_legs(fresh) != _acca_legs(slip):
+            changed.append({"legs": key, "at": slip.get("recorded_at"),
+                            "recorded": _acca_line(slip),
+                            "repriced": _acca_line(fresh)})
     payload["accumulators"] = accas
-    payload["acca_default"] = key
-
-    if fresh and _acca_legs(fresh) != _acca_legs(recorded):
-        return {"at": recorded.get("recorded_at"),
-                "recorded": _acca_line(recorded),
-                "repriced": _acca_line(fresh)}
-    return None
+    return changed
 
 
 def _plain(value, digits=5):

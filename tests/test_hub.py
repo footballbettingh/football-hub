@@ -754,13 +754,28 @@ def test_the_accumulator_shown_is_the_one_that_was_recorded(tmp_path):
     shown = payload["accumulators"][payload["acca_default"]]
     assert [leg["selection"] for leg in shown["selections"]] == [
         "Over 7.5 corners", "Home or draw (1X)"]
+    [swapped] = swapped
+    assert swapped["legs"] == "4"
     assert "Over 1.5 goals" in swapped["repriced"]
     assert "Over 7.5 corners" in swapped["recorded"]
 
 
-def test_the_other_leg_counts_stay_live(tmp_path):
-    """Only the default is ever handed to `record_acca`, so only the default
-    can claim to be in the record."""
+def test_every_recorded_size_is_shown_as_recorded(tmp_path):
+    """Every size is written down now, so every size has a record to show —
+    not just the default."""
+    path = tmp_path / "best_accas.csv"
+    ledger.record_acca(_slip(), path)
+    ledger.record_acca(_slip(legs=2, probability=0.57), path)
+    payload = _payload_with(_slip())
+
+    card._apply_acca_ledger(payload, path=path)
+
+    assert payload["accumulators"]["2"]["probability"] == pytest.approx(0.57)
+    assert payload["accumulators"]["2"]["recorded_at"]
+    assert payload["accumulators"]["4"]["recorded_at"]
+
+
+def test_a_size_nothing_has_recorded_yet_stays_live(tmp_path):
     path = tmp_path / "best_accas.csv"
     ledger.record_acca(_slip(), path)
     payload = _payload_with(_slip())
@@ -775,7 +790,7 @@ def test_a_day_with_no_slip_recorded_keeps_the_one_just_computed(tmp_path):
     path = tmp_path / "best_accas.csv"
     payload = _payload_with(_slip())
 
-    assert card._apply_acca_ledger(payload, path=path) is None
+    assert card._apply_acca_ledger(payload, path=path) == []
     assert "recorded_at" not in payload["accumulators"]["4"]
 
 
@@ -788,7 +803,7 @@ def test_re_pricing_the_same_legs_is_not_a_disagreement(tmp_path):
     drifted["selections"][0]["prob"] = 0.761
     payload = _payload_with(drifted)
 
-    assert card._apply_acca_ledger(payload, path=path) is None
+    assert card._apply_acca_ledger(payload, path=path) == []
     # Nothing to report, but the recorded numbers are still the ones shown:
     # the record was made at 0.319, and that is what it will be graded on.
     shown = payload["accumulators"]["4"]
@@ -796,25 +811,57 @@ def test_re_pricing_the_same_legs_is_not_a_disagreement(tmp_path):
     assert shown["selections"][0]["prob"] == pytest.approx(0.759)
 
 
-def test_a_slip_recorded_at_another_leg_count_is_still_the_one_shown(tmp_path):
-    """If ACCA_LEGS changes after a slip is written down, the recorded one is
-    still the bet that gets graded — so it is still the one to show."""
+def test_a_size_the_card_cannot_build_today_still_shows_its_record(tmp_path):
+    """Recorded this morning, gone from this afternoon's prices: it is still
+    the bet that gets graded, so it is still the one to show. The default does
+    not move to it — the card opens on the configured size, as before."""
     path = tmp_path / "best_accas.csv"
     ledger.record_acca(_slip(legs=3), path)
     payload = _payload_with(_slip(), default="4")
 
     card._apply_acca_ledger(payload, path=path)
 
-    assert payload["acca_default"] == "3"
     assert payload["accumulators"]["3"]["legs"] == 3
+    assert payload["acca_default"] == "4"
 
 
-def test_the_card_says_which_slip_size_is_in_the_record():
+def test_the_card_says_every_slip_size_is_in_the_record():
     html = pages._accumulator_section({
         "acca_target": 3.0, "acca_default": "4",
         "accumulators": {"4": {**_slip(), "recorded_at": "2026-08-26T09:12:04"}}})
-    assert "The 4-leg slip is the one written into the record" in html
-    assert "went down at 09:12" in html
+    assert "Every size is written into the record" in html
+    assert "Today's 4-leg slip went down at 09:12" in html
+
+
+# -- the accumulator book on History, one size at a time -------------------
+
+def _book(tmp_path, *sizes):
+    path = tmp_path / "best_accas.csv"
+    for day, legs in sizes:
+        ledger.record_acca(_slip(legs=legs), path, today=day)
+    return ledger.load_accas(path)
+
+
+def test_history_shows_one_slip_size_at_a_time(tmp_path):
+    frame = _book(tmp_path, ("2026-09-10", 4), ("2026-09-11", 4),
+                  ("2026-09-11", 2))
+    html = pages._acca_history_section(frame)
+
+    assert 'id="acca-book-size"' in html
+    assert '<option value="2">2 legs</option>' in html
+    assert '<option value="4" selected>4 legs</option>' in html
+    # Both are on the page, so the static export needs no server; the default
+    # is the one left showing.
+    assert '<div class="acca-book" data-legs="2" hidden>' in html
+    assert '<div class="acca-book" data-legs="4">' in html
+    assert "since 11 Sep" in html and "since 10 Sep" in html
+
+
+def test_history_has_no_size_picker_while_only_one_size_is_recorded(tmp_path):
+    html = pages._acca_history_section(_book(tmp_path, ("2026-09-10", 4)))
+
+    assert 'id="acca-book-size"' not in html
+    assert '<div class="acca-book" data-legs="4">' in html
 
 
 def test_a_recorded_slip_survives_the_card_being_unable_to_build_one(tmp_path):
