@@ -80,3 +80,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-12,safe,2026-09-10T09:13:53,JPN-J1LEAGUE,J1 League,machida,yokohama f marinos,FC Machida Zelvia v Yokohama F Marinos,ou3.5_under,ou,Under 3.5 goals,0.76859,1.30108,,0.77740,27767,,,,pending,,,
 2026-09-12,main,2026-09-10T09:13:53,EL1,League One,cambridge,reading,Cambridge United v Reading,corners10.5_under,corners,Under 10.5 corners,0.62486,1.60036,,0.64983,48200,,,,pending,,,
 2026-09-12,value,2026-09-10T09:13:53,PL,Premier League (England),bournemouth,brentford,Bournemouth v Brentford,corners11.5_over,corners,Over 11.5 corners,0.45442,2.20059,,0.47826,24106,,,,pending,,,
+2026-09-13,safe,2026-09-11T08:17:32,PD,La Liga,getafe,la coruna,Getafe v Deportivo La Coruña,corners11.5_under,corners,Under 11.5 corners,0.76822,1.30171,,0.77432,18048,,,,pending,,,
+2026-09-13,main,2026-09-11T08:17:32,DED,Eredivisie,psv eindhoven,sparta rotterdam,PSV Eindhoven v Sparta Rotterdam,tt0.5_away_over,tt,Away team over 0.5 goals,0.62443,1.60147,,0.65247,62791,,,,pending,,,
+2026-09-13,value,2026-09-11T08:17:32,GSL,Super League (Greece),panathinaikos,panetolikos,Panathinaikos v Panetolikos Agrinio,tt0.5_away_over,tt,Away team over 0.5 goals,0.45336,2.20576,,0.47485,19128,,,,pending,,,
