@@ -47,14 +47,14 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       PYTHONIOENCODING: utf-8
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history: the ledger step rebases onto whatever landed while
           # the run was going, and a rebase on a depth-1 clone is a coin toss.
           # The repo is under a megabyte, so this costs nothing.
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -71,7 +71,7 @@ jobs:
       # no cache there are no price files, every run looks overdue, and 31
       # leagues at 4 credits would drain the 500-a-month free tier in four days.
       - name: Restore the data folder
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: data
           key: hub-data-${{ github.run_id }}
@@ -82,7 +82,7 @@ jobs:
 
       - name: Save the data folder
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: data
           key: hub-data-${{ github.run_id }}
@@ -106,7 +106,7 @@ jobs:
       - name: Export the site
         run: python fb.py export
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -118,4 +118,4 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
