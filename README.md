@@ -307,6 +307,14 @@ than one because one pick a day needs ten months to reach a sample worth
 reading — and because they test whether the forecast is as honest at 45% as it
 is at 77%, which pooling would hide.
 
+The three are always on three different matches. Two selections on one fixture
+are one bet on its scoreline rather than two measurements — on 26 August all
+three bands were Real Madrid v Real Sociedad, and away under 0.5 goals, under
+3.5 goals and over 7.5 corners land and miss together — so the Best band
+chooses first and the other two take what it leaves. On a thin day that can
+leave a band empty, which is the honest outcome: a second bet on a match
+already bet is not a second test of anything.
+
 **Accumulator pick** — of every accumulator paying at least **3.0**, the one most
 likely to land. Each leg must clear the target's n-th root on its own, so the
 combined price clears the target by construction and no single long shot carries

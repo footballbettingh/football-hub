@@ -203,6 +203,30 @@ def test_bands_do_not_overlap_so_a_pick_cannot_appear_twice():
         assert pick["band_low"] <= pick["fair_odds"] <= pick["band_high"]
 
 
+def test_one_match_cannot_fill_two_bands_on_the_same_day():
+    """Two selections on one fixture are one bet on its scoreline, not two
+    measurements. On 26 August all three bands were Real Madrid v Real
+    Sociedad — away under 0.5 goals, under 3.5 goals, over 7.5 corners."""
+    table = card([
+        {"date": "2026-08-14", "match": "busy v game", "prob": 0.62},
+        {"date": "2026-08-14", "match": "busy v game", "prob": 0.76,
+         "selection": "Under 3.5 goals", "key": "ou3.5_under", "group": "ou"},
+        {"date": "2026-08-14", "match": "quiet v game", "prob": 0.74},
+        {"date": "2026-08-14", "match": "other v game", "prob": 0.60},
+    ])
+    by_band = {pick["band"]: pick["match"] for pick in picks_mod.daily_slate(table)}
+    assert by_band["main"] == "busy v game"      # the flagship chooses first
+    assert by_band["safe"] == "quiet v game"     # the others take what it leaves
+    assert len(set(by_band.values())) == len(by_band)
+
+
+def test_the_slate_still_lists_the_bands_in_their_own_order():
+    """Choosing main first is a matter of who gets first pick, not of how the
+    page reads."""
+    slate = picks_mod.daily_slate(_three_days())
+    assert [pick["band"] for pick in slate[:3]] == ["safe", "main", "value"]
+
+
 def test_a_band_with_nothing_in_it_is_absent_rather_than_filled():
     """Reaching outside the range for the nearest thing would quietly file a
     1.05 shot as a 'value' pick and poison the band's record."""

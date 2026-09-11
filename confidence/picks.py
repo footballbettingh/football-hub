@@ -516,20 +516,33 @@ def daily_slate(picks, days=None, bands=None, validated_only=True):
     Bands are exclusive of each other by price, so the same selection can never
     appear twice; and a band with nothing in it is simply absent rather than
     filled with the nearest thing outside its range.
+
+    They are exclusive by match as well. Two selections on one fixture are one
+    bet on its scoreline, not two measurements — on 26 August all three bands
+    were Real Madrid v Real Sociedad: away under 0.5 goals, under 3.5 goals and
+    over 7.5 corners, which land and miss together. The flagship chooses first
+    and the others take what it leaves, so on a thin day a band goes without
+    rather than doubling up on a match already bet.
     """
     bands = bands or config.PICK_BANDS
     order = [b for b in config.BAND_ORDER if b in bands] + \
             [b for b in bands if b not in config.BAND_ORDER]
+    # sorted is stable: `main` first, the rest keep their display order.
+    priority = sorted(order, key=lambda band: band != "main")
 
     slate = []
     for day in match_days(picks, days, validated_only):
-        for band in order:
+        taken, chosen = set(), {}
+        for band in priority:
             low, high = bands[band]
-            best = best_of_day(picks, odds_min=low, odds_max=high, day=day,
+            pool = picks[~picks["match"].isin(taken)] if taken else picks
+            best = best_of_day(pool, odds_min=low, odds_max=high, day=day,
                                validated_only=validated_only)
             if best:
-                slate.append({"band": band, "band_low": low, "band_high": high,
-                              **best})
+                chosen[band] = {"band": band, "band_low": low,
+                                "band_high": high, **best}
+                taken.add(best["match"])
+        slate.extend(chosen[band] for band in order if band in chosen)
     return slate
 
 
