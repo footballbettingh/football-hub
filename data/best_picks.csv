@@ -83,3 +83,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-13,safe,2026-09-11T08:17:32,PD,La Liga,getafe,la coruna,Getafe v Deportivo La Coruña,corners11.5_under,corners,Under 11.5 corners,0.76822,1.30171,,0.77432,18048,,,,pending,,,
 2026-09-13,main,2026-09-11T08:17:32,DED,Eredivisie,psv eindhoven,sparta rotterdam,PSV Eindhoven v Sparta Rotterdam,tt0.5_away_over,tt,Away team over 0.5 goals,0.62443,1.60147,,0.65247,62791,,,,pending,,,
 2026-09-13,value,2026-09-11T08:17:32,GSL,Super League (Greece),panathinaikos,panetolikos,Panathinaikos v Panetolikos Agrinio,tt0.5_away_over,tt,Away team over 0.5 goals,0.45336,2.20576,,0.47485,19128,,,,pending,,,
+2026-09-14,safe,2026-09-12T09:14:23,PL,Premier League,leeds,newcastle,Leeds United v Newcastle United,ou1.5_over,ou,Over 1.5 goals,0.76921,1.30003,,0.77767,27851,,,,pending,,,
+2026-09-14,main,2026-09-12T09:14:23,PPL,Primeira Liga,sp braga,estoril,Braga v Estoril,hcp_away+1.5,hcp,Away +1.5,0.62116,1.60989,,0.65257,7541,,,,pending,,,
+2026-09-14,value,2026-09-12T09:14:23,SWE-ALLSVENS,Allsvenskan,sirius,degerfors,IK Sirius v Degerfors IF,hcp_home-1.5,hcp,Home -1.5,0.45335,2.20581,,0.49817,1090,,,,pending,,,
