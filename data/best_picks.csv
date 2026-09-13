@@ -86,3 +86,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-14,safe,2026-09-12T09:14:23,PL,Premier League,leeds,newcastle,Leeds United v Newcastle United,ou1.5_over,ou,Over 1.5 goals,0.76921,1.30003,,0.77767,27851,,,,pending,,,
 2026-09-14,main,2026-09-12T09:14:23,PPL,Primeira Liga,sp braga,estoril,Braga v Estoril,hcp_away+1.5,hcp,Away +1.5,0.62116,1.60989,,0.65257,7541,,,,pending,,,
 2026-09-14,value,2026-09-12T09:14:23,SWE-ALLSVENS,Allsvenskan,sirius,degerfors,IK Sirius v Degerfors IF,hcp_home-1.5,hcp,Home -1.5,0.45335,2.20581,,0.49817,1090,,,,pending,,,
+2026-09-15,safe,2026-09-13T09:33:00,ELC,Championship,bristol city,lincoln,Bristol City v Lincoln City,ou1.5_over,ou,Over 1.5 goals,0.76654,1.30456,,0.77767,27851,,,,pending,,,
+2026-09-15,main,2026-09-13T09:33:00,POL-EKSTRAKL,Ekstraklasa,rakow,zaglebie,Raków Częstochowa v Zagłębie Lubin,tt0.5_away_over,tt,Away team over 0.5 goals,0.62226,1.60704,,0.65247,62791,,,,pending,,,
+2026-09-15,value,2026-09-13T09:33:00,SPL,Premiership,hibernian,kilmarnock,Hibernian v Kilmarnock,corners10.5_over,corners,Over 10.5 corners,0.44799,2.23218,,0.43234,22804,,,,pending,,,
