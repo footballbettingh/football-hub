@@ -89,3 +89,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-15,safe,2026-09-13T09:33:00,ELC,Championship,bristol city,lincoln,Bristol City v Lincoln City,ou1.5_over,ou,Over 1.5 goals,0.76654,1.30456,,0.77767,27851,,,,pending,,,
 2026-09-15,main,2026-09-13T09:33:00,POL-EKSTRAKL,Ekstraklasa,rakow,zaglebie,Raków Częstochowa v Zagłębie Lubin,tt0.5_away_over,tt,Away team over 0.5 goals,0.62226,1.60704,,0.65247,62791,,,,pending,,,
 2026-09-15,value,2026-09-13T09:33:00,SPL,Premiership,hibernian,kilmarnock,Hibernian v Kilmarnock,corners10.5_over,corners,Over 10.5 corners,0.44799,2.23218,,0.43234,22804,,,,pending,,,
+2026-09-16,safe,2026-09-14T09:16:11,MEX-LIGAMX,Liga MX,puebla,toluca,Puebla v Toluca,dnb_away,dnb,Away draw-no-bet,0.76846,1.30131,,0.77160,4409,,,,pending,,,
+2026-09-16,main,2026-09-14T09:16:11,PD,La Liga,atletico madrid,osasuna,Atlético Madrid v CA Osasuna,hcp_away+1.5,hcp,Away +1.5,0.61249,1.63269,,0.65257,7541,,,,pending,,,
+2026-09-16,value,2026-09-14T09:16:11,PD,La Liga,la coruna,sevilla,Deportivo La Coruña v Sevilla,corners8.5_under,corners,Under 8.5 corners,0.44578,2.24325,,0.43234,22804,,,,pending,,,
