@@ -140,6 +140,11 @@ def _recorded_note(pick):
 
 BAND_LABEL = {"safe": "Safe", "main": "Best", "value": "Longer"}
 
+# On a phone: the match and its confidence, the selection and its fair odds,
+# and the day, band, league and the price in small print.
+SLATE_ROLES = ["meta", "meta", "meta", "title", "sub", "end", "end2 label",
+               "meta label", "meta label", "meta label"]
+
 
 def _slate_section(picks):
     """One row per price band per match day, for the next few days."""
@@ -188,7 +193,7 @@ def _slate_section(picks):
   sample worth reading.</p>
   {c.table(["Day", "Band", "League", "Match", "Selection", "Confidence",
             "Fair", "Offered", "Edge", "Band record"], rows, numeric_from=5,
-           raw=True)}
+           raw=True, blank=NONE, roles=SLATE_ROLES)}
 </section>"""
 
 
@@ -240,7 +245,7 @@ def _accumulator_section(picks):
     <select id="acca-size">{options}</select>
     <span class="count" id="acca-summary"></span>
   </div>
-  <div class="tablewrap"><table>
+  <div class="tablewrap"><table class="stack">
     <thead><tr><th>Date</th><th class="col-league">League</th><th>Match</th>
     <th>Selection</th><th class="num">Confidence</th><th class="num">Fair</th>
     <th class="num col-offered">Offered</th></tr></thead>
@@ -603,7 +608,7 @@ def page_card(links, ctx):
     <span class="count" id="f-count"></span>
   </div>
 
-  <div class="tablewrap tall"><table class="sticky cardtable" id="cardtable">
+  <div class="tablewrap tall"><table class="sticky cardtable stack" id="cardtable">
     <thead><tr>
       <th></th><th class="nowrap">Date</th><th class="col-league">League</th>
       <th>Match</th><th>Selection</th>
@@ -700,17 +705,20 @@ def page_fixtures(links, ctx):
     # tag or an accent got in the way.
     rows = []
     for entry in sorted(matches.values(), key=lambda m: (m["date"], m["match"])):
+        # Each figure carries its column's name, for the phone layout where
+        # the header row is gone and the figures sit under the match.
         cells = "".join(
-            f'<td class="num {css}">{_pct(entry["probs"].get(key), 0)}</td>'
-            for key, _, css in HEADLINE)
+            f'<td class="num {css}" data-label="{label}">'
+            f'{_pct(entry["probs"].get(key), 0)}</td>'
+            for key, label, css in HEADLINE)
         flag = ' <span class="tag warn">new team</span>' if entry["new_team"] else ""
         page = page_of[entry["date"]]
         rows.append(
             f'<tr data-match="{c.e(entry["match"])}" data-page="{page}"'
             f'{" hidden" if page else ""}>'
-            f'<td class="nowrap">{c.e(entry["date"])}</td>'
-            f'<td class="col-league">{c.e(entry["competition_name"])}</td>'
-            f'<td>{c.e(entry["match"])}{flag}</td>{cells}</tr>')
+            f'<td class="nowrap fx-date">{c.e(entry["date"])}</td>'
+            f'<td class="col-league fx-league">{c.e(entry["competition_name"])}</td>'
+            f'<td class="fx-match">{c.e(entry["match"])}{flag}</td>{cells}</tr>')
 
     headers = "".join(f'<th class="num {css}">{c.e(label)}</th>'
                       for _, label, css in HEADLINE)
@@ -763,8 +771,17 @@ OUTCOME_LABEL = {"won": ("good", "Won"), "lost": ("critical", "Lost"),
 PICKS_PER_PAGE = 50
 SLIPS_PER_PAGE = 30
 
+# On a phone: the day a slip was issued and its result, its figures in small
+# print, then its legs underneath at full width.
+SLIP_ROLES = ["title", "block", "meta label", "meta label", "meta label", "end"]
+
 # The bands the single-pick picker offers after "All bands", in its order.
 PICK_BANDS = ("main", "safe", "value")
+
+# On a phone: the match and its result, the selection and its score, then the
+# day, band, league and the two figures in small print.
+SINGLE_ROLES = ["meta", "meta", "meta", "title", "sub", "meta label",
+                "meta label", "end2", "end"]
 
 
 def _singles_section(frame):
@@ -819,7 +836,8 @@ def _singles_section(frame):
         f'<div class="pick-book" data-band="{key}"{"" if key == "all" else " hidden"}>'
         + c.table(["Day", "Band", "League", "Match", "Selection", "Confidence",
                    "Fair", "Score", "Result"], cells, numeric_from=5, raw=True,
-                  per_page=PICKS_PER_PAGE, pages_label=f"Pages of {noun}")
+                  per_page=PICKS_PER_PAGE, pages_label=f"Pages of {noun}",
+                  roles=SINGLE_ROLES, blank=NONE)
         + "</div>"
         for key, _, noun, cells in books)
 
@@ -891,13 +909,11 @@ def _acca_book(frame, head, hidden=False):
     for row in frame.sort_values("issued", ascending=False).itertuples():
         outcome = row.outcome if isinstance(row.outcome, str) else "pending"
         state, label = OUTCOME_LABEL.get(outcome, ("neutral", outcome))
-        legs = ledger.acca_legs(row._asdict())
-        detail = " • ".join(f"{leg['match']}: {leg['selection']}" for leg in legs)
         landed = (NONE if row.legs_won != row.legs_won
                   else f"{int(row.legs_won)}/{int(row.legs)}")
         rows.append([
             str(row.issued),
-            f'<span class="note">{c.e(detail)}</span>',
+            _slip_legs(ledger.acca_legs(row._asdict())),
             _pct(row.probability), _num(row.fair_odds),
             landed,
             f'<span style="color:var(--{state})">{label}</span>',
@@ -919,8 +935,26 @@ def _acca_book(frame, head, hidden=False):
   ])}
   {c.table(["Issued", "Selections", "Chance", "Fair", "Landed", "Result"],
            rows, numeric_from=2, raw=True, per_page=SLIPS_PER_PAGE,
-           pages_label=f"Pages of {head['legs']}-leg slips")}
+           pages_label=f"Pages of {head['legs']}-leg slips", classes="slips",
+           blank=NONE, roles=SLIP_ROLES)}
 </div>"""
+
+
+def _slip_legs(legs):
+    """A slip's legs, one to a line: when, the match, the bet, its chance.
+
+    They used to be one run-on sentence of "match: selection" joined by
+    bullets, which on a five-leg slip is a paragraph you have to read twice to
+    find where one bet ends and the next begins.
+    """
+    items = []
+    for leg in legs:
+        items.append(
+            f'<li><span class="d">{c.e(_day_label(leg.get("date", "")))}</span>'
+            f'<span class="m">{c.e(leg.get("match", ""))}</span>'
+            f'<span class="s">{c.e(leg.get("selection", ""))}</span>'
+            f'<span class="p">{_pct(leg.get("prob"), 0)}</span></li>')
+    return f'<ul class="slip-legs">{"".join(items)}</ul>' if items else NONE
 
 
 def _settled_note(head):

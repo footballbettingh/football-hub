@@ -130,7 +130,7 @@ a { color: inherit; }
 .topbar { border-bottom: 1px solid var(--border); background: var(--surface-1);
   position: sticky; top: 0; z-index: 30; }
 .topbar .inner { max-width: var(--page-width); margin: 0 auto; padding: 0 20px;
-  display: flex; align-items: center; gap: 22px; flex-wrap: wrap; min-height: 56px; }
+  display: flex; align-items: center; gap: 22px; min-height: 56px; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none;
   white-space: nowrap; color: var(--text-primary); }
 .logomark { width: 46px; height: 19px; flex: none; }
@@ -138,17 +138,52 @@ a { color: inherit; }
 .wordmark .w1 { font-size: 14px; font-weight: 700; letter-spacing: -0.015em; }
 .wordmark .w2 { font-family: var(--font-mono); font-size: 8.5px; font-weight: 500;
   letter-spacing: 0.19em; color: var(--brand); margin-top: 4px; }
-@media (max-width: 560px) { .wordmark { display: none; } }
-nav.main { display: flex; gap: 2px; flex-wrap: wrap; margin-right: auto; }
+/* The pages and the theme switch, together, so a narrow screen can fold both
+   into one menu. On a wide one this box is only a row. */
+.menu { display: flex; align-items: center; gap: 22px; flex: 1 1 auto; min-width: 0; }
+nav.main { display: flex; gap: 2px; margin-right: auto; }
 nav.main a { text-decoration: none; font-size: 13.5px; color: var(--text-secondary);
   padding: 7px 11px; border-radius: 7px; white-space: nowrap; }
-nav.main a:hover { background: var(--neutral-mid); color: var(--text-primary); }
+nav.main a:hover { background: color-mix(in srgb, var(--brand) 10%, transparent);
+  color: var(--text-primary); }
 nav.main a[aria-current="page"] { color: var(--text-primary); font-weight: 600;
-  background: var(--neutral-mid); }
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  box-shadow: inset 0 -2px 0 var(--brand); }
 button.theme { font: inherit; font-size: 12px; cursor: pointer; padding: 5px 11px;
   border-radius: 999px; border: 1px solid var(--border); background: var(--page);
-  color: var(--text-secondary); }
+  color: var(--text-secondary); white-space: nowrap; }
 button.theme:hover { color: var(--text-primary); }
+.theme-long, .menu-toggle { display: none; }
+
+/* Below this the seven pages and the theme switch no longer fit beside the
+   brand. They used to scroll sideways in a strip that ran underneath the theme
+   button; now they fold behind one button into a menu that drops under the
+   bar. The bar stays pinned, so the menu is one tap away from anywhere. */
+@media (max-width: 900px) {
+  .topbar .inner { gap: 12px; }
+  .menu-toggle { display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; margin: 0 -10px 0 auto; padding: 0; border: 0;
+    border-radius: 10px; background: none; color: var(--text-primary); cursor: pointer; }
+  .menu-toggle svg { width: 24px; height: 24px; }
+  .menu-toggle .i-close, .menu-toggle[aria-expanded="true"] .i-open { display: none; }
+  .menu-toggle[aria-expanded="true"] .i-close { display: block; }
+  .menu { display: none; position: absolute; top: 100%; left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 0;
+    max-height: calc(100vh - 56px); overflow-y: auto;
+    padding: 8px 12px 14px; background: var(--surface-1);
+    border-bottom: 1px solid var(--border); box-shadow: var(--shadow); }
+  .menu-toggle[aria-expanded="true"] + .menu { display: flex; }
+  nav.main { flex-direction: column; margin: 0; }
+  nav.main a { font-size: 15px; padding: 11px 12px; border-radius: 8px; }
+  nav.main a[aria-current="page"] { box-shadow: inset 3px 0 0 var(--brand); }
+  /* A row like the pages above it, set off by a rule, rather than a pill. */
+  .menu button.theme { margin-top: 8px; padding: 12px; border: 0; border-radius: 8px;
+    border-top: 1px solid var(--border); border-top-left-radius: 0;
+    border-top-right-radius: 0; background: none; text-align: left;
+    font-size: 14px; color: var(--text-secondary); }
+  .theme-long { display: inline; }
+  #theme-label { text-transform: lowercase; }
+}
 
 .pagehead { padding: 34px 0 22px; }
 .pagehead h1 { font-size: 26px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.018em; }
@@ -245,7 +280,15 @@ svg text { font-family: var(--font-sans); }
 .tooltip .tt-r { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
 /* ---- tables ---- */
-.tablewrap { overflow-x: auto; }
+/* A table wider than its box says so: a soft shade on whichever edge has more
+   to scroll to. The two card-coloured washes travel with the content and cover
+   the shades once an end is reached, so a table that fits shows neither. */
+.tablewrap { overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--surface-1) 40%, transparent) left / 32px 100% no-repeat local,
+    linear-gradient(to left, var(--surface-1) 40%, transparent) right / 32px 100% no-repeat local,
+    linear-gradient(to right, color-mix(in srgb, var(--text-primary) 13%, transparent), transparent) left / 12px 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in srgb, var(--text-primary) 13%, transparent), transparent) right / 12px 100% no-repeat scroll; }
 /* A long table scrolls inside its own box, so the header can actually pin.
    position:sticky resolves against the nearest scroll container, and the
    plain .tablewrap only scrolls horizontally — a sticky header inside it
@@ -385,19 +428,140 @@ table.cardtable td:nth-child(5), table.cardtable th:nth-child(5) { width: 22%; }
   table.cardtable td:nth-child(4), table.cardtable th:nth-child(4) { width: auto; }
 }
 
+/* ---- the accumulator book ----
+   One leg to a line, in four columns that line up down the slip: when, the
+   match, the bet, and its chance. They used to be one run-on sentence. */
+table.slips td { vertical-align: top; padding-top: 12px; padding-bottom: 12px; }
+table.slips th:nth-child(2), table.slips td:nth-child(2) { width: 60%; }
+.slip-legs { list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  column-gap: 16px; row-gap: 5px; align-items: baseline; }
+.slip-legs li { display: contents; }
+.slip-legs .d, .slip-legs .p { font-size: 12px; color: var(--muted); white-space: nowrap;
+  font-variant-numeric: tabular-nums; }
+.slip-legs .m { color: var(--text-primary); }
+.slip-legs .s { color: var(--text-secondary); }
+.slip-legs .p { text-align: right; }
+
+/* Too narrow for four columns: each leg takes two lines, the match and its
+   chance over the bet and its day, with a rule between legs. */
+@media (max-width: 900px) {
+  .slip-legs { display: block; }
+  .slip-legs li { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 10px; align-items: baseline; padding: 6px 0; }
+  .slip-legs li + li { border-top: 1px solid var(--border); }
+  .slip-legs li:first-child { padding-top: 0; }
+  .slip-legs .m { grid-area: 1 / 1; }
+  .slip-legs .p { grid-area: 1 / 2; }
+  .slip-legs .s { grid-area: 2 / 1; font-size: 12.5px; }
+  .slip-legs .d { grid-area: 2 / 2; text-align: right; }
+}
+
+/* Up to a tablet held upright the widest tables are still wider than the
+   screen, so this starts well above phone width — at the same width the nav
+   folds into its menu, below which nothing on the site is laid out for a desk. */
+@media (max-width: 900px) {
+  /* The card no longer scrolls inside its own box. On a touch screen that is a
+     scroll within a scroll, and the rows are blocks now, not a grid under a
+     header that needed pinning. */
+  .tablewrap.tall { max-height: none; overflow: visible; }
+
+  /* ---- a row as a block ----
+     The widest tables stop being grids: see ROLES in components.py. Two
+     zero-height full-width pseudo-elements break the row into its three
+     lines, so each part only has to say which line it belongs on. */
+  table.stack, table.stack > tbody { display: block; }
+  table.stack > thead { position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap; }
+  table.stack > tbody > tr { display: flex; flex-wrap: wrap; align-items: baseline;
+    column-gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  table.stack > tbody > tr[hidden] { display: none; }
+  table.stack > tbody > tr::before, table.stack > tbody > tr::after {
+    content: ""; flex-basis: 100%; height: 0; }
+  table.stack > tbody > tr::before { order: 25; }
+  table.stack > tbody > tr::after { order: 45; }
+  table.stack > tbody > tr > td { display: block; width: auto; padding: 0; border: 0;
+    text-align: left; white-space: normal; font-size: 12px; line-height: 1.45;
+    color: var(--text-secondary); }
+  table.stack > tbody > tr > td[colspan] { flex: 1 1 100%; }
+  table.stack > tbody > tr > td.s-title { order: 10; flex: 1 1 0; min-width: 0;
+    font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  table.stack > tbody > tr > td.s-end { order: 20; flex: none; text-align: right;
+    font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  table.stack > tbody > tr > td.s-sub { order: 30; flex: 1 1 0; min-width: 0;
+    margin-top: 2px; font-size: 13px; color: var(--text-primary); }
+  table.stack > tbody > tr > td.s-end2 { order: 40; flex: none; text-align: right;
+    margin-top: 2px; font-size: 12.5px; }
+  table.stack > tbody > tr > td.s-meta { order: 50; flex: none; margin-top: 5px; }
+  table.stack > tbody > tr > td.s-block { order: 60; flex: 1 1 100%; margin-top: 10px;
+    font-size: 13px; }
+  table.stack > tbody > tr > td.s-hide { display: none; }
+  table.stack td.s-label::before { content: attr(data-label) " "; color: var(--muted); }
+  table.stack td .tag:first-child { margin-left: 0; }
+  table.stack .confbar { display: none; }
+  table.stack > tbody > tr.unvalidated > td { color: var(--muted); }
+  /* The card's tick box sits in the margin, beside all three lines. */
+  table.cardtable.stack > tbody > tr { position: relative; padding-left: 32px; }
+  table.cardtable.stack > tbody > tr > td.pickbox { position: absolute; left: 0; top: 12px; }
+  table.cardtable.stack td.pickbox input { width: 18px; height: 18px; margin: 0; }
+  /* A slip's legs, grouped on a panel of their own under its figures. */
+  table.slips > tbody > tr > td.s-block .slip-legs { background: var(--page);
+    border-radius: 8px; padding: 8px 12px; }
+  table.slips > tbody > tr > td.s-block .slip-legs li:first-child { padding-top: 0; }
+  table.slips > tbody > tr > td.s-block .slip-legs li:last-child { padding-bottom: 0; }
+}
+
 @media (max-width: 640px) {
-  /* Seven items wrapped to a second line and took the header to 170px, a fifth
-     of a phone screen, on every page. One line that scrolls instead: nothing is
-     hidden behind a menu, and the header goes back to the height it claims. */
-  nav.main { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    margin: 0 -20px; padding: 0 20px; }
-  nav.main::-webkit-scrollbar { display: none; }
-  nav.main a { scroll-snap-align: start; }
-  .topbar .inner { flex-wrap: nowrap; gap: 12px; }
+  /* The gutters: the page's, then the card's inside it, came to 93px of a
+     375px screen, and every table on the site was being asked to fit into
+     what was left. */
+  .wrap { padding: 0 14px 64px; }
+  .topbar .inner { padding: 0 14px; }
+  .card { padding: 18px 16px; border-radius: 10px; margin-bottom: 14px; }
+  .pagehead { padding: 24px 0 16px; }
+  .pagehead h1 { font-size: 23px; }
+  .kpis { margin-top: 16px; }
+  .kpi { padding: 12px 14px; }
+  .kpi .v { font-size: 19px; }
   .hero { font-size: 40px; }
   .verdict, .pick { gap: 18px; }
-  .topbar { position: static; }
+  .filters input[type="search"] { flex: 1 1 100%; }
+  .filters .count { margin-left: 0; }
+
+  /* A table that still scrolls sideways keeps its first column in place, so
+     every figure you scroll to stays next to the row it belongs to. */
+  .tablewrap > table:not(.stack):not(.fixtures) > * > tr > :first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--surface-1); }
+  /* The card's own padding already sets the table off its edges, so the
+     outer cells give theirs up, and the rest keep only enough to part two
+     figures. Enough on its own to bring a six-column table most of the way
+     back inside a phone. */
+  .tablewrap > table:not(.stack):not(.fixtures) > * > tr > * { padding: 7px 6px; }
+  .tablewrap > table:not(.stack):not(.fixtures) > * > tr > :first-child { padding-left: 0; }
+  .tablewrap > table:not(.stack):not(.fixtures) > * > tr > :last-child { padding-right: 0; }
+
+  /* ---- the fixture list: the match, then its four figures under it ---- */
+  table.fixtures, table.fixtures > tbody { display: block; }
+  table.fixtures > thead { position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap; }
+  table.fixtures > tbody > tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 8px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  table.fixtures > tbody > tr[hidden] { display: none; }
+  table.fixtures > tbody > tr > td { display: block; width: auto; padding: 0; border: 0;
+    white-space: normal; }
+  table.fixtures > tbody > tr > td.fx-match { grid-area: 1 / 1 / 2 / -1; width: auto;
+    font-size: 14px; font-weight: 600; }
+  table.fixtures > tbody > tr > td.fx-league { grid-area: 2 / 1 / 3 / 4;
+    font-size: 12px; color: var(--text-secondary); }
+  table.fixtures > tbody > tr > td.fx-date { grid-area: 2 / 4 / 3 / 5; text-align: right;
+    font-size: 12px; color: var(--muted); white-space: nowrap; }
+  table.fixtures > tbody > tr > td.num { grid-row: 3; margin-top: 8px; text-align: left;
+    font-size: 15px; font-weight: 600; }
+  table.fixtures > tbody > tr > td.col-extra { display: none; }
+  table.fixtures > tbody > tr > td.num::before { content: attr(data-label); display: block;
+    font-size: 11px; font-weight: 400; color: var(--muted); }
+  table.fixtures > tbody > tr.detail { display: block; padding: 0 0 12px; }
+  table.fixtures > tbody > tr.detail > td { padding: 0; }
 }
 
 
@@ -631,8 +795,3 @@ input:focus-visible, th.sortable:focus-visible {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
 }
-
-nav.main a:hover { background: color-mix(in srgb, var(--brand) 10%, transparent); }
-nav.main a[aria-current="page"] {
-  background: color-mix(in srgb, var(--brand) 12%, transparent);
-  color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--brand); }

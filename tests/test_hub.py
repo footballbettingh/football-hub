@@ -565,7 +565,7 @@ def test_history_pages_the_singles_fifty_at_a_time():
 
     assert 'aria-label="Pages of single picks"' in html
     # Newest first, so it is the oldest pick that is pushed onto page two.
-    assert '<tr data-page="1" hidden><td>2026-01-01</td>' in html
+    assert '<tr data-page="1" hidden><td class="s-meta">2026-01-01</td>' in html
     assert html.count('<tr data-page="0">') == pages.PICKS_PER_PAGE
 
 
@@ -584,7 +584,7 @@ def test_history_filters_the_singles_by_price_band():
     assert '<div class="pick-book" data-band="main" hidden>' in html
     books = re.findall(r'<div class="pick-book" data-band="(\w+)"[^>]*>(.*?)</table>',
                        html, flags=re.S)
-    counts = {band: body.count("<tr><td>") for band, body in books}
+    counts = {band: body.count("<tr><td") for band, body in books}
     assert counts == {"all": 4, "main": 2, "safe": 1, "value": 1}
 
 
@@ -604,6 +604,49 @@ def test_history_has_no_band_picker_while_only_one_band_is_recorded():
 
     assert 'id="pick-book-band"' not in html
     assert html.count('class="pick-book"') == 1
+
+
+def test_a_stacked_table_marks_each_cell_for_the_phone_layout():
+    html = c.table(["Match", "Fair", "Offered"], [["a v b", "1.61", "–"]],
+                   roles=["title", "end2 label", "meta label"], blank="–")
+
+    assert '<table class="stack">' in html
+    assert '<td class="s-title">a v b</td>' in html
+    # A figure carries its column's name, which the row no longer sits under.
+    assert '<td class="s-end2 s-label" data-label="Fair">1.61</td>' in html
+    # And a blank one is left out, rather than printed as a labelled dash.
+    assert '<td class="s-meta s-label s-hide" data-label="Offered">–</td>' in html
+
+
+def test_a_table_without_roles_is_left_as_it_was():
+    html = c.table(["a", "b"], [["1", "2"]], numeric_from=1)
+    assert html.endswith('<table class=""><thead><tr><th>a</th><th class="num">b</th>'
+                         '</tr></thead><tbody><tr><td>1</td><td class="num">2</td>'
+                         '</tr></tbody></table></div>')
+
+
+def test_a_slip_lists_its_legs_one_to_a_line(tmp_path):
+    html = pages._acca_history_section(_book(tmp_path, ("2026-09-10", 4)))
+
+    assert '<table class="slips stack">' in html
+    legs = re.findall(r'<li><span class="d">[^<]*</span><span class="m">([^<]*)</span>'
+                      r'<span class="s">([^<]*)</span><span class="p">[^<]*</span></li>',
+                      html)
+    assert legs == [("Real Madrid v Real Sociedad", "Over 7.5 corners"),
+                    ("Celta Vigo v CA Osasuna", "Home or draw (1X)")]
+    # The bullet-joined sentence they replaced.
+    assert " • " not in html
+
+
+def test_every_page_has_a_menu_button_that_starts_closed():
+    html = pages.render("card", c.Links("server"), dict(EMPTY))
+    assert ('<button class="menu-toggle" id="menu-toggle" type="button" '
+            'aria-expanded="false"') in html
+    assert 'aria-controls="site-menu"' in html
+    # The toggle is followed directly by the menu: the stylesheet opens it with
+    # a sibling selector off `aria-expanded`.
+    assert re.search(r'</button>\s*<div class="menu" id="site-menu">', html)
+    assert 'id="theme"' in html.split('id="site-menu"')[1]
 
 
 def test_the_accumulator_book_pages_thirty_slips_at_a_time(tmp_path):

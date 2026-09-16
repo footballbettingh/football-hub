@@ -7,11 +7,15 @@
 
   // ---- theme ----------------------------------------------------------
   var btn = document.getElementById('theme');
+  // Only the theme's name changes; the words around it are for the phone menu.
+  var themeLabel = document.getElementById('theme-label') || btn;
   function effectiveTheme() {
     return document.documentElement.getAttribute('data-theme') ||
       (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   }
-  function applyLabel() { if (btn) btn.textContent = effectiveTheme() === 'dark' ? 'Light' : 'Dark'; }
+  function applyLabel() {
+    if (themeLabel) themeLabel.textContent = effectiveTheme() === 'dark' ? 'Light' : 'Dark';
+  }
   try {
     var saved = localStorage.getItem('vb-theme');
     if (saved) document.documentElement.setAttribute('data-theme', saved);
@@ -24,6 +28,30 @@
     applyLabel();
     redraw();
   });
+
+  // ---- the menu, on a narrow screen --------------------------------------
+  // The button only says whether the menu is open; style.css shows the menu
+  // off that same `aria-expanded`, so the two cannot fall out of step. It
+  // closes on Escape, handing focus back to the button, and on a tap anywhere
+  // outside it. The theme button lives inside, so switching does not close it.
+  var toggle = document.getElementById('menu-toggle');
+  var menu = document.getElementById('site-menu');
+  var setMenu = function (open) {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+  };
+  var menuOpen = function () { return toggle.getAttribute('aria-expanded') === 'true'; };
+  if (toggle && menu) {
+    toggle.addEventListener('click', function () { setMenu(!menuOpen()); });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && menuOpen()) { setMenu(false); toggle.focus(); }
+    });
+    document.addEventListener('click', function (event) {
+      if (menuOpen() && !menu.contains(event.target) && !toggle.contains(event.target)) {
+        setMenu(false);
+      }
+    });
+  }
 
   // ---- tooltip --------------------------------------------------------
   var tip = document.createElement('div');

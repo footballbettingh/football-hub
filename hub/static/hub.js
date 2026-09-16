@@ -20,6 +20,14 @@
   // the same glyph as the minus in the row above it.
   function pct(v, d) { return v === null || v === undefined ? '–' : (v * 100).toFixed(d === undefined ? 1 : d) + '%'; }
   function num(v, d) { return v === null || v === undefined ? '–' : v.toFixed(d === undefined ? 2 : d); }
+  // The phone layout's classes, as `c.table` in components.py writes them:
+  // `s-*` places a cell in the stacked row, `s-label` prints the column name
+  // in front of it, and a cell with nothing in it is left out of the row.
+  // Returns the end of a class attribute, closing quote and label included.
+  function stack(roles, label, value) {
+    return ' ' + roles + (arguments.length > 2 && (value === null || value === undefined)
+      ? ' s-hide' : '') + '"' + (label ? ' data-label="' + label + '"' : '');
+  }
 
   // ---- pages: a long table, one page at a time -------------------------
   // pages.py puts every row on the page, marks each with its page, hides all
@@ -175,16 +183,20 @@
         return '<tr class="' + (r.validated ? '' : 'unvalidated') + '">'
           + '<td class="pickbox"><input type="checkbox" data-key="' + esc(key) + '"'
             + (chosen[key] ? ' checked' : '') + '></td>'
-          + '<td class="nowrap">' + esc(r.date) + '</td>'
-          + '<td class="col-league">' + esc(r.competition_name || r.competition) + '</td>'
-          + '<td>' + esc(r.match) + flags + '</td>'
-          + '<td>' + esc(r.selection) + '</td>'
-          + '<td class="num conf"><span class="confbar"><i style="width:'
+          + '<td class="nowrap' + stack('s-meta') + '>' + esc(r.date) + '</td>'
+          + '<td class="col-league' + stack('s-meta') + '>'
+            + esc(r.competition_name || r.competition) + '</td>'
+          + '<td class="' + stack('s-title') + '>' + esc(r.match) + flags + '</td>'
+          + '<td class="' + stack('s-sub') + '>' + esc(r.selection) + '</td>'
+          + '<td class="num conf' + stack('s-end') + '><span class="confbar"><i style="width:'
             + (r.prob * 100).toFixed(0) + '%"></i></span>' + pct(r.prob) + '</td>'
-          + '<td class="num">' + num(r.fair_odds) + '</td>'
-          + '<td class="num col-offered">' + num(r.odds) + '</td>'
-          + '<td class="num col-edge">' + edge + '</td>'
-          + '<td class="col-band">' + band + '</td></tr>';
+          + '<td class="num' + stack('s-end2 s-label', 'Fair') + '>' + num(r.fair_odds) + '</td>'
+          + '<td class="num col-offered' + stack('s-meta s-label', 'Offered', r.odds) + '>'
+            + num(r.odds) + '</td>'
+          + '<td class="num col-edge' + stack('s-meta s-label', 'Edge', r.edge) + '>'
+            + edge + '</td>'
+          + '<td class="col-band' + stack('s-meta s-label', 'Band record', r.hit_rate) + '>'
+            + band + '</td></tr>';
       }).join('');
 
       [].slice.call(body.querySelectorAll('input[type=checkbox]')).forEach(function (box) {
@@ -265,13 +277,15 @@
         return;
       }
       body.innerHTML = acca.selections.map(function (leg) {
-        return '<tr><td class="nowrap">' + esc(leg.date) + '</td>'
-          + '<td class="col-league">' + esc(leg.competition_name || leg.competition) + '</td>'
-          + '<td>' + esc(leg.match) + '</td>'
-          + '<td>' + esc(leg.selection) + '</td>'
-          + '<td class="num conf">' + pct(leg.prob) + '</td>'
-          + '<td class="num">' + num(leg.fair_odds) + '</td>'
-          + '<td class="num col-offered">' + num(leg.odds) + '</td></tr>';
+        return '<tr><td class="nowrap' + stack('s-meta') + '>' + esc(leg.date) + '</td>'
+          + '<td class="col-league' + stack('s-meta') + '>'
+            + esc(leg.competition_name || leg.competition) + '</td>'
+          + '<td class="' + stack('s-title') + '>' + esc(leg.match) + '</td>'
+          + '<td class="' + stack('s-sub') + '>' + esc(leg.selection) + '</td>'
+          + '<td class="num conf' + stack('s-end') + '>' + pct(leg.prob) + '</td>'
+          + '<td class="num' + stack('s-end2 s-label', 'Fair') + '>' + num(leg.fair_odds) + '</td>'
+          + '<td class="num col-offered' + stack('s-meta s-label', 'Offered', leg.odds) + '>'
+            + num(leg.odds) + '</td></tr>';
       }).join('');
 
       summary.textContent = 'every leg pays ' + num(acca.min_leg_odds) + ' or better';

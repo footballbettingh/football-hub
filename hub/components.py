@@ -122,6 +122,25 @@ def brandmark(href):
             '<span class="w2">BETTING HUB</span></span></a>')
 
 
+# The phone menu's button: three bars closed, a cross open. Two drawings
+# swapped by `aria-expanded` rather than one animated into the other, so the
+# state the button announces and the state it shows cannot disagree.
+MENU_ICON = (
+    '<svg class="i-open" viewBox="0 0 24 24" aria-hidden="true" fill="none" '
+    'stroke="currentColor" stroke-width="1.8" stroke-linecap="round">'
+    '<path d="M4 7h16M4 12h16M4 17h16"/></svg>'
+    '<svg class="i-close" viewBox="0 0 24 24" aria-hidden="true" fill="none" '
+    'stroke="currentColor" stroke-width="1.8" stroke-linecap="round">'
+    '<path d="M6 6l12 12M18 6L6 18"/></svg>')
+
+# The menu only opens with a script. Without one it is laid out under the bar
+# instead, so a phone that blocks scripts still has every page one tap away.
+MENU_NOSCRIPT = (".menu-toggle{display:none!important}"
+                 "@media (max-width:900px){.topbar .inner{flex-wrap:wrap}"
+                 ".menu{display:flex!important;position:static!important;"
+                 "flex-basis:100%;box-shadow:none!important;border:0!important}}")
+
+
 def e(x):
     return html.escape(str(x))
 
@@ -187,6 +206,12 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
         return '<a href="%s"%s>%s</a>' % (links.href(page), mark, e(label))
 
     nav = "".join(nav_link(page, label) for page, label, _ in PAGES)
+    # The theme button names the theme it switches to. On a phone it is a row
+    # in the menu, where a bare "Dark" reads as the theme you are already in.
+    theme = ('<button class="theme" id="theme" type="button">'
+             '<span class="theme-long">Switch to </span>'
+             '<span id="theme-label">Dark</span>'
+             '<span class="theme-long"> theme</span></button>')
 
     badge_html = ""
     if badges:
@@ -239,13 +264,18 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
 <link rel="preload" href="{links.asset('fonts/ibm-plex-mono-400-latin.woff2')}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{links.asset('fonts.css')}">
 <link rel="stylesheet" href="{links.asset('style.css')}">
+<noscript><style>{MENU_NOSCRIPT}</style></noscript>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="topbar"><div class="inner">
   {brandmark(links.href('index'))}
-  <nav class="main">{nav}</nav>
-  <button class="theme" id="theme">Dark</button>
+  <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false"
+    aria-controls="site-menu" aria-label="Menu">{MENU_ICON}</button>
+  <div class="menu" id="site-menu">
+    <nav class="main" aria-label="Pages">{nav}</nav>
+    {theme}
+  </div>
 </div></div>
 
 <div class="wrap">
@@ -285,7 +315,7 @@ def kpis(cells):
 
 
 def table(columns, rows, numeric_from=None, classes="", raw=False,
-          per_page=None, pages_label="Pages"):
+          per_page=None, pages_label="Pages", roles=None, blank=None):
     """Static table. `numeric_from` right-aligns columns at that index onward.
 
     `raw=True` trusts the cells to be HTML already — used where a cell carries
@@ -294,12 +324,29 @@ def table(columns, rows, numeric_from=None, classes="", raw=False,
     `per_page` splits a table that only ever grows into pages of that many
     rows, in the order given, with a pager under it. Every row is still on the
     page; see `pager`.
+
+    `roles` gives each column a part in the stacked layout a phone gets instead
+    of the grid — see `ROLES`. A role of `None` leaves the column out of it. A
+    cell equal to `blank`, the page's "no number here" mark, is dropped from
+    that layout too: a labelled dash is noise where a missing column was not.
     """
-    def cls(i):
-        return ' class="num"' if numeric_from is not None and i >= numeric_from else ""
+    def cls(i, value=None):
+        names = ["num"] if numeric_from is not None and i >= numeric_from else []
+        if roles:
+            role = roles[i]
+            names += [ROLES[part] for part in role.split()] if role else ["s-hide"]
+            if blank is not None and value == blank:
+                names.append("s-hide")
+        label = (f' data-label="{e(columns[i])}"'
+                 if value is not None and roles and roles[i] and "label" in roles[i]
+                 else "")
+        return (f' class="{" ".join(names)}"' if names else "") + label
 
     def cell(value):
         return value if raw else e(value)
+
+    if roles:
+        classes = f"{classes} stack".strip()
 
     paged = per_page is not None and len(rows) > per_page
 
@@ -312,7 +359,7 @@ def table(columns, rows, numeric_from=None, classes="", raw=False,
     head = "".join(f"<th{cls(i)}>{e(c)}</th>" for i, c in enumerate(columns))
     body = "".join(
         f"<tr{page_of(n)}>"
-        + "".join(f"<td{cls(i)}>{cell(c)}</td>" for i, c in enumerate(row)) + "</tr>"
+        + "".join(f"<td{cls(i, c)}>{cell(c)}</td>" for i, c in enumerate(row)) + "</tr>"
         for n, row in enumerate(rows))
     html = (f'<div class="tablewrap"><table class="{classes}"><thead><tr>{head}</tr></thead>'
             f"<tbody>{body}</tbody></table></div>")
@@ -322,6 +369,16 @@ def table(columns, rows, numeric_from=None, classes="", raw=False,
     numbers = [(str(n), str(n + 1)) for n in range(count)]
     return (f'<div class="paged">{html}'
             f'{pager(numbers, pages_label, collapse=True)}</div>')
+
+
+# A table too wide for a phone is not scrolled sideways there: each row becomes
+# a small block. The title leads with its headline figure opposite, the
+# subtitle sits under it with a second figure opposite that, and everything
+# else runs along a line of small print below. `label` prints the column's
+# name in front of a figure, which a row out of its grid otherwise loses.
+# `block` is a full-width part after the small print.
+ROLES = {"title": "s-title", "end": "s-end", "sub": "s-sub", "end2": "s-end2",
+         "meta": "s-meta", "block": "s-block", "label": "s-label"}
 
 
 def pager(pages, label="Pages", collapse=False):
