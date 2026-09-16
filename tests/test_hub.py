@@ -7,6 +7,7 @@ missing.
 """
 
 import json
+import re
 import time
 from datetime import datetime
 
@@ -379,8 +380,8 @@ def test_every_page_in_the_nav_is_routable_and_buildable():
 
 @pytest.mark.parametrize("page", sorted(pages.BUILDERS))
 def test_every_page_renders_without_any_data(page):
-    """Missing artifacts must produce an explanation and the name of the button
-    that fixes it — not an empty table that reads like a result."""
+    """Missing artifacts must produce an explanation — not an empty table that
+    reads like a result."""
     html = pages.render(page, c.Links("server"), dict(EMPTY))
     assert html.startswith("<!doctype html>")
     # The wordmark is drawn in two pieces, so the brand is checked the way the
@@ -388,16 +389,20 @@ def test_every_page_renders_without_any_data(page):
     assert "FOOTBALL" in html and "BETTING HUB" in html
 
 
-@pytest.mark.parametrize("page,button", [
-    ("card", "Refresh the card"),
-    ("fixtures", "Refresh the card"),
-    ("history", "refresh the card"),
-    ("reliability", "Recalibrate"),
-    ("evidence", "Rebuild the evidence"),
-])
-def test_an_empty_page_names_the_button_that_fills_it(page, button):
-    html = pages.render(page, c.Links("server"), dict(EMPTY))
-    assert button in html
+@pytest.mark.parametrize("page", sorted(pages.BUILDERS))
+def test_an_empty_page_sends_nobody_off_to_do_it_by_hand(page):
+    """The site is built on a schedule and has no buttons, so a page that tells
+    a reader to press one, or to go and fetch or refresh something, is pointing
+    at work that is neither theirs nor possible from here."""
+    html = pages.render(page, c.Links("server"), dict(EMPTY)).lower()
+    for phrase in ("press", "refresh the card", "recalibrate",
+                   "rebuild the evidence", "fetch new", "build the evidence"):
+        assert not re.search(rf"\b{phrase}\b", html), f"{page} says {phrase!r}"
+
+
+def test_the_method_names_no_data_provider():
+    html = pages.render("method", c.Links("server"), dict(EMPTY))
+    assert "football-data" not in html and "Odds API" not in html
 
 
 def test_the_card_page_shows_the_selections_it_was_given():
@@ -434,7 +439,6 @@ def test_every_page_marks_itself_in_the_nav(page):
     itself "index", so clicking Card lit up Home. Nothing else noticed, because
     a wrong `current` renders perfectly valid HTML.
     """
-    import re
     links = c.Links("server")
     html = pages.render(page, links, dict(EMPTY))
     marked = re.findall(r'<a href="([^"]+)"[^>]*aria-current="page"', html)
@@ -563,6 +567,43 @@ def test_history_pages_the_singles_fifty_at_a_time():
     # Newest first, so it is the oldest pick that is pushed onto page two.
     assert '<tr data-page="1" hidden><td>2026-01-01</td>' in html
     assert html.count('<tr data-page="0">') == pages.PICKS_PER_PAGE
+
+
+def test_history_filters_the_singles_by_price_band():
+    frame = _singles(4)
+    frame["band"] = ["safe", "main", "value", "main"]
+    html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
+
+    assert 'id="pick-book-band"' in html
+    assert ('<option value="all" selected>All bands</option>'
+            '<option value="main">Best</option><option value="safe">Safe</option>'
+            '<option value="value">Longer</option>') in html
+    # Every band is on the page, so the static export needs no server; all of
+    # them together is the one left showing.
+    assert '<div class="pick-book" data-band="all">' in html
+    assert '<div class="pick-book" data-band="main" hidden>' in html
+    books = re.findall(r'<div class="pick-book" data-band="(\w+)"[^>]*>(.*?)</table>',
+                       html, flags=re.S)
+    counts = {band: body.count("<tr><td>") for band, body in books}
+    assert counts == {"all": 4, "main": 2, "safe": 1, "value": 1}
+
+
+def test_a_band_pages_its_own_picks():
+    frame = _singles(pages.PICKS_PER_PAGE + 2)
+    frame["band"] = ["safe"] + ["main"] * (len(frame) - 1)
+    html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=frame))
+
+    assert 'aria-label="Pages of single picks"' in html
+    assert 'aria-label="Pages of best picks"' in html
+    # One pick fits on one page, so it gets no pager of its own.
+    assert 'aria-label="Pages of safe picks"' not in html
+
+
+def test_history_has_no_band_picker_while_only_one_band_is_recorded():
+    html = pages.render("history", c.Links("server"), dict(EMPTY, ledger=_singles(3)))
+
+    assert 'id="pick-book-band"' not in html
+    assert html.count('class="pick-book"') == 1
 
 
 def test_the_accumulator_book_pages_thirty_slips_at_a_time(tmp_path):

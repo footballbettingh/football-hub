@@ -290,24 +290,27 @@
     render();
   })();
 
-  // ---- history: the accumulator book, one slip size at a time ----------
-  // Every size is already on the page, rendered by pages.py; this only picks
-  // which one is showing, so a static export behaves the same with or without
-  // it — the default size is the one left visible.
-  (function accumulatorBook() {
-    var select = $('acca-book-size');
+  // ---- history: one book at a time ------------------------------------
+  // The single picks by price band, the accumulators by slip size. Every book
+  // is already on the page, rendered by pages.py; this only picks which one is
+  // showing, so a static export behaves the same with or without it — the
+  // default is the one left visible.
+  function books(id, selector, attribute) {
+    var select = $(id);
     if (!select) return;
-    var books = [].slice.call(document.querySelectorAll('.acca-book'));
+    var all = [].slice.call(document.querySelectorAll(selector));
 
     function show() {
-      books.forEach(function (book) {
-        book.hidden = book.getAttribute('data-legs') !== select.value;
+      all.forEach(function (book) {
+        book.hidden = book.getAttribute(attribute) !== select.value;
       });
     }
 
     select.addEventListener('input', show);
     show();
-  })();
+  }
+  books('pick-book-band', '.pick-book', 'data-band');
+  books('acca-book-size', '.acca-book', 'data-legs');
 
   // ---- fixtures: a day at a time, search, and expand a row -------------
   (function fixtures() {

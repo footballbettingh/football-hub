@@ -5,8 +5,8 @@ a job and written to `data/`. That keeps a page load instant, and means the
 static export and the served version are the same code with a different
 `Links`.
 
-Where an artifact is missing the page says so and names the button that
-produces it, rather than rendering an empty table that looks like a result.
+Where an artifact is missing the page says so, and what fills it in, rather
+than rendering an empty table that looks like a result.
 """
 
 from datetime import datetime
@@ -317,7 +317,7 @@ def _landing_pick(picks):
     if not best:
         return ('<div class="lpick none">No pick on the board right now — either '
                 'the next match day has nothing in the price range worth singling '
-                'one out in, or the fixtures need refreshing.</div>')
+                'one out in, or the next fixtures have not been priced yet.</div>')
     offered = (f'<div><div class="k">Offered</div><div class="v">'
                f'{_num(best.get("odds"))}</div></div>' if best.get("odds") else "")
     when = ""
@@ -539,8 +539,8 @@ def page_card(links, ctx):
     if not picks:
         return c.layout(
             links, "Card", "card",
-            c.empty("No card yet.", "Press “Refresh the card” to price the upcoming "
-                                    "fixtures. It takes about twenty seconds."),
+            c.empty("No card yet.", "It appears once the upcoming fixtures have "
+                                    "been priced."),
             subtitle="The selections most likely to land.")
 
     payload = _card_payload(picks)
@@ -580,8 +580,8 @@ def page_card(links, ctx):
   default, because Over 1.5 and Home &minus;1.5 in the same match are nearly the
   same bet — stacking them makes a card look far more diversified than it is.</p>
   <p class="note"><strong>Offered</strong> and <strong>Edge</strong> are blank
-  wherever the price feed does not quote that market. It carries 1X2 and — once
-  prices have been fetched with totals — Over/Under 1.5 and 2.5. Handicaps, team
+  wherever the price feed does not quote that market. It carries 1X2 and, where
+  they are quoted, Over/Under 1.5 and 2.5. Handicaps, team
   totals, BTTS and corners are priced here and nowhere else, so there is no
   offer to compare against. <strong>Fair</strong> is always filled in: it is what
   the price would have to be for the bet to break even.</p>
@@ -672,7 +672,8 @@ def page_fixtures(links, ctx):
     if not picks:
         return c.layout(links, "Fixtures", "fixtures",
                         c.empty("No fixtures priced yet.",
-                                "Press “Refresh the card”."),
+                                "They appear once the upcoming fixtures have "
+                                "been priced."),
                         subtitle="Every upcoming match, market by market.")
 
     wanted = {key for key, _, _ in HEADLINE}
@@ -762,6 +763,78 @@ OUTCOME_LABEL = {"won": ("good", "Won"), "lost": ("critical", "Lost"),
 PICKS_PER_PAGE = 50
 SLIPS_PER_PAGE = 30
 
+# The bands the single-pick picker offers after "All bands", in its order.
+PICK_BANDS = ("main", "safe", "value")
+
+
+def _singles_section(frame):
+    """Every single pick, all bands together or one band at a time.
+
+    Built the way the accumulator book is: every choice is on the page with
+    its own pages, and the picker only decides which one is showing. So the
+    static export reads correctly without a script, and page two of a band is
+    that band's next fifty picks rather than whatever of it landed there.
+    """
+    rows = []
+    for row in frame.sort_values("day", ascending=False).itertuples():
+        outcome = row.outcome if isinstance(row.outcome, str) else "pending"
+        state, label = OUTCOME_LABEL.get(outcome, ("neutral", outcome))
+        score = (NONE if row.home_goals != row.home_goals
+                 else f"{int(row.home_goals)}–{int(row.away_goals)}")
+        # `nan or fallback` returns the nan — NaN is truthy — so the check has
+        # to be explicit rather than an `or`.
+        league = (row.competition_name if isinstance(row.competition_name, str)
+                  else row.competition)
+        band = row.band if isinstance(row.band, str) else "main"
+        rows.append((band, [
+            str(row.day),
+            f'<span class="tag">{c.e(BAND_LABEL.get(band, band))}</span>',
+            c.e(league),
+            c.e(row.match), c.e(row.selection),
+            _pct(row.prob), _num(row.fair_odds),
+            score,
+            f'<span style="color:var(--{state})">{label}</span>',
+        ]))
+
+    recorded = {band for band, _ in rows}
+    present = [band for band in PICK_BANDS if band in recorded]
+    books = [("all", "All bands", "single picks", [cells for _, cells in rows])]
+    # One band needs no picker: "All bands" and that band are the same list.
+    if len(present) > 1:
+        books += [(band, BAND_LABEL[band], f"{BAND_LABEL[band].lower()} picks",
+                   [cells for kind, cells in rows if kind == band])
+                  for band in present]
+
+    picker = ""
+    if len(books) > 1:
+        options = "".join(
+            f'<option value="{key}"{" selected" if key == "all" else ""}>'
+            f'{label}</option>' for key, label, _, _ in books)
+        picker = f"""<div class="filters">
+    <label class="visually-hidden" for="pick-book-band">Price band</label>
+    <select id="pick-book-band">{options}</select>
+  </div>"""
+
+    tables = "".join(
+        f'<div class="pick-book" data-band="{key}"{"" if key == "all" else " hidden"}>'
+        + c.table(["Day", "Band", "League", "Match", "Selection", "Confidence",
+                   "Fair", "Score", "Result"], cells, numeric_from=5, raw=True,
+                  per_page=PICKS_PER_PAGE, pages_label=f"Pages of {noun}")
+        + "</div>"
+        for key, _, noun, cells in books)
+
+    return f"""
+<section class="card">
+  <h2>Every single pick</h2>
+  <p class="note">Written down before kick-off and never edited afterwards. One
+  per price band per match day, so Saturday's picks are logged on Thursday at
+  Thursday's price: a later build of the card before the match keeps the first
+  answer, because a ledger that follows whichever pick currently looks best
+  would show a flattering history and mean nothing.</p>
+  {picker}
+  {tables}
+</section>"""
+
 
 def _acca_history_section(frame):
     """The accumulator's own book, kept apart from the single picks.
@@ -774,8 +847,8 @@ def _acca_history_section(frame):
         return """
 <section class="card">
   <h2>Accumulator picks</h2>
-  <div class="empty">No accumulator recorded yet.<div class="hint">One slip is
-  written down each day you refresh the card.</div></div>
+  <div class="empty">No accumulator recorded yet.<div class="hint">A slip of
+  each size is written down every day the card is built.</div></div>
 </section>"""
 
     sizes = ledger.acca_summary_by_legs(frame)
@@ -901,7 +974,7 @@ def _results_behind_note(frame, data):
         f"{len(waiting)} pick(s) are waiting on results that have not arrived",
         f"Their matches have been played, but the results file for those "
         f"leagues stops earlier ({behind}). Some sources publish a few days "
-        f"late; if it persists, press <strong>Fetch new results</strong>.")
+        f"late, and these settle once the results arrive.")
 
 
 def page_history(links, ctx):
@@ -914,7 +987,7 @@ def page_history(links, ctx):
             links, "History", "history",
             c.empty("Nothing recorded yet.",
                     "The picks for the next few match days are written down the "
-                    "first time you refresh the card, and graded once the "
+                    "first time the card is built, and graded once the "
                     "results arrive."),
             subtitle="What the daily picks have actually done.")
     if empty_ledger:
@@ -923,27 +996,6 @@ def page_history(links, ctx):
                         subtitle="What the daily picks have actually done.")
 
     head = ledger.summary(frame)
-
-    rows = []
-    for row in frame.sort_values("day", ascending=False).itertuples():
-        outcome = row.outcome if isinstance(row.outcome, str) else "pending"
-        state, label = OUTCOME_LABEL.get(outcome, ("neutral", outcome))
-        score = (NONE if row.home_goals != row.home_goals
-                 else f"{int(row.home_goals)}–{int(row.away_goals)}")
-        # `nan or fallback` returns the nan — NaN is truthy — so the check has
-        # to be explicit rather than an `or`.
-        league = (row.competition_name if isinstance(row.competition_name, str)
-                  else row.competition)
-        band = row.band if isinstance(row.band, str) else "main"
-        rows.append([
-            str(row.day),
-            f'<span class="tag">{c.e(BAND_LABEL.get(band, band))}</span>',
-            c.e(league),
-            c.e(row.match), c.e(row.selection),
-            _pct(row.prob), _num(row.fair_odds),
-            score,
-            f'<span style="color:var(--{state})">{label}</span>',
-        ])
 
     verdict = _history_verdict(head)
 
@@ -1023,17 +1075,7 @@ def page_history(links, ctx):
 {unpriced_note}
 {band_section}
 
-<section class="card">
-  <h2>Every single pick</h2>
-  <p class="note">Written down before kick-off and never edited afterwards. One
-  per price band per match day, so Saturday's picks are logged on Thursday at
-  Thursday's price: refreshing the card again before the match keeps the first
-  answer, because a ledger that follows whichever pick currently looks best
-  would show a flattering history and mean nothing.</p>
-  {c.table(["Day", "Band", "League", "Match", "Selection", "Confidence", "Fair",
-            "Score", "Result"], rows, numeric_from=5, raw=True,
-           per_page=PICKS_PER_PAGE, pages_label="Pages of single picks")}
-</section>
+{_singles_section(frame)}
 
 {_acca_history_section(accas)}
 """
@@ -1093,7 +1135,8 @@ def page_reliability(links, ctx):
     if table is None or table.empty:
         return c.layout(links, "Reliability", "reliability",
                         c.empty("No reliability record yet.",
-                                "Press “Recalibrate” — it needs predictions first."),
+                                "It appears once the forecasts have been "
+                                "calibrated against results."),
                         subtitle="Whether the confidence numbers are true.")
 
     overall = table[table["scope"] == "all"]
@@ -1148,7 +1191,7 @@ def page_reliability(links, ctx):
   their top bands, while the rest simply never produce enough bets that high to have
   been tested. Picks above the ceiling are dropped from the card.</p>
   {c.table(["Market", "Checked up to"], ceiling_rows, numeric_from=1)
-   if ceiling_rows else '<div class="empty">Refresh the card to compute ceilings.</div>'}
+   if ceiling_rows else '<div class="empty">No ceilings computed yet.</div>'}
 </section>
 
 <section class="card">
@@ -1225,8 +1268,8 @@ def page_evidence(links, ctx):
     if not evidence:
         return c.layout(links, "Evidence", "evidence",
                         c.empty("No evidence built yet.",
-                                "Press “Rebuild the evidence”. It re-runs the "
-                                "value-betting backtest and takes several minutes."),
+                                "It appears once the value-betting backtest "
+                                "has run."),
                         subtitle="The value-betting verdict this project is built on.")
 
     head = evidence["summary"]
@@ -1323,9 +1366,9 @@ def page_method(links, ctx):
   is no, decisively, and that answer is what licenses the confidence half to treat
   the closing price as its best input rather than its opponent.</p>
   <ol>
-    <li><strong>Fetch.</strong> Results and closing odds from football-data.co.uk
-    (free, no key); upcoming prices from The Odds API (metered, hence a button that
-    tells you what it costs).</li>
+    <li><strong>Fetch.</strong> Results and closing odds for every competition
+    covered, and current prices for the fixtures still to come, refreshed each
+    day.</li>
     <li><strong>De-vig.</strong> Consensus prices, power method. It removes margin
     from longshots rather than spreading it evenly, which halves the calibration
     error against the usual proportional scaling.</li>
@@ -1367,7 +1410,7 @@ def page_method(links, ctx):
   bookmaker publishes. Backtesting against opening prices flatters a model that is
   really just slower than the market.</p>
   {c.table(["Competition", "Matches", "From", "To"], coverage, numeric_from=1)
-   if coverage else '<div class="empty">Build the evidence to list coverage.</div>'}
+   if coverage else '<div class="empty">No coverage listed yet.</div>'}
 </section>
 """
     badges = []
