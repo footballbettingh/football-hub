@@ -97,3 +97,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-18,safe,2026-09-16T09:12:54,SA,Serie A,monza,sassuolo,Monza v Sassuolo,tt0.5_away_over,tt,Away team over 0.5 goals,0.76470,1.30770,,0.77360,35238,,,,pending,,,
 2026-09-18,main,2026-09-16T09:12:54,DED,Eredivisie,groningen,zwolle,Groningen v FC Zwolle,hcp_away+1.5,hcp,Away +1.5,0.62454,1.60119,,0.65016,7938,,,,pending,,,
 2026-09-18,value,2026-09-16T09:12:54,AUT-BUNDESLI,Bundesliga (Austria),rapid,tirol,Rapid Wien v WSG Tirol,hcp_home-1.5,hcp,Home -1.5,0.45274,2.20879,,0.50470,957,,,,pending,,,
+2026-09-19,safe,2026-09-17T09:13:55,PL,Premier League,brighton,arsenal,Brighton and Hove Albion v Arsenal,corners11.5_under,corners,Under 11.5 corners,0.76770,1.30259,,0.77462,18143,,,,pending,,,
+2026-09-19,main,2026-09-17T09:13:55,BL1,Bundesliga (Germany),borussia monchengladbach,mainz,Borussia Monchengladbach v FSV Mainz 05,ou2.5_over,ou,Over 2.5 goals,0.62170,1.60850,1.57000,0.65623,37749,,,,pending,,,
+2026-09-19,value,2026-09-17T09:13:55,BL1,Bundesliga (Germany),werder bremen,augsburg,Werder Bremen v Augsburg,tt1.5_away_over,tt,Away team over 1.5 goals,0.45121,2.21625,,0.47504,19293,,,,pending,,,
