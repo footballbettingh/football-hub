@@ -65,9 +65,9 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-07,safe,2026-09-05T09:12:07,BRA-SERIEA,Série A,vitoria,gremio,Vitoria v Grêmio,tt0.5_home_over,tt,Home team over 0.5 goals,0.76918,1.30008,,0.77313,34716,2026-09-08,1.00000,0.00000,won,,2026-09-10T09:06:46,
 2026-09-07,main,2026-09-05T09:12:07,PPL,Primeira Liga,estoril,arouca,Estoril v Arouca,ou1.5_over,ou,Over 1.5 goals,0.62190,1.60798,,0.65740,37245,2026-09-07,0.00000,0.00000,lost,,2026-09-10T09:06:46,
 2026-09-07,value,2026-09-05T09:12:07,ARG-LIGAPROF,Liga Profesional,racing,atletico tucuman,Racing Club v Atlético Tucuman,btts_yes,btts,Both teams to score,0.45452,2.20014,,0.46548,29273,2026-09-07,1.00000,2.00000,won,,2026-09-10T09:06:46,
-2026-09-08,safe,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,tt0.5_home_over,tt,Home team over 0.5 goals,0.76918,1.30008,,0.77313,34716,,,,pending,,,
+2026-09-08,safe,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,tt0.5_home_over,tt,Home team over 0.5 goals,0.76918,1.30008,,0.77313,34716,,,,no result,,2026-09-18T09:06:35,
 2026-09-08,main,2026-09-06T09:09:58,ARG-LIGAPROF,Liga Profesional,union de santa fe,instituto,Union Santa Fe v Instituto de Córdoba,dc_x2,dc,Draw or away (X2),0.60496,1.65299,,0.66007,29227,2026-09-08,3.00000,2.00000,lost,,2026-09-10T09:06:46,
-2026-09-08,value,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,btts_yes,btts,Both teams to score,0.45452,2.20014,,0.46548,29273,,,,pending,,,
+2026-09-08,value,2026-09-06T09:09:58,EL1,League One,oxford,reading,Oxford United v Reading,btts_yes,btts,Both teams to score,0.45452,2.20014,,0.46548,29273,,,,no result,,2026-09-18T09:06:35,
 2026-09-09,safe,2026-09-07T09:12:41,USA-MLS,MLS,atlanta united,orlando city,Atlanta United FC v Orlando City SC,hcp_away+1.5,hcp,Away +1.5,0.76652,1.30460,,0.77415,9493,2026-09-10,2.00000,3.00000,won,,2026-09-10T12:57:09,
 2026-09-09,main,2026-09-07T09:12:41,USA-MLS,MLS,philadelphia union,cincinnati,Philadelphia Union v FC Cincinnati,tt1.5_away_under,tt,Away team under 1.5 goals,0.62250,1.60643,,0.65247,62679,2026-09-10,5.00000,0.00000,won,,2026-09-10T12:57:09,
 2026-09-09,value,2026-09-07T09:12:41,USA-MLS,MLS,d c united,columbus crew,D.C. United v Columbus Crew SC,tt1.5_home_over,tt,Home team over 1.5 goals,0.45212,2.21178,,0.47522,18924,2026-09-10,2.00000,1.00000,won,,2026-09-10T12:57:09,
@@ -86,17 +86,20 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-14,safe,2026-09-12T09:14:23,PL,Premier League,leeds,newcastle,Leeds United v Newcastle United,ou1.5_over,ou,Over 1.5 goals,0.76921,1.30003,,0.77767,27851,2026-09-14,4.00000,1.00000,won,,2026-09-15T09:09:10,feed
 2026-09-14,main,2026-09-12T09:14:23,PPL,Primeira Liga,sp braga,estoril,Braga v Estoril,hcp_away+1.5,hcp,Away +1.5,0.62116,1.60989,,0.65257,7541,2026-09-14,1.00000,0.00000,won,,2026-09-15T09:09:10,feed
 2026-09-14,value,2026-09-12T09:14:23,SWE-ALLSVENS,Allsvenskan,sirius,degerfors,IK Sirius v Degerfors IF,hcp_home-1.5,hcp,Home -1.5,0.45335,2.20581,,0.49817,1090,2026-09-14,2.00000,0.00000,won,,2026-09-16T09:07:11,feed
-2026-09-15,safe,2026-09-13T09:33:00,ELC,Championship,bristol city,lincoln,Bristol City v Lincoln City,ou1.5_over,ou,Over 1.5 goals,0.76654,1.30456,,0.77767,27851,,,,pending,,,
-2026-09-15,main,2026-09-13T09:33:00,POL-EKSTRAKL,Ekstraklasa,rakow,zaglebie,Raków Częstochowa v Zagłębie Lubin,tt0.5_away_over,tt,Away team over 0.5 goals,0.62226,1.60704,,0.65247,62791,,,,pending,,,
-2026-09-15,value,2026-09-13T09:33:00,SPL,Premiership,hibernian,kilmarnock,Hibernian v Kilmarnock,corners10.5_over,corners,Over 10.5 corners,0.44799,2.23218,,0.43234,22804,,,,pending,,,
-2026-09-16,safe,2026-09-14T09:16:11,MEX-LIGAMX,Liga MX,puebla,toluca,Puebla v Toluca,dnb_away,dnb,Away draw-no-bet,0.76846,1.30131,,0.77160,4409,,,,pending,,,
-2026-09-16,main,2026-09-14T09:16:11,PD,La Liga,atletico madrid,osasuna,Atlético Madrid v CA Osasuna,hcp_away+1.5,hcp,Away +1.5,0.61249,1.63269,,0.65257,7541,,,,pending,,,
-2026-09-16,value,2026-09-14T09:16:11,PD,La Liga,la coruna,sevilla,Deportivo La Coruña v Sevilla,corners8.5_under,corners,Under 8.5 corners,0.44578,2.24325,,0.43234,22804,,,,pending,,,
-2026-09-17,safe,2026-09-15T09:13:33,PD,La Liga,betis,getafe,Real Betis v Getafe,corners11.5_under,corners,Under 11.5 corners,0.75917,1.31723,,0.77445,18222,,,,pending,,,
-2026-09-17,main,2026-09-15T09:13:33,PD,La Liga,malaga,villarreal,Málaga v Villarreal,dnb_away,dnb,Away draw-no-bet,0.62202,1.60765,,0.65581,9393,,,,pending,,,
+2026-09-15,safe,2026-09-13T09:33:00,ELC,Championship,bristol city,lincoln,Bristol City v Lincoln City,ou1.5_over,ou,Over 1.5 goals,0.76654,1.30456,,0.77767,27851,2026-09-15,0.00000,1.00000,lost,,2026-09-18T09:06:35,feed
+2026-09-15,main,2026-09-13T09:33:00,POL-EKSTRAKL,Ekstraklasa,rakow,zaglebie,Raków Częstochowa v Zagłębie Lubin,tt0.5_away_over,tt,Away team over 0.5 goals,0.62226,1.60704,,0.65247,62791,2026-09-15,2.00000,3.00000,won,,2026-09-18T09:06:35,feed
+2026-09-15,value,2026-09-13T09:33:00,SPL,Premiership,hibernian,kilmarnock,Hibernian v Kilmarnock,corners10.5_over,corners,Over 10.5 corners,0.44799,2.23218,,0.43234,22804,2026-09-15,0.00000,1.00000,won,,2026-09-18T09:06:35,feed
+2026-09-16,safe,2026-09-14T09:16:11,MEX-LIGAMX,Liga MX,puebla,toluca,Puebla v Toluca,dnb_away,dnb,Away draw-no-bet,0.76846,1.30131,,0.77160,4409,2026-09-16,0.00000,1.00000,won,,2026-09-18T09:06:35,feed
+2026-09-16,main,2026-09-14T09:16:11,PD,La Liga,atletico madrid,osasuna,Atlético Madrid v CA Osasuna,hcp_away+1.5,hcp,Away +1.5,0.61249,1.63269,,0.65257,7541,2026-09-16,4.00000,0.00000,lost,,2026-09-18T09:06:35,feed
+2026-09-16,value,2026-09-14T09:16:11,PD,La Liga,la coruna,sevilla,Deportivo La Coruña v Sevilla,corners8.5_under,corners,Under 8.5 corners,0.44578,2.24325,,0.43234,22804,2026-09-16,0.00000,1.00000,won,,2026-09-18T09:06:35,feed
+2026-09-17,safe,2026-09-15T09:13:33,PD,La Liga,betis,getafe,Real Betis v Getafe,corners11.5_under,corners,Under 11.5 corners,0.75917,1.31723,,0.77445,18222,2026-09-17,1.00000,0.00000,won,,2026-09-18T09:06:35,feed
+2026-09-17,main,2026-09-15T09:13:33,PD,La Liga,malaga,villarreal,Málaga v Villarreal,dnb_away,dnb,Away draw-no-bet,0.62202,1.60765,,0.65581,9393,2026-09-17,1.00000,3.00000,won,,2026-09-18T09:06:35,feed
 2026-09-18,safe,2026-09-16T09:12:54,SA,Serie A,monza,sassuolo,Monza v Sassuolo,tt0.5_away_over,tt,Away team over 0.5 goals,0.76470,1.30770,,0.77360,35238,,,,pending,,,
 2026-09-18,main,2026-09-16T09:12:54,DED,Eredivisie,groningen,zwolle,Groningen v FC Zwolle,hcp_away+1.5,hcp,Away +1.5,0.62454,1.60119,,0.65016,7938,,,,pending,,,
 2026-09-18,value,2026-09-16T09:12:54,AUT-BUNDESLI,Bundesliga (Austria),rapid,tirol,Rapid Wien v WSG Tirol,hcp_home-1.5,hcp,Home -1.5,0.45274,2.20879,,0.50470,957,,,,pending,,,
 2026-09-19,safe,2026-09-17T09:13:55,PL,Premier League,brighton,arsenal,Brighton and Hove Albion v Arsenal,corners11.5_under,corners,Under 11.5 corners,0.76770,1.30259,,0.77462,18143,,,,pending,,,
 2026-09-19,main,2026-09-17T09:13:55,BL1,Bundesliga (Germany),borussia monchengladbach,mainz,Borussia Monchengladbach v FSV Mainz 05,ou2.5_over,ou,Over 2.5 goals,0.62170,1.60850,1.57000,0.65623,37749,,,,pending,,,
 2026-09-19,value,2026-09-17T09:13:55,BL1,Bundesliga (Germany),werder bremen,augsburg,Werder Bremen v Augsburg,tt1.5_away_over,tt,Away team over 1.5 goals,0.45121,2.21625,,0.47504,19293,,,,pending,,,
+2026-09-20,safe,2026-09-18T09:09:42,SA,Serie A,juventus,atalanta,Juventus v Atalanta BC,ou1.5_over,ou,Over 1.5 goals,0.76667,1.30434,,0.77754,28126,,,,pending,,,
+2026-09-20,main,2026-09-18T09:09:42,BRA-SERIEA,Série A,sao paulo,internacional,Sao Paulo v Internacional,tt0.5_away_over,tt,Away team over 0.5 goals,0.62490,1.60025,,0.65245,63542,,,,pending,,,
+2026-09-20,value,2026-09-18T09:09:42,FL1,Ligue 1,nice,lille,Nice v Lille,tt1.5_away_over,tt,Away team over 1.5 goals,0.45403,2.20248,,0.47532,19202,,,,pending,,,
