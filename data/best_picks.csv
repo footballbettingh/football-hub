@@ -103,3 +103,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-20,safe,2026-09-18T09:09:42,SA,Serie A,juventus,atalanta,Juventus v Atalanta BC,ou1.5_over,ou,Over 1.5 goals,0.76667,1.30434,,0.77754,28126,,,,pending,,,
 2026-09-20,main,2026-09-18T09:09:42,BRA-SERIEA,Série A,sao paulo,internacional,Sao Paulo v Internacional,tt0.5_away_over,tt,Away team over 0.5 goals,0.62490,1.60025,,0.65245,63542,,,,pending,,,
 2026-09-20,value,2026-09-18T09:09:42,FL1,Ligue 1,nice,lille,Nice v Lille,tt1.5_away_over,tt,Away team over 1.5 goals,0.45403,2.20248,,0.47532,19202,,,,pending,,,
+2026-09-21,safe,2026-09-19T09:14:02,MEX-LIGAMX,Liga MX,pachuca,tijuana,Pachuca v Tijuana,ou1.5_over,ou,Over 1.5 goals,0.76632,1.30494,,0.77754,28126,,,,pending,,,
+2026-09-21,main,2026-09-19T09:14:02,ARG-LIGAPROF,Liga Profesional,barracas central,independiente rivadavia,Barracas Central v Independiente Rivadavia,ou1.5_over,ou,Over 1.5 goals,0.62348,1.60390,1.56000,0.65622,37783,,,,pending,,,
+2026-09-21,value,2026-09-19T09:14:02,MEX-LIGAMX,Liga MX,queretaro,leon,Querétaro v León,tt1.5_home_over,tt,Home team over 1.5 goals,0.44797,2.23231,,0.43296,24291,,,,pending,,,
