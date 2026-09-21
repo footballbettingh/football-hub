@@ -107,3 +107,5 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-21,main,2026-09-19T09:14:02,ARG-LIGAPROF,Liga Profesional,barracas central,independiente rivadavia,Barracas Central v Independiente Rivadavia,ou1.5_over,ou,Over 1.5 goals,0.62348,1.60390,1.56000,0.65622,37783,,,,pending,,,
 2026-09-21,value,2026-09-19T09:14:02,MEX-LIGAMX,Liga MX,queretaro,leon,Querétaro v León,tt1.5_home_over,tt,Home team over 1.5 goals,0.44797,2.23231,,0.43296,24291,,,,pending,,,
 2026-09-22,main,2026-09-20T09:13:44,ARG-LIGAPROF,Liga Profesional,lanus,estudiantes la plata,Lanus v Estudiantes,ou1.5_over,ou,Over 1.5 goals,0.61625,1.62271,1.56000,0.65622,37783,,,,pending,,,
+2026-09-26,safe,2026-09-21T15:38:13,MEX-LIGAMX,Liga MX,tijuana,atlas,Tijuana v Atlas,ou1.5_over,ou,Over 1.5 goals,0.75372,1.32675,,0.77754,28126,,,,pending,,,
+2026-09-26,main,2026-09-21T15:38:13,MEX-LIGAMX,Liga MX,atlante,monterrey,Atlante FC v Monterrey,btts_yes,btts,Both teams to score,0.61228,1.63323,,0.63568,2119,,,,pending,,,
