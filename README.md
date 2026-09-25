@@ -610,7 +610,10 @@ The short version, with the measurements in
    picks themselves the corner selections in the main band went from landing
    7.7 points below their claim to 0.8 points above it. It is an improvement
    and not a repair: corners are still overdispersed against a Poisson
-   (variance / mean of 1.18, against 1.02 for goals).
+   (variance / mean of 1.18, against 1.02 for goals). The league's own level is
+   refitted after the shrink — squeezing the strengths under an unchanged base
+   lowers the average of exp (Jensen), and the walk-forward was predicting
+   9.695 corners a match against 9.799 played, every line leaning to the under.
 5. **Calibrate** per market with isotonic regression fitted only on earlier
    matches. Over 45,484 out-of-sample matches every confidence band lands within
    0.16pp of what it claimed.

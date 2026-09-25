@@ -45,10 +45,25 @@ def test_shrinking_pulls_the_strengths_toward_the_league_average():
 
     assert np.allclose(half.attack, full.attack * 0.5)
     assert np.allclose(half.defence, full.defence * 0.5)
-    # The league itself does not move — only how far from it a team is allowed
-    # to sit. Shrinking the mean would be a different and much worse bug.
-    assert half.base == pytest.approx(full.base)
-    assert half.home_adv == pytest.approx(full.home_adv)
+
+
+def test_shrinking_leaves_the_league_where_it_is():
+    """The league itself does not move — only how far from it a team is allowed
+    to sit. This used to be checked as "the base is unchanged", which is the
+    wrong way to keep it still: a lambda is exp of base plus strength, so a
+    narrower spread of strengths under the same base averages lower (Jensen).
+    Over the walk-forward that predicted 9.695 corners a match against 9.799
+    played. What must not move is the number of goals — or corners — the
+    league is predicted to produce, and that is what the shrunk fit is held to:
+    its weighted mean home and away counts are the ones that were played."""
+    matches, teams, _ = synthetic_league()
+    half = PoissonModel(("home_goals", "away_goals"), dixon_coles=False,
+                        shrink=0.5).fit(matches)
+    w = half._weights(matches, None)
+    lam, mu = np.array([half.expected_counts(h, a)
+                        for h, a in zip(matches["home"], matches["away"])]).T
+    assert (w * lam).sum() == pytest.approx((w * matches["home_goals"]).sum(), rel=1e-9)
+    assert (w * mu).sum() == pytest.approx((w * matches["away_goals"]).sum(), rel=1e-9)
 
 
 def test_shrinking_square_roots_a_lambda_rather_than_halving_it():
@@ -62,10 +77,12 @@ def test_shrinking_square_roots_a_lambda_rather_than_halving_it():
     half = PoissonModel(("home_goals", "away_goals"), dixon_coles=False,
                         shrink=0.5).fit(matches)
 
-    average = np.exp(full.base + full.home_adv)
+    # Each against its own league average: the shrunk fit re-levels the league
+    # (see the test above), and the square root is in the part that is a team.
     lam_full, _ = full.expected_counts(teams[0], teams[1])
     lam_half, _ = half.expected_counts(teams[0], teams[1])
-    assert lam_half / average == pytest.approx((lam_full / average) ** 0.5)
+    assert lam_half / np.exp(half.base + half.home_adv) == pytest.approx(
+        (lam_full / np.exp(full.base + full.home_adv)) ** 0.5)
 
 
 def test_a_shrink_of_one_changes_nothing():
