@@ -17,7 +17,7 @@ from confidence.walkforward import run as walk_forward_run
 from valuebets import config as vb_config, files
 from valuebets.sources import football_data_uk, football_data_world
 
-from . import leagues
+from . import clock, leagues
 
 LEAGUE_PLAN = vb_config.DATA_DIR / "leagues.json"
 
@@ -33,7 +33,7 @@ def season_years(today=None, back=SEASONS_BACK):
     it was ever downloaded and no result from it could ever arrive — every pick
     on a European league sat pending forever with nothing to say why.
     """
-    stamp = pd.Timestamp(today) if today is not None else pd.Timestamp.today()
+    stamp = pd.Timestamp(today) if today is not None else clock.today()
     current = stamp.year if stamp.month >= 7 else stamp.year - 1
     return tuple(range(current - back, current + 1))
 
@@ -496,7 +496,7 @@ def _incremental_plan(history, today=None):
     every stored row before it whose match is still in the history, with its
     result refreshed from there.
     """
-    today = pd.Timestamp(today or pd.Timestamp.today()).normalize()
+    today = pd.Timestamp(today or clock.today()).normalize()
     try:
         meta = json.loads(PREDICTIONS_META.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -579,8 +579,8 @@ def rebuild_model(progress=print, refit_days=None, competitions=None, full=False
         files.write_text(PREDICTIONS_META, json.dumps({
             "fingerprint": _model_fingerprint(),
             "full_at": (previous.get("full_at") if since is not None
-                        else pd.Timestamp.today().strftime("%Y-%m-%d")),
-            "built": time.strftime("%Y-%m-%d %H:%M")}))
+                        else clock.today().strftime("%Y-%m-%d")),
+            "built": clock.stamp()}))
     progress(f"Priced {len(predictions):,} matches out of sample in "
              f"{time.time() - started:.0f}s")
     return {"matches": int(len(predictions)),
@@ -621,7 +621,7 @@ def recalibrate(progress=print, weight=None, folds=5):
              f"on {anchor.n:,} matches")
     production = Calibrators.fit(keys, live, results, meta={
         "weight": weight, "folds": folds, "matches": int(len(predictions)),
-        "built": time.strftime("%Y-%m-%d %H:%M"),
+        "built": clock.stamp(),
         "corner_anchor": anchor.to_dict()})
     files.write_text(cf_config.CALIBRATION_JSON, production.to_json())
     write_reliability(keys, calibrated, results, scored)

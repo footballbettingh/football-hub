@@ -16,7 +16,7 @@ import pandas as pd
 from confidence import config as cf_config, picks as picks_mod
 from confidence.markets import GROUPS
 
-from . import artifacts, components as c, ledger
+from . import artifacts, clock, components as c, ledger
 
 CONF_FLOOR = 0.55       # below this a selection is not worth shipping to the page
 
@@ -65,6 +65,23 @@ def _kickoff(iso, fallback):
         return c.e(fallback)
     return (f'<time datetime="{c.e(iso)}" data-when>'
             f'{stamp:%a} {stamp.day} {stamp:%b}, {stamp:%H:%M} UTC</time>')
+
+
+def _moment(when):
+    """A moment the site wrote down, as a <time> the browser shows locally.
+
+    The attribute is spelled from the parsed time rather than copied from the
+    file: a stamp written before they carried an offset would otherwise reach
+    the browser bare, and a bare ISO time is read there as local."""
+    return (f'<time datetime="{when:%Y-%m-%dT%H:%M:%SZ}" data-when>'
+            f'{when:%a} {when.day} {when:%b}, {when:%H:%M} UTC</time>')
+
+
+def _built_badge(stamp):
+    """The card's build time for its badge: plain text, so in UTC, and saying
+    so. It was the stamp cut at the minute, which carried no zone at all."""
+    when = clock.parse(stamp)
+    return f"built {when:%d %b %H:%M} UTC" if when else "built at an unknown time"
 
 
 def _priced(iso):
@@ -160,18 +177,11 @@ def _recorded_note(pick):
     one that is recorded: without it, a reader who checks the current line has
     no way to tell why the page names a bet today's prices would not choose.
     """
-    stamp = pick.get("recorded_at")
-    if not stamp:
+    when = clock.parse(pick.get("recorded_at"))
+    if when is None or when.date() == clock.now().date():
         return ""
-    try:
-        when = datetime.fromisoformat(str(stamp))
-    except (TypeError, ValueError):
-        return ""
-    if when.date() == datetime.now().date():
-        return ""
-    return (f'<p class="note">Written down on {when:%a %d %b} at {when:%H:%M} '
-            f'and not revised since, so the numbers above are the ones the '
-            f'record was made at.</p>')
+    return (f'<p class="note">Written down on {_moment(when)} and not revised '
+            f'since, so the numbers above are the ones the record was made at.</p>')
 
 
 BAND_LABEL = {"safe": "Safe", "main": "Best", "value": "Longer"}
@@ -241,14 +251,10 @@ def _acca_recorded_note(acca, legs):
     down the first time it appears in a day, and History follows each one.
     """
     when = ""
-    stamp = (acca or {}).get("recorded_at")
-    if stamp:
-        try:
-            when = (f" Today's {legs}-leg slip went down at "
-                    f"{datetime.fromisoformat(str(stamp)):%H:%M} and has not "
-                    f"been revised since.")
-        except (TypeError, ValueError):
-            when = ""
+    written = clock.parse((acca or {}).get("recorded_at"))
+    if written is not None:
+        when = (f" Today's {legs}-leg slip went down on {_moment(written)} and "
+                f"has not been revised since.")
     return (f'<p class="note">Every size is written into the record the first '
             f'time it appears each day and graded afterwards — History keeps '
             f'a separate record for each.{when}</p>')
@@ -700,7 +706,7 @@ def page_card(links, ctx):
                              "probability that has been checked against what happened.",
                     badges=[f"{picks['n_fixtures']} fixtures",
                             f"{picks['n_selections']:,} selections",
-                            f"built {picks['built'][:16].replace('T', ' ')}"])
+                            _built_badge(picks.get("built"))])
 
 
 # -- 2. fixtures -----------------------------------------------------------
@@ -1061,7 +1067,7 @@ def _results_behind_note(frame, data):
         pd.Timestamp(by_comp.get(str(comp), str(fallback.date())))
         for comp in pending["competition"]
     ]
-    waiting = pending[(pending["day_ts"] < pd.Timestamp.today().normalize())
+    waiting = pending[(pending["day_ts"] < clock.today())
                       & (pending["day_ts"] > pending["league_last"])]
     if waiting.empty:
         return ""

@@ -12,7 +12,7 @@ instead of leaving the user to notice.
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -70,14 +70,15 @@ def _mtime(path):
     """
     if isinstance(path, str):
         newest = [p.stat().st_mtime for p in DATA_DIR.glob(path)]
-        return datetime.fromtimestamp(max(newest)) if newest else None
-    return datetime.fromtimestamp(path.stat().st_mtime) if path.exists() else None
+        return datetime.fromtimestamp(max(newest), timezone.utc) if newest else None
+    return (datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+            if path.exists() else None)
 
 
 def _age_words(when):
     if when is None:
         return "never"
-    delta = datetime.now() - when
+    delta = datetime.now(timezone.utc) - when
     if delta < timedelta(minutes=1):
         return "just now"
     if delta < timedelta(hours=1):
@@ -109,7 +110,7 @@ def status(items=ARTIFACTS):
             "job": artifact.job,
             "note": artifact.note,
             "exists": built is not None,
-            "built": built.strftime("%d %b %H:%M") if built else None,
+            "built": built.strftime("%d %b %H:%M UTC") if built else None,
             "age": _age_words(built),
             "stale_after": stale_after,
         })

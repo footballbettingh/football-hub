@@ -4,15 +4,13 @@ This exists so the local server is not the only way to read the thing: the
 export opens over `file://`, drops onto a USB stick, and is the exact artefact
 GitHub Pages would serve. Because both modes call the same builders with a
 different `Links`, a page cannot render correctly in one and be broken in the
-other — the only difference is that the static build shows a freshness
-snapshot where the server shows buttons.
+other — the only difference is how a link to another page is spelled.
 """
 
 import shutil
-from datetime import date
 from pathlib import Path
 
-from . import components, pages
+from . import clock, components, pages
 from valuebets import config as vb_config
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -48,7 +46,7 @@ def _write_sitemap(out):
     Every page is rebuilt on the same schedule from the same data, so they all
     carry today's date rather than a per-page one that would be a guess.
     """
-    today = date.today().isoformat()
+    today = clock.today().strftime("%Y-%m-%d")
     urls = "".join(
         f"\n  <url><loc>{components.SITE_URL}/"
         f"{'' if page == 'index' else page + '.html'}</loc>"

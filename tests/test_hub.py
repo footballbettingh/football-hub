@@ -1149,11 +1149,15 @@ def test_a_pick_written_down_on_an_earlier_day_says_so():
     html = pages._best_pick_section({
         "best_band": [1.6, 2.2],
         "best_pick": {**_slate_pick(), "recorded_at": "2026-08-24T11:03:39"}})
-    assert "Written down on Mon 24 Aug at 11:03" in html
+    # In UTC for a reader without scripts, and as a <time> hub.js puts in the
+    # reader's clock. A stamp from before they carried an offset is read as UTC.
+    assert ('Written down on <time datetime="2026-08-24T11:03:39Z" data-when>'
+            'Mon 24 Aug, 11:03 UTC</time>') in html
 
 
 def test_a_pick_recorded_today_is_not_labelled_as_old():
-    stamp = datetime.now().isoformat(timespec="seconds")
+    from hub import clock
+    stamp = clock.stamp()
     html = pages._best_pick_section({
         "best_band": [1.6, 2.2],
         "best_pick": {**_slate_pick(), "recorded_at": stamp}})
@@ -1281,7 +1285,8 @@ def test_the_card_says_every_slip_size_is_in_the_record():
         "acca_target": 3.0, "acca_default": "4",
         "accumulators": {"4": {**_slip(), "recorded_at": "2026-08-26T09:12:04"}}})
     assert "Every size is written into the record" in html
-    assert "Today's 4-leg slip went down at 09:12" in html
+    assert ("Today's 4-leg slip went down on <time datetime=\"2026-08-26T09:12:04Z\" "
+            "data-when>Wed 26 Aug, 09:12 UTC</time>") in html
 
 
 # -- the accumulator book on History, one size at a time -------------------
