@@ -21,7 +21,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 import pandas as pd
 
-from .markets import DEFAULT_MARKETS, resolve_markets
+from .markets import DEFAULT_MARKETS, _devig, resolve_markets
 from .model import PoissonModel
 
 # ---- defaults (overridable via BacktestConfig) ----
@@ -56,9 +56,9 @@ class BacktestConfig:
     # chosen by a human looking at results, which is exactly how a backtest gets
     # flattered — so `validate()` exists to judge them on data that did not
     # choose them. Defaults are OFF: the honest baseline is no filtering.
-    max_edge: float = None          # drop selections claiming MORE than this
+    max_edge: float | None = None   # drop selections claiming MORE than this
     exclude_competitions: tuple = ()
-    one_per_match: str = None       # None | "edge" | "lowest_edge" | market label
+    one_per_match: str | None = None  # None | "edge" | "lowest_edge" | market label
 
 
 def implied_prob(odds):
@@ -66,9 +66,9 @@ def implied_prob(odds):
 
 
 def devig_probabilities(home_odds, draw_odds, away_odds):
-    """Bookmaker implied probabilities with the margin removed."""
-    raw = np.array([1 / home_odds, 1 / draw_odds, 1 / away_odds], dtype=float)
-    return raw / raw.sum()
+    """Bookmaker implied probabilities with the margin removed, as the markets
+    are (see `markets._devig`)."""
+    return _devig((home_odds, draw_odds, away_odds))
 
 
 def load_dataset(path):
@@ -99,6 +99,11 @@ def load_dataset(path):
     return frame.sort_values("date", kind="mergesort").reset_index(drop=True)
 
 
+# Every sort by date here is a stable one. Bets on the same day came out in
+# whatever order the default sort left them, which changed with the data:
+# the same bets, differently ordered, draw a different bootstrap sample from
+# the same seed and a different equity curve.
+
 def run(dataset, cfg=None, with_predictions=False):
     """Walk-forward over the dataset, one competition at a time.
 
@@ -115,7 +120,8 @@ def run(dataset, cfg=None, with_predictions=False):
         pred_frames.append(preds)
 
     bet_frames = [f for f in bet_frames if not f.empty]
-    bets = (pd.concat(bet_frames, ignore_index=True).sort_values("date").reset_index(drop=True)
+    bets = (pd.concat(bet_frames, ignore_index=True)
+            .sort_values("date", kind="stable").reset_index(drop=True)
             if bet_frames else pd.DataFrame(
                 columns=["date", "competition", "market", "match", "outcome", "odds",
                          "model_prob", "market_prob", "edge", "won", "pnl"]))
@@ -123,7 +129,8 @@ def run(dataset, cfg=None, with_predictions=False):
         return bets
 
     pred_frames = [f for f in pred_frames if not f.empty]
-    preds = (pd.concat(pred_frames, ignore_index=True).sort_values("date").reset_index(drop=True)
+    preds = (pd.concat(pred_frames, ignore_index=True)
+             .sort_values("date", kind="stable").reset_index(drop=True)
              if pred_frames else pd.DataFrame())
     return bets, preds
 
@@ -250,7 +257,7 @@ def apply_filters(bets, cfg):
             out = out.assign(_pref=(out.market != cfg.one_per_match)).sort_values(
                 ["_pref", "edge"]).drop(columns="_pref", errors="ignore")
         out = out.drop_duplicates(subset=["date", "match"], keep="first")
-    return out.sort_values("date").reset_index(drop=True)
+    return out.sort_values("date", kind="stable").reset_index(drop=True)
 
 
 # A full resample matrix is samples x n float64: at 5,000 x 18,960 that is
@@ -298,7 +305,7 @@ def validate(bets, cfg, split=0.5, stake=STAKE):
     """
     if bets.empty:
         return None
-    ordered = bets.sort_values("date")
+    ordered = bets.sort_values("date", kind="stable")
     cut = ordered.date.quantile(split)
     halves = {"train": ordered[ordered.date <= cut], "test": ordered[ordered.date > cut]}
 
@@ -311,7 +318,8 @@ def validate(bets, cfg, split=0.5, stake=STAKE):
             "span": (half.date.min(), half.date.max()),
             "n_before": int(len(base)), "n_after": int(len(filtered)),
             "roi_before": float(base.pnl.sum() / (len(base) * stake) * 100) if len(base) else 0.0,
-            "roi_after": float(filtered.pnl.sum() / (len(filtered) * stake) * 100) if len(filtered) else 0.0,
+            "roi_after": (float(filtered.pnl.sum() / (len(filtered) * stake) * 100)
+                          if len(filtered) else 0.0),
             "ci_after": (lo, hi),
         }
     result["gain_train"] = result["train"]["roi_after"] - result["train"]["roi_before"]
@@ -364,7 +372,7 @@ def summary(bets, stake=STAKE):
 def by_period(bets, periods=4, stake=STAKE):
     if bets.empty or len(bets) < periods * 5:
         return []
-    ordered = bets.sort_values("date").reset_index(drop=True)
+    ordered = bets.sort_values("date", kind="stable").reset_index(drop=True)
     out = []
     for i, pos in enumerate(np.array_split(np.arange(len(ordered)), periods), 1):
         chunk = ordered.iloc[pos]
@@ -424,7 +432,7 @@ def sweep_bands(dataset, bands, cfg=None):
 def equity_curve(bets):
     if bets.empty:
         return []
-    ordered = bets.sort_values("date").reset_index(drop=True)
+    ordered = bets.sort_values("date", kind="stable").reset_index(drop=True)
     cum = ordered.pnl.cumsum()
     return [{"date": f"{r.date:%Y-%m-%d}", "match": r.match, "outcome": r.outcome,
              "odds": float(r.odds), "won": bool(r.won), "pnl": float(r.pnl),

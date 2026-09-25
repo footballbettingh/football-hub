@@ -20,6 +20,8 @@ import requests
 
 from valuebets import config, files
 
+from confidence import config as cf_config
+
 from .artifacts import DATA_DIR, load_picks
 
 USER_AGENT = "football-hub/1.0"
@@ -199,7 +201,7 @@ def format_picks(payload, ledger_summary=None, full=False):
         f"<b>{selection}</b> — Confidence "
         f"<b>{best.get('prob', 0):.1%}</b> · {_price(best)}",
     ]
-    low, high = payload.get("best_band", [1.6, 2.2])
+    low, high = payload.get("best_band", [cf_config.BEST_ODDS_MIN, cf_config.BEST_ODDS_MAX])
     lines.insert(2, f"<i>band {low:g}–{high:g}</i>")
     if best.get("hit_rate") is not None:
         lines.append(

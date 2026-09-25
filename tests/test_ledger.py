@@ -457,7 +457,7 @@ def test_the_two_books_never_share_a_total(acca_path, path):
 # -- reading it back -------------------------------------------------------
 
 def _settled_ledger(path):
-    for day, home, away, key, price, goals in [
+    for day, home, away, key, price, _goals in [
         ("2026-08-14", "lask", "ried", "ou2.5_over", 1.75, (2, 1)),
         ("2026-08-15", "a", "b", "ou2.5_over", 2.00, (0, 0)),
         ("2026-08-16", "c", "d", "ou2.5_over", 1.80, (3, 1)),
@@ -520,7 +520,8 @@ def test_summary_of_an_empty_ledger_does_not_divide_by_zero(path):
 def test_a_pick_settles_when_the_results_file_uses_a_shorter_name():
     """The price feed says "Mansfield Town", the results file says "Mansfield".
     An exact comparison left the bet pending forever with nothing to say why."""
-    import pathlib, tempfile
+    import pathlib
+    import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         path = pathlib.Path(tmp) / "ledger.csv"
         ledger.record(pick(competition="EL1", home="mansfield town",
@@ -535,7 +536,8 @@ def test_a_pick_settles_when_the_results_file_uses_a_shorter_name():
 def test_an_ambiguous_name_is_left_pending_rather_than_guessed():
     """"Manchester" is a shorter form of two clubs. Grading against the wrong
     match is far worse than not grading at all."""
-    import pathlib, tempfile
+    import pathlib
+    import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         path = pathlib.Path(tmp) / "ledger.csv"
         ledger.record(pick(competition="PL", home="manchester", away="arsenal",

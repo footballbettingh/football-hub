@@ -96,7 +96,7 @@ def _priced(iso):
 def _best_pick_section(picks):
     """The one bet, in a price range where a single pick is worth making."""
     best = picks.get("best_pick")
-    low, high = picks.get("best_band", [1.6, 2.2])
+    low, high = picks.get("best_band", [cf_config.BEST_ODDS_MIN, cf_config.BEST_ODDS_MAX])
     if not best:
         return f"""<section class="card">
   <h2>Best pick of the day</h2>
@@ -265,8 +265,8 @@ def _accumulator_section(picks):
     accas = picks.get("accumulators") or {}
     if not accas:
         return ""
-    target = picks.get("acca_target", 3.0)
-    default = picks.get("acca_default", "4")
+    target = picks.get("acca_target", cf_config.ACCA_TARGET_ODDS)
+    default = picks.get("acca_default", str(cf_config.ACCA_LEGS))
     if default not in accas:
         default = sorted(accas)[0]
 
@@ -599,16 +599,18 @@ def page_card(links, ctx):
             subtitle="The selections most likely to land.")
 
     payload = _card_payload(picks)
+    floor = round(cf_config.MIN_CONFIDENCE * 100)    # where the slider starts
     # Counted off the selections rather than off the payload: the payload rows
     # are packed arrays now, and this number belongs to the page anyway.
     strong = [r for r in picks["selections"]
-              if (r["prob"] or 0) >= 0.75 and r.get("validated")]
+              if (r["prob"] or 0) >= cf_config.MIN_CONFIDENCE and r.get("validated")]
     by_match = len({r["match"] for r in strong})
 
     kpi = c.kpis([
         ("Fixtures priced", f"{picks['n_fixtures']}", picks.get("first_date", "")),
         ("Prices", *_price_ages(picks)),
-        ("At 75% or better", f"{len(strong):,}", f"on {by_match} fixtures"),
+        (f"At {cf_config.MIN_CONFIDENCE:.0%} or better", f"{len(strong):,}",
+         f"on {by_match} fixtures"),
         ("Calibrated on", f"{picks.get('calibrated_on', 0):,}",
          "historical matches"),
     ])
@@ -648,8 +650,8 @@ def page_card(links, ctx):
     <select id="f-comp"><option value="all">All leagues</option>{comps}</select>
     <label class="visually-hidden" for="f-group">Market</label>
     <select id="f-group"><option value="all">All markets</option>{groups}</select>
-    <label class="pill"><input id="f-min" type="range" min="55" max="99" value="75"
-      step="1"> <span id="f-min-v">75%</span> confidence</label>
+    <label class="pill"><input id="f-min" type="range" min="55" max="99"
+      value="{floor}" step="1"> <span id="f-min-v">{floor}%</span> confidence</label>
     <label class="pill"><input id="f-odds" type="range" min="100" max="300" value="100"
       step="5"> <span id="f-odds-v">1.00</span> fair odds</label>
     <label class="pill"><input id="f-one" type="checkbox" checked> one per fixture</label>
@@ -691,8 +693,9 @@ def page_card(links, ctx):
   <p class="note">The top of any such card is a wall of 96% picks at fair odds of
   1.04, and those are the prices bookmakers get most right. <strong>Edge</strong> is
   the only column about money, and it only exists where the fixture feed quotes a
-  price — 1X2 and the goal totals. Drag the fair-odds slider up to ask the more useful question: of the
-  bets that actually pay something, which are the safest?</p>
+  price — 1X2 and the goal totals. Drag the fair-odds slider up to ask the more
+  useful question: of the bets that actually pay something, which are the
+  safest?</p>
   {c.next_links(links, [
       ("reliability", "Is 85% really 85%?", "the out-of-sample record"),
       ("fixtures", "Every fixture", "all markets, match by match"),
@@ -808,9 +811,9 @@ def page_fixtures(links, ctx):
   <h2>{len(rows)} fixtures</h2>
   <p class="note">The headline markets for every match on the card, one match day
   at a time; the search looks across all of them. Click a match, or tab to it and
-  press Enter, to see every selection for that fixture, ranked. “New team” means one side has no history in
-  this competition — a promoted club or a cup tie — so the price is carrying
-  almost the whole forecast.</p>
+  press Enter, to see every selection for that fixture, ranked. “New team”
+  means one side has no history in this competition — a promoted club or a cup
+  tie — so the price is carrying almost the whole forecast.</p>
   <div class="filters">
     <label class="visually-hidden" for="fx-q">Search team or match</label>
     <input id="fx-q" type="search" placeholder="Search team or match" size="22">
@@ -1148,11 +1151,6 @@ def page_history(links, ctx):
     record_section = _record_section(curve)
     market_section = _market_section(frame)
 
-    gap = ""
-    if head["hit_rate"] is not None and head["expected"] is not None:
-        points = (head["hit_rate"] - head["expected"]) * 100
-        gap = f"{points:+.1f} points against what it claimed"
-
     body = f"""
 <section class="card">
   <div class="verdict">
@@ -1220,8 +1218,8 @@ def _record_section(curve):
   what the picks claimed, in the order they were played: on zero, the record is
   exactly where it said it would be. The shaded band is where an honest
   forecast sits about 95 times in 100 at any one point, and it widens as picks
-  are added, because a count of wins spreads as the claims pile up. A line that leaves it and stays out is a claim that is not
-  the truth.</p>
+  are added, because a count of wins spreads as the claims pile up. A line
+  that leaves it and stays out is a claim that is not the truth.</p>
   <div class="chart" id="record"></div>
 </section>"""
 

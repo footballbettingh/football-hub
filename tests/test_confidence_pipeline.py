@@ -293,9 +293,10 @@ def test_the_card_prices_off_the_totals_line_when_the_feed_carries_one():
     from the walk-forward that validated it.
     """
     history, teams = fake_history()
-    priced = lambda fixtures: picks_mod.price_fixtures(
-        history, fixtures, calibrators=None, weight=0.9,
-        min_train=60).set_index("key")["prob_raw"]
+    def priced(fixtures):
+        return picks_mod.price_fixtures(history, fixtures, calibrators=None,
+                                        weight=0.9, min_train=60
+                                        ).set_index("key")["prob_raw"]
 
     without = priced(_one_fixture(teams))
     with_total = priced(_one_fixture(teams, over25_odds_cons=1.90,

@@ -23,6 +23,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from confidence import config as cf_config
+from confidence.implied import devig
+
 
 @dataclass
 class Selection:
@@ -32,19 +35,24 @@ class Selection:
     model_prob: float
     market_prob: float
     odds: float
-    won: bool
+    won: bool | None          # None: not played yet
 
 
 def _devig(prices):
-    """Implied probabilities with the bookmaker margin removed."""
-    raw = np.array([1.0 / p for p in prices], dtype=float)
-    return raw / raw.sum()
+    """Implied probabilities with the bookmaker margin removed.
+
+    The same function and the same method as the card's, `confidence.config.DEVIG`.
+    This half used to scale the margin off evenly while the other took it off
+    the longshots, so the two halves of the site disagreed about what the same
+    closing price said — by most at the long prices this backtest bets on.
+    """
+    return devig(prices, cf_config.DEVIG)
 
 
 class Market:
     key = ""
     label = ""
-    columns = ()          # price columns, in selection order
+    columns: tuple[str, ...] = ()   # price columns, in selection order
 
     def price_columns(self, consensus=False):
         return tuple(c + "_cons" for c in self.columns) if consensus else self.columns

@@ -108,7 +108,8 @@ class Isotonic:
         mean_x = np.bincount(slot, probs, len(edges) - 1)
         mean_y = np.bincount(slot, outcomes, len(edges) - 1)
         used = counts > 0
-        counts, mean_x, mean_y = counts[used], mean_x[used] / counts[used], mean_y[used] / counts[used]
+        counts, mean_x, mean_y = (counts[used], mean_x[used] / counts[used],
+                                  mean_y[used] / counts[used])
 
         target = (counts * mean_y + shrink * mean_x) / (counts + shrink)
         fitted = _pava(target, counts + shrink)

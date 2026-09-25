@@ -1,0 +1,34 @@
+# Tool settings only. The project is not a package anyone installs: it runs
+# from a checkout, and requirements.txt / requirements-dev.txt pin what it
+# needs.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["site", "data", ".agents"]
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle errors and warnings, and bugbear. Left out: isort, whose
+# order would undo the grouping the imports have on purpose, and B905 — `zip`
+# with strict= changes what a mismatched zip does, which is a change of
+# behaviour to make one call at a time, not a lint to apply everywhere.
+select = ["E", "F", "W", "B"]
+ignore = ["B905"]
+
+[tool.ruff.lint.per-file-ignores]
+# The page shell: HTML and an inline SVG, where a line is as long as its tag.
+"hub/components.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["hub", "confidence", "valuebets", "fb.py"]
+# numpy and pandas are typed; scipy and requests stubs are not installed. The
+# default mode: module-level code and whatever is annotated is checked, the
+# bodies of unannotated functions are not. Turning `check_untyped_defs` on
+# reported 64 more on the first run, nearly all an empty list or dict wanting
+# an annotation — worth doing a module at a time, not in one sweep.
+ignore_missing_imports = true
+warn_unused_ignores = true

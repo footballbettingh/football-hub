@@ -310,8 +310,10 @@ bets the server does:
 **Best pick of the day** — the most reliable selection priced between **1.60 and
 2.20** on the next match day. The range is the point: without it the answer is
 always a 99% handicap paying 1.01, which is true, useless, and not what anyone
-means by a best pick. (It is also the one band whose value-betting ROI came out
-positive in the backtest — weak evidence, pointing the same way.)
+means by a best pick. (It is also where the value-betting backtest loses least:
+-2.5% at 1.70–2.00 against -6.8% over every price — weak evidence, pointing
+the same way. It came out positive in the project this was merged from; on
+the history here, nothing does.)
 
 Ranking is not on the raw probability, and not on the band's hit rate either. A
 hit rate is shared by thousands of selections, so ranking on it collapses them
@@ -710,14 +712,22 @@ The short version, with the measurements in
 ```bash
 pip install -r requirements-dev.txt
 python -m pytest tests/ -q
+python -m ruff check .
+python -m mypy
 ```
+
+The three together are what a pull request has to pass. `ruff` and `mypy`
+take their settings from `pyproject.toml`, and why each rule is in or out is
+written there. `pre-commit install` runs the two checks on every commit, with
+the versions the requirements pin rather than hook repositories fetched from
+elsewhere.
 
 The versions in both requirements files are pinned to the ones the suite
 passes on, and the workflow's actions to commits; Dependabot proposes every
 bump as a pull request, so nothing changes under the daily run that the tests
 have not seen.
 
-Over four hundred tests, aimed at the quiet failures: a fixture that has already been played
+Five hundred tests, aimed at the quiet failures: a fixture that has already been played
 still being offered, a static export whose links point at server routes and 404
 once published, a page in the nav that the server has no route for, a job that
 dies without saying so, a `</script>` inside a team name that ends the data

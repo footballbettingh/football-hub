@@ -26,6 +26,7 @@ The site only reads files. These rebuild them, in this order:
 """
 
 import argparse
+import io
 import sys
 
 import pandas as pd
@@ -35,10 +36,11 @@ import pandas as pd
 # command with a UnicodeEncodeError. Team names come from twenty countries;
 # the console has to speak UTF-8.
 for stream in (sys.stdout, sys.stderr):
-    try:
-        stream.reconfigure(encoding="utf-8", errors="replace")
-    except (AttributeError, ValueError):
-        pass
+    if isinstance(stream, io.TextIOWrapper):     # not when a test captures it
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except ValueError:
+            pass
 
 
 def _show(frame, floats=4):
@@ -86,10 +88,13 @@ def cmd_calibrate(args):
 
 
 def cmd_card(args):
+    from confidence import config as cf_config
     from hub import card
+    floor = (cf_config.MIN_CONFIDENCE if args.min_confidence is None
+             else args.min_confidence)
     payload = card.build(weight=args.weight)
     rows = [r for r in payload["selections"]
-            if r["prob"] >= args.min_confidence and r["validated"]]
+            if r["prob"] >= floor and r["validated"]]
     seen, shortlist = set(), []
     for row in sorted(rows, key=lambda r: -r["prob"]):
         if row["match"] in seen:
@@ -97,7 +102,7 @@ def cmd_card(args):
         seen.add(row["match"])
         shortlist.append(row)
     print(f"\n{len(shortlist)} fixtures with a selection at or above "
-          f"{args.min_confidence:.0%}\n")
+          f"{floor:.0%}\n")
     _show(pd.DataFrame(shortlist[:args.limit])[
         ["date", "competition", "match", "selection", "prob", "fair_odds",
          "odds", "edge", "hit_rate"]])
@@ -111,7 +116,8 @@ def cmd_best(args):
         raise SystemExit("No card yet — run `python fb.py card` first.")
 
     best = payload.get("best_pick")
-    low, high = payload.get("best_band", [1.6, 2.2])
+    from confidence import config as cf_config
+    low, high = payload.get("best_band", [cf_config.BEST_ODDS_MIN, cf_config.BEST_ODDS_MAX])
     print(f"\n== Best pick of the day  ({low:g}-{high:g})\n")
     if not best:
         print("  Nothing in that price range on the next match day.")
@@ -140,10 +146,11 @@ def cmd_best(args):
                       f"{pick['fair_odds']:.2f}{offered}")
 
     accas = payload.get("accumulators") or {}
-    key = str(args.legs) if args.legs else payload.get("acca_default", "4")
+    key = str(args.legs) if args.legs else payload.get("acca_default",
+                                                       str(cf_config.ACCA_LEGS))
     acca = accas.get(key)
     print(f"\n== Accumulator pick  ({key} legs, target "
-          f"{payload.get('acca_target', 3.0):g})\n")
+          f"{payload.get('acca_target', cf_config.ACCA_TARGET_ODDS):g})\n")
     if not acca:
         print("  No accumulator of that size clears the target.")
         return
@@ -198,7 +205,7 @@ def cmd_history(args):
 
     accas = ledger.load_accas()
     if not accas.empty:
-        print(f"\n== Accumulator picks (a separate book)\n")
+        print("\n== Accumulator picks (a separate book)\n")
         _show(accas.sort_values(["issued", "legs"], ascending=False)[
             ["issued", "legs", "probability", "fair_odds", "outcome",
              "legs_won"]])
@@ -610,7 +617,7 @@ def cmd_notify(args):
         _notify(tg, only_if_changed=args.only_if_changed, dry_run=args.dry_run,
                 full=args.full)
     except tg.NotifyError as exc:
-        raise SystemExit(str(exc))
+        raise SystemExit(str(exc)) from None
 
 
 def cmd_telegram(args):
@@ -618,7 +625,7 @@ def cmd_telegram(args):
     try:
         _telegram(tg, args)
     except tg.NotifyError as exc:
-        raise SystemExit(str(exc))
+        raise SystemExit(str(exc)) from None
 
 
 def _telegram(tg, args):
@@ -689,7 +696,9 @@ def main(argv=None):
 
     p = sub.add_parser("card", help="price the upcoming fixtures")
     p.add_argument("--weight", type=float, default=None)
-    p.add_argument("--min-confidence", type=float, default=0.75)
+    p.add_argument("--min-confidence", type=float, default=None,
+                   help="the card's own floor (confidence.config.MIN_CONFIDENCE) "
+                        "unless given")
     p.add_argument("--limit", type=int, default=25)
     p.set_defaults(func=cmd_card)
 
