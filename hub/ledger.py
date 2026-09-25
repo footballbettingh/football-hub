@@ -24,7 +24,7 @@ from datetime import date, datetime
 import numpy as np
 import pandas as pd
 
-from confidence import config as cf_config, data as cf_data
+from confidence import config as cf_config, data as cf_data, evaluate
 from confidence.markets import corner_results, goal_results
 from confidence.teams import build_resolver
 from valuebets import config as vb_config, files
@@ -467,6 +467,18 @@ def summary(frame, today=None):
         # The forecast's own claim, to sit next to what happened. A run of ten
         # is noise; the comparison only starts meaning something in the dozens.
         "expected": float(decided["prob"].mean()) if len(decided) else None,
+        # The same comparison as a count, with the right yardstick. The picks
+        # each claimed something different, so the wins to expect are the sum
+        # of the claims and the spread around it is the sum of p(1 - p) —
+        # not the Wilson interval's one coin tossed n times. `z` is how many
+        # of those spreads the record sits from its claim.
+        "expected_wins": float(decided["prob"].sum()) if len(decided) else None,
+        "z": (evaluate.calibration_z(decided["prob"].astype(float),
+                                     decided["outcome"] == "won")
+              if len(decided) else None),
+        "brier": (evaluate.brier(decided["prob"].astype(float),
+                                 (decided["outcome"] == "won").astype(float))
+                  if len(decided) else None),
         "priced": int(len(priced)),
         "unpriced": int(len(done) - len(priced)),
         "pnl": pnl,
@@ -491,6 +503,121 @@ def summary_by_band(frame, today=None):
         head = summary(frame[frame["band"].astype(str) == band], today)
         out.append({"band": band, **head})
     return out
+
+
+# -- against the closing line ------------------------------------------------
+
+# What the closing line made of each pick. Derived, so it lives beside the
+# ledger rather than in it: the ledger is what was claimed and what happened,
+# and this can be worked out again from the history at any time.
+CLOSE_CSV = vb_config.DATA_DIR / "ledger_close.csv"
+
+CLOSE_COLUMNS = ["day", "band", "match", "key", "prob", "prob_close"]
+
+
+def closing_probs(frame, predictions, calibrators=None, weight=None):
+    """The probability each pick's selection had at the close, or NaN.
+
+    A pick is written down days before kick-off, on the prices of that day.
+    The walk-forward has the same match priced at the closing line — the
+    sharpest number there is — through the same fusion and, given the live
+    calibrators, the same calibration. So this is the pick's own claim asked
+    again at kick-off, and the difference between the two is how much of the
+    claim the market had taken back by then.
+
+    That difference is the fast half of the record. Whether a 62% pick landed
+    is a coin toss that needs hundreds to read; how far 62% moved by the close
+    is a number that hardly varies from pick to pick, and a few dozen say
+    whether the claims are being made on prices that have not caught up yet.
+
+    NaN where there is no closing line to ask: corners, which nothing quotes,
+    and any match the walk-forward has not reached.
+    """
+    from confidence import markets, predict
+    from confidence.poisson import score_matrix
+
+    weight = cf_config.MARKET_WEIGHT if weight is None else weight
+    out = np.full(len(frame), np.nan)
+    if predictions is None or len(predictions) == 0 or len(frame) == 0:
+        return out
+    resolvers = _resolvers(predictions)
+    for position, (_, row) in enumerate(frame.iterrows()):
+        key = row.get("key")
+        if not isinstance(key, str) or markets.group_of(key) == "corners":
+            continue
+        match = _result_for(row, predictions, resolvers)
+        if match is None or match["lam_market"] != match["lam_market"]:
+            continue
+        lam, mu, rho = predict.fuse(match["lam_model"], match["mu_model"],
+                                    match["rho_model"], match["lam_market"],
+                                    match["mu_market"], match["rho_market"], weight)
+        p = markets.goal_probabilities(score_matrix(lam, mu, rho)).get(key)
+        if p is None:
+            continue
+        calibrator = (calibrators.by_group.get(markets.group_of(key))
+                      if calibrators is not None else None)
+        out[position] = float(calibrator(np.array([p]))[0]) if calibrator else p
+    return out
+
+
+def write_closing(path=None, ledger_path=None):
+    """Work out `closing_probs` for the whole book and write it down. Free.
+
+    Needs the walk-forward (`fb.py model`) to have reached the matches, and
+    reads the live calibrators where there are some.
+    """
+    from confidence.calibrate import Calibrators
+
+    path = path or CLOSE_CSV
+    frame = load(ledger_path or LEDGER_CSV)
+    if not cf_config.PREDICTIONS_CSV.exists():
+        raise SystemExit("No walk-forward predictions yet — run `python fb.py model`.")
+    predictions = pd.read_csv(cf_config.PREDICTIONS_CSV, parse_dates=["date"])
+    calibrators = (Calibrators.load(cf_config.CALIBRATION_JSON)
+                   if cf_config.CALIBRATION_JSON.exists() else None)
+    out = frame[["day", "band", "match", "key", "prob"]].copy()
+    out["prob_close"] = closing_probs(frame, predictions, calibrators)
+    files.write_csv(out[CLOSE_COLUMNS], path, index=False, float_format="%.5f")
+    return out
+
+
+def load_closing(path=None):
+    path = path or CLOSE_CSV
+    if not path.exists():
+        return pd.DataFrame(columns=CLOSE_COLUMNS)
+    return pd.read_csv(path, dtype={"day": str})
+
+
+def drift(closing):
+    """How far the claims moved by the close, in probability points.
+
+    Negative is the claim taken back: the pick was written down at a number
+    the closing line no longer believed. `se` and `z` treat the picks as
+    independent, which the one-bet-per-match rule is there to make true.
+    """
+    known = closing.dropna(subset=["prob_close"]) if len(closing) else closing
+    if len(known) == 0:
+        return {"n": 0, "claimed": None, "close": None, "drift_pp": None,
+                "se_pp": None, "z": None}
+    moved = (known["prob_close"].astype(float) - known["prob"].astype(float)) * 100
+    se = float(moved.std(ddof=1) / np.sqrt(len(moved))) if len(moved) > 1 else None
+    return {
+        "n": int(len(known)),
+        "claimed": float(known["prob"].mean()),
+        "close": float(known["prob_close"].mean()),
+        "drift_pp": float(moved.mean()),
+        "se_pp": se,
+        "z": float(moved.mean() / se) if se else None,
+    }
+
+
+def drift_by_band(closing):
+    """`drift`, one price band at a time, in the ledger's own order."""
+    if len(closing) == 0:
+        return {}
+    bands = closing["band"].astype(str)
+    return {band: drift(closing[bands == band])
+            for band in ("safe", "main", "value") if (bands == band).any()}
 
 
 # -- the accumulator, kept in its own book ---------------------------------

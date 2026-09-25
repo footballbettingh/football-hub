@@ -368,10 +368,23 @@ magnitude apart and neither labelled. The money went; the record stayed.
 That also matches what the project claims. Nothing here says it beats the
 closing line — the Evidence page says the opposite at length. What it claims is
 that a probability means what it says, and testing that needs a result, not a
-price. So the page leads with the record, the claimed rate beside it, and a
-Wilson interval on what landed: the question is not whether the record is ahead
-but whether the claim sits inside that interval, and at this sample size it
-comfortably does.
+price. So the page leads with the record and the claim beside it, and reads
+the gap in standard errors: the wins to expect are the sum of the claims, the
+spread around them the sum of p(1 − p), and `z` is how many spreads apart the
+two are. The question is not whether the record is ahead but whether it sits
+within two of its claim — which at this sample size it comfortably does. (It
+was a Wilson interval on the pooled hit rate once, which treats picks claiming
+45% and 77% as one coin and comes out wider than the truth.)
+
+And beside the record, the same claims **asked again at the close**. Every
+settled match is in the walk-forward priced at its closing line, so each pick's
+selection can be priced there through the same fusion and calibration, and set
+against the number it was written down at — `data/ledger_close.csv`, rebuilt by
+each run. A hit rate needs hundreds of picks to read; how far a claim moved by
+kick-off hardly varies from pick to pick, so a few dozen say whether the claims
+are being made on prices the market then takes back. Corners have no closing
+line and sit it out, and a pick written down before a change to the model
+carries that change in its drift too.
 
 The `odds` and `pnl` columns are still written when a price happens to exist,
 because the ledger is the one file in the project that cannot be rebuilt and

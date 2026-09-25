@@ -128,7 +128,7 @@ def test_nothing_is_bought_blind(monkeypatch):
 @pytest.fixture
 def run_prices(monkeypatch):
     """Everything in `fb.py run` except the choice of how to buy prices."""
-    from hub import card, evidence
+    from hub import card, evidence, ledger
     calls = []
     monkeypatch.setattr(pipeline, "fetch_results", lambda: None)
     monkeypatch.setattr(pipeline, "fetch_odds_paced", lambda: calls.append("paced"))
@@ -136,6 +136,7 @@ def run_prices(monkeypatch):
                         lambda sports=None: calls.append(("all", sports)))
     monkeypatch.setattr(card, "build", lambda: None)
     monkeypatch.setattr(evidence, "build", lambda: None)
+    monkeypatch.setattr(ledger, "write_closing", lambda: None)
     monkeypatch.setattr(fb, "_odds_age_days", lambda: 2.0)
 
     def run(*flags):
