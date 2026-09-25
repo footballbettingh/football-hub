@@ -237,6 +237,24 @@ def test_ceilings_stop_at_an_untested_band():
     assert picks_mod.group_ceilings(reliability)["corners"] == 0.85
 
 
+def test_each_ceiling_says_why_it_stops_where_it_does():
+    """The Reliability page used to name the markets that overstate themselves
+    by hand, and went on naming BTTS after its record stopped saying so."""
+    reliability = _reliability([
+        ("btts", 0.60, 0.70, 0.615, 0.618, 1751),
+        ("btts", 0.70, 0.75, 0.727, 0.627, 1020),       # ten points short
+        ("corners", 0.80, 0.85, 0.82, 0.822, 5000),
+        ("corners", 0.85, 0.90, 0.87, 0.900, 12),       # nobody has checked
+        ("hcp", 0.90, 0.99, 0.95, 0.951, 9000),
+        ("hcp", 0.99, 1.00, 0.995, 0.996, 4000),
+    ])
+    assert picks_mod.ceiling_reasons(reliability) == {
+        "btts": picks_mod.OVERSTATED,
+        "corners": picks_mod.TOO_FEW,
+        "hcp": picks_mod.TESTED_TO_THE_TOP,
+    }
+
+
 def test_unvalidated_picks_are_off_the_card_by_default():
     reliability = _reliability([
         ("all", 0.90, 1.00, 0.93, 0.928, 3000),

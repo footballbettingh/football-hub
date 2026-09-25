@@ -318,6 +318,43 @@ def test_every_script_a_page_runs_is_the_sites_own():
         assert c.KOFI_URL in html and "ko-fi.com/cdn" not in html
 
 
+def _reliability_table(rows):
+    """rows: (scope, band_low, band_high, predicted, actual, n)."""
+    return pd.DataFrame([{
+        "scope": scope, "band": f"{low:.0%}-{high:.0%}", "band_low": low,
+        "band_high": high, "n": n, "predicted": said, "actual": did,
+        "gap": did - said, "ci_low": did - 0.01, "ci_high": did + 0.01}
+        for scope, low, high, said, did, n in rows])
+
+
+def test_the_landing_page_counts_the_bands_it_says_are_on_the_line():
+    """It said "All N bands land inside that strip" whatever the bands did."""
+    table = _reliability_table([
+        ("all", 0.30, 0.40, 0.35, 0.352, 9000),
+        ("all", 0.40, 0.45, 0.425, 0.460, 9000),        # three and a half out
+    ])
+    html = pages.render("index", c.Links("server"), dict(EMPTY, reliability=table))
+    assert "1 of 2 bands land inside that strip" in html
+    table.loc[1, "actual"] = 0.43
+    html = pages.render("index", c.Links("server"), dict(EMPTY, reliability=table))
+    assert "All 2 bands land inside that strip" in html
+
+
+def test_the_reliability_page_says_why_each_market_stops_from_its_record():
+    table = _reliability_table([
+        ("all", 0.30, 0.40, 0.35, 0.351, 9000),
+        ("all", 0.60, 0.70, 0.65, 0.651, 9000),
+        ("btts", 0.60, 0.70, 0.615, 0.618, 1751),
+        ("btts", 0.70, 0.75, 0.727, 0.627, 1020),
+        ("corners", 0.60, 0.70, 0.65, 0.652, 5000),
+    ])
+    html = pages.render("reliability", c.Links("server"), dict(EMPTY, reliability=table))
+    assert "overstated itself in the band above" in html
+    assert "the first applies to Both teams to score." in html
+    assert "Corners and BTTS" not in html
+    assert "30% up to 100%" in html                    # it was "50%" whatever the table
+
+
 def test_the_page_carries_a_policy_that_allows_only_its_own_scripts():
     html = c.layout(c.Links("static"), "t", "index", "")
     policy = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html).group(1)

@@ -303,9 +303,10 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
   </main>
   <footer class="site">
     <p>Built {datetime.now():%d %b %Y, %H:%M} from local data. Probabilities are
-    anchored to <em>de-vigged</em> closing prices: raw <code>1/odds</code> sums to
-    about 1.07, and counting that margin as information is the easiest way to
-    fool yourself.</p>
+    anchored to <em>de-vigged</em> bookmaker prices — the current line on the card,
+    the closing one in everything it was checked against: raw <code>1/odds</code>
+    sums to about 1.07, and counting that margin as information is the easiest way
+    to fool yourself.</p>
     <p>A research tool, not betting advice. A calibrated probability says how
     often something happens — not whether the price on offer is worth taking.</p>
     <p class="ext"><a href="{TELEGRAM_URL}" rel="noopener">{TELEGRAM_ICON}<span>Telegram
