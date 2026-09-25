@@ -262,12 +262,10 @@ def _step(label, fn, required=False, skipped=None):
 def _odds_age_days():
     """How long ago the prices were fetched, in days, or None if never.
 
-    The card takes its fixture list from the price files, and they reach about
-    twelve days ahead — so they do not need refreshing daily, and cannot afford
-    to be. Thirty-one leagues at four credits is ~124 a fetch against a free
-    tier of 500 a month: every seven days would be 539, every eight is 471.
-    Hence a threshold rather than a schedule; a run that finds fresh prices
-    spends nothing and still re-prices the card against the new results.
+    Only `--odds-every` reads this now. It was the whole rule once — buy every
+    league whenever the newest price was eight days old — and it survives as
+    the override for a whole-plan fetch; an unattended run otherwise pays for
+    the leagues that play soon, at the pace the quota allows.
 
     Read from `fetched_at` inside the files rather than their timestamps on
     disk, because a modification time says when this machine last wrote the
@@ -340,19 +338,25 @@ def cmd_run(args):
         _step("Fetching results and closing odds",
               lambda: pipeline.fetch_results(), skipped=skipped)
 
+        sports = args.sports.split(",") if args.sports else None
         if args.no_odds:
             print("\nSkipping prices (--no-odds); the card will use the fixtures "
                   "already on file.")
+        elif sports is None and args.odds_every is None:
+            # The default: only the leagues that play soon, at the pace the
+            # month's quota allows. See `pipeline.fetch_odds_paced`.
+            _step("Fetching prices for the leagues that play soon (free to plan, "
+                  "paced to the quota)",
+                  lambda: pipeline.fetch_odds_paced(), skipped=skipped)
         else:
+            # Asked for by name: these leagues, or everything once the newest
+            # price is older than --odds-every days.
             age = _odds_age_days()
-            if age is not None and age < args.odds_every:
+            if args.odds_every is not None and age is not None and age < args.odds_every:
                 print(f"\nPrices are {age:.1f} days old and the threshold is "
                       f"{args.odds_every}; not spending credits today. "
                       f"Force with --odds-every 0.")
             else:
-                sports = args.sports.split(",") if args.sports else None
-                # No separate discovery step: without --sports, fetch_odds
-                # redraws the league plan itself before spending anything.
                 _step("Fetching prices",
                       lambda: pipeline.fetch_odds(sports=sports), skipped=skipped)
 
@@ -515,14 +519,16 @@ def main(argv=None):
 
     p = sub.add_parser("run", help="fetch, rebuild, re-price and notify")
     p.add_argument("--sports", default=None,
-                   help="comma-separated Odds API keys; default is the tracked plan")
+                   help="comma-separated Odds API keys to buy now, instead of the "
+                        "leagues that play soon")
     p.add_argument("--skip-fetch", action="store_true",
                    help="rebuild and notify from the data already on disk")
     p.add_argument("--no-odds", action="store_true",
                    help="spend no Odds API credits this run")
-    p.add_argument("--odds-every", type=float, default=8.0, metavar="DAYS",
-                   help="only fetch prices when the ones on file are older than "
-                        "this (default: 8, which fits the 500-credit free tier)")
+    p.add_argument("--odds-every", type=float, default=None, metavar="DAYS",
+                   help="buy the whole plan at once if the newest price is older "
+                        "than this (0 forces it); default is to buy only the "
+                        "leagues that play soon, paced to the monthly quota")
     p.add_argument("--skip-model", action="store_true",
                    help="skip the walk-forward rebuild and recalibration")
     p.add_argument("--no-notify", action="store_true")

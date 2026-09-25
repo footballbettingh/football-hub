@@ -66,10 +66,10 @@ jobs:
         run: python -m pytest tests/ -q
 
       # Everything under data/ except the ledger is derived, but restoring it
-      # is what makes the run affordable. `fb.py run` decides whether to spend
-      # Odds API credits by reading `fetched_at` out of the price files: with
-      # no cache there are no price files, every run looks overdue, and 31
-      # leagues at 4 credits would drain the 500-a-month free tier in four days.
+      # is what keeps the card whole: the price files are the fixture list and
+      # the odds history nothing else sells, and odds_quota.json remembers the
+      # day the quota resets. The spending does not depend on it — `fb.py run`
+      # paces itself on the API's own count of the credits left.
       - name: Restore the data folder
         uses: actions/cache/restore@v6
         with:

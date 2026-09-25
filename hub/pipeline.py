@@ -178,10 +178,11 @@ def discover_leagues(progress=print):
 
     LEAGUE_PLAN.write_text(json.dumps(plan, indent=1), encoding="utf-8")
     new = sum(1 for entry in plan if not entry["tracked"])
+    full = len(plan) * odds_api.credits()
     progress(f"\n{len(plan)} leagues can be priced ({new} new). A full price "
-             f"fetch would cost about {len(plan) * 4} credits.")
+             f"fetch would cost about {full} credits.")
     progress(f"Plan -> {LEAGUE_PLAN}")
-    return {"available": len(plan), "new": new, "estimated_credits": len(plan) * 4}
+    return {"available": len(plan), "new": new, "estimated_credits": full}
 
 
 def league_plan():
@@ -197,70 +198,257 @@ def league_plan():
     return sports_tracked()
 
 
-def fetch_odds(progress=print, sports=None, regions="eu,uk", markets="h2h,totals"):
-    """Current prices for upcoming fixtures. COSTS Odds API credits.
+def _redraw_plan(progress):
+    """Draw the league plan again from what is in season. Free.
 
-    Without a list of sports it follows the league plan — redrawn first, every
-    time. Drawing it is free, and a plan drawn once goes stale both ways: it
-    used to be drawn only on a machine that had none, so a league coming into
-    season was never added, and a league whose results had stopped kept being
-    bought at four credits a fetch for a card that then threw its fixtures
-    away. If the redraw fails, the plan on file still stands.
+    A plan drawn once goes stale both ways: it used to be drawn only on a
+    machine that had none, so a league coming into season was never added, and
+    a league whose results had stopped kept being bought for a card that then
+    threw its fixtures away. If the redraw fails, the plan on file still stands.
+    """
+    from requests import RequestException
+    try:
+        discover_leagues(progress)
+    except (SystemExit, RequestException) as exc:
+        # The type and not the message: a failed request names its URL, and
+        # this one carries the API key.
+        progress(f"  could not redraw the league plan ({type(exc).__name__}); "
+                 "following the one on file")
+
+
+def fetch_odds(progress=print, sports=None, regions=None, markets=None):
+    """Current prices for every league in the plan, now. COSTS Odds API credits.
+
+    The deliberate, whole-plan fetch — `fb.py fetch odds`. An unattended run
+    uses `fetch_odds_paced`, which buys only what is about to be played and
+    only as much as the month can afford. Without a list of sports this
+    follows the league plan, redrawn first.
+    """
+    _ensure()
+    from valuebets.sources import odds_api
+    regions, markets = regions or odds_api.REGIONS, markets or odds_api.MARKETS
+
+    if not sports:
+        _redraw_plan(progress)
+    sports = list(sports or league_plan())
+    if not sports:
+        raise SystemExit("No leagues to fetch. Run “Check available leagues” first.")
+    cost = odds_api.credits(regions, markets)
+    progress(f"{len(sports)} leagues x {cost} credits = ~{len(sports) * cost} credits")
+
+    total, failed = 0, []
+    for sport in sports:
+        rows = _fetch_one(sport, regions, markets, progress)
+        if rows is None:
+            failed.append(sport)
+        else:
+            total += rows
+    return {"sports": len(sports) - len(failed), "rows": total,
+            "skipped": len(failed)}
+
+
+def _fetch_one(sport, regions, markets, progress, client=None):
+    """Buy one league's prices and append them to its file.
+
+    Returns the rows now in the file, 0 when the feed had nothing for it, or
+    None when it was skipped.
+    """
+    from valuebets.sources import odds_api
+    try:
+        frame = odds_api.fetch_odds(sport, regions, markets, client=client)
+    except SystemExit as exc:
+        # One league being out of season must not abandon the other thirty.
+        progress(f"  {sport}: skipped ({exc})")
+        return None
+    if frame.empty:
+        progress(f"  {sport}: nothing returned (between seasons?)")
+        return 0
+
+    # The source maps only ten sports onto competition codes; ours maps all
+    # of them. Without this the new leagues arrive with competition=NaN and
+    # silently fail to join onto any history.
+    code = leagues.BY_SPORT.get(sport)
+    if code:
+        frame["competition"] = code
+
+    out = vb_config.DATA_DIR / f"odds_{sport}.csv"
+    if out.exists():
+        # Append: daily runs build the odds history the free tier won't sell.
+        prior = pd.read_csv(out)
+        frame = pd.concat([prior, frame], ignore_index=True).drop_duplicates(
+            subset=["fetched_at", "home_team", "away_team"])
+    # Write the day as plain text. The fetched frame holds Timestamps and
+    # the rows read back from the CSV hold strings, so concatenating them
+    # and writing produces one file with two spellings of the same date —
+    # which the next reader infers a format from and then chokes on.
+    frame["date"] = cf_data.parse_dates(frame["date"], out.name).dt.strftime("%Y-%m-%d")
+    frame.to_csv(out, index=False)
+    progress(f"  {sport}: {len(frame)} rows")
+    return len(frame)
+
+
+# -- paying for prices at the pace the quota allows ---------------------------
+
+QUOTA_STATE = vb_config.DATA_DIR / "odds_quota.json"
+
+# A league is worth paying for when it has a match inside this window. The
+# slate reaches three match days ahead and a pick is written down when its day
+# first comes into that reach — two days out, most weeks — so a price bought
+# any earlier has only aged by the time it is used.
+HORIZON_DAYS = 3
+
+# Never buy the same league twice inside this. With budget to spare the
+# allowance would otherwise go on re-buying prices a few hours old.
+MIN_REFRESH_HOURS = 12
+
+
+def fetch_odds_paced(progress=print, horizon_days=HORIZON_DAYS, now=None):
+    """Prices for the leagues that play soon, as many as the quota affords today.
+
+    The rule this replaces bought every league at once whenever the newest
+    price on file was eight days old, so a pick was written down on prices 3.7
+    days old on average and its match kicked off on prices older still. This
+    asks the free events endpoint which leagues have a match within
+    `horizon_days`, and buys those — stalest first — up to today's share of
+    what is left of the month.
+
+    Simulated against seven months of fixtures from the history: 374 to 450
+    credits a month where the old rule spent 308 to 512, and prices 1.2 days
+    old when a pick is written down instead of 3.7. The share comes from the
+    API's own count of what is left, read off a free call, so it cannot
+    overspend however the cache fares or whoever else is using the key.
     """
     _ensure()
     from requests import RequestException
     from valuebets.sources import odds_api
 
-    if not sports:
-        try:
-            discover_leagues(progress)
-        except (SystemExit, RequestException) as exc:
-            # The type and not the message: a failed request names its URL,
-            # and this one carries the API key.
-            progress(f"  could not redraw the league plan ({type(exc).__name__}); "
-                     "following the one on file")
-    sports = list(sports or league_plan())
+    _redraw_plan(progress)
+    sports = league_plan()
     if not sports:
         raise SystemExit("No leagues to fetch. Run “Check available leagues” first.")
-    cost = len(regions.split(",")) * len(markets.split(","))
-    progress(f"{len(sports)} leagues x {cost} credits = ~{len(sports) * cost} credits")
 
-    total, failed = 0, []
+    client = odds_api.Client()
+    now = pd.Timestamp.now(tz="UTC") if now is None else pd.Timestamp(now)
+    until = now + pd.Timedelta(days=horizon_days)
+    soon = {}
     for sport in sports:
         try:
-            frame = odds_api.fetch_odds(sport, regions, markets)
-        except SystemExit as exc:
-            # One league being out of season must not abandon the other thirty.
-            progress(f"  {sport}: skipped ({exc})")
-            failed.append(sport)
+            events = odds_api.list_events(sport, client)
+        except (SystemExit, RequestException) as exc:
+            progress(f"  {sport}: could not list its fixtures ({type(exc).__name__})")
             continue
-        if frame.empty:
-            progress(f"  {sport}: nothing returned (between seasons?)")
+        kickoffs = pd.to_datetime([e.get("commence_time") for e in events],
+                                  utc=True, errors="coerce")
+        ahead = [k for k in kickoffs if pd.notna(k) and now < k <= until]
+        if ahead:
+            soon[sport] = min(ahead)
+
+    if client.remaining is None:
+        progress("The API did not say how much of the quota is left, so nothing "
+                 "is bought blind.")
+        return {"due": len(soon), "fetched": 0}
+
+    days_left = days_to_reset(client.used, now.date())
+    allowance = daily_allowance(client.remaining, days_left)
+    cost = odds_api.credits(odds_api.REGIONS, odds_api.MARKETS)
+    order = paced_order(soon, quote_ages(now), allowance, cost)
+    progress(f"{len(soon)} of {len(sports)} leagues play in the next {horizon_days} "
+             f"days. {client.remaining} credits left, {days_left} day(s) to the "
+             f"reset: {allowance:.1f} to spend today, {cost} a league.")
+    later = [sport for sport in sorted(soon) if sport not in order]
+    if later:
+        progress(f"  left for another day: {', '.join(later)}")
+
+    bought = 0
+    for sport in order:
+        if _fetch_one(sport, odds_api.REGIONS, odds_api.MARKETS, progress,
+                      client=client) is not None:
+            bought += 1
+    return {"due": len(soon), "fetched": bought, "remaining": client.remaining,
+            "days_to_reset": days_left}
+
+
+def daily_allowance(remaining, days_left, floor=None):
+    """Today's share of the credits left above the floor."""
+    floor = vb_config.ODDS_API_MIN_CREDITS if floor is None else floor
+    return max(0.0, (remaining - floor) / max(int(days_left), 1))
+
+
+def paced_order(soon, ages, allowance, cost, min_age_hours=MIN_REFRESH_HOURS):
+    """Which of the leagues that play soon to buy today, in the order to buy them.
+
+    `soon` maps a league to its next kick-off, `ages` to how many days old its
+    newest price is — absent where it has none, which puts it first. Stalest
+    first, then the one that plays soonest, and no more than the allowance
+    pays for.
+    """
+    never = float("inf")
+    due = [sport for sport in soon
+           if ages.get(sport, never) * 24 >= min_age_hours]
+    due.sort(key=lambda sport: (-ages.get(sport, never), soon[sport]))
+    return due[:int((allowance + 1e-9) // cost)]
+
+
+def quote_ages(now):
+    """How many days old each league's newest price is, from `fetched_at`."""
+    out = {}
+    for sport in sports_tracked():
+        path = vb_config.DATA_DIR / f"odds_{sport}.csv"
+        try:
+            stamps = pd.to_datetime(pd.read_csv(path, usecols=["fetched_at"])
+                                    ["fetched_at"], errors="coerce", utc=True)
+        except (ValueError, KeyError, OSError):
             continue
+        if pd.notna(stamps.max()):
+            out[sport] = (now - stamps.max()) / pd.Timedelta(days=1)
+    return out
 
-        # The source maps only ten sports onto competition codes; ours maps all
-        # of them. Without this the new leagues arrive with competition=NaN and
-        # silently fail to join onto any history.
-        code = leagues.BY_SPORT.get(sport)
-        if code:
-            frame["competition"] = code
 
-        out = vb_config.DATA_DIR / f"odds_{sport}.csv"
-        if out.exists():
-            # Append: daily runs build the odds history the free tier won't sell.
-            prior = pd.read_csv(out)
-            frame = pd.concat([prior, frame], ignore_index=True).drop_duplicates(
-                subset=["fetched_at", "home_team", "away_team"])
-        # Write the day as plain text. The fetched frame holds Timestamps and
-        # the rows read back from the CSV hold strings, so concatenating them
-        # and writing produces one file with two spellings of the same date —
-        # which the next reader infers a format from and then chokes on.
-        frame["date"] = cf_data.parse_dates(frame["date"], out.name).dt.strftime("%Y-%m-%d")
-        frame.to_csv(out, index=False)
-        progress(f"  {sport}: {len(frame)} rows")
-        total += len(frame)
-    return {"sports": len(sports) - len(failed), "rows": total,
-            "skipped": len(failed)}
+def days_to_reset(used, today, path=None):
+    """Days until the monthly quota comes back, and at least one.
+
+    The API says how much has been used since the last reset, never when the
+    next one is. So the reset is watched for: `used` falling between two runs
+    is one, and its day of the month is remembered in `odds_quota.json`. Until
+    one has been seen the first of the month is assumed. A wrong guess is safe
+    either way: too late and the month ends with credits unspent; too early and
+    the spending reaches the floor, where the allowance holds it until the
+    real reset comes.
+    """
+    path = path or QUOTA_STATE
+    state = {}
+    if path.exists():
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            state = {}
+    reset_day = state.get("reset_day")
+    if used is not None and state.get("used") is not None and used < state["used"]:
+        reset_day = today.day
+    if used is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"reset_day": reset_day, "used": used,
+                                    "seen": today.isoformat()}), encoding="utf-8")
+    return _days_until(today, reset_day or 1)
+
+
+def _days_until(today, day):
+    """Days from `today` to the next date falling on this day of the month.
+
+    A day past the end of a month lands on its last day, so a reset seen on
+    the 31st still comes round in February.
+    """
+    import calendar
+    from datetime import date
+
+    def on(year, month):
+        return date(year, month, min(day, calendar.monthrange(year, month)[1]))
+
+    upcoming = on(today.year, today.month)
+    if upcoming <= today:
+        year, month = (today.year + 1, 1) if today.month == 12 else (today.year, today.month + 1)
+        upcoming = on(year, month)
+    return (upcoming - today).days
 
 
 # -- the confidence model --------------------------------------------------
