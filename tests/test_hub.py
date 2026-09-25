@@ -620,6 +620,9 @@ def test_the_card_page_shows_the_selections_it_was_given():
     assert "Over 0.5 goals" in html
     # Below the floor, so it never reaches the browser at all.
     assert "Under 4.5 goals" not in html
+    # The column of checkboxes has a name for a screen reader to read out.
+    assert "<th></th>" not in html
+    assert '<th><span class="visually-hidden">On the slip</span></th>' in html
 
 
 @pytest.mark.parametrize("page", sorted(pages.BUILDERS))
@@ -903,6 +906,29 @@ def test_fixture_rows_carry_the_match_as_an_attribute():
     assert 'data-match="Alav&#xe9;s v Getafe"' in html or \
            'data-match="Alavés v Getafe"' in html
     assert "new team" in html
+
+
+def test_a_fixture_opens_from_the_keyboard():
+    """The row answered to a click and nothing else. Its name is a button now,
+    so it takes the focus and Enter or Space opens it, and it says whether it
+    is open."""
+    selections = [{"date": "2026-09-12", "competition": "E0", "match": "a v b",
+                   "new_team": False, "key": "1x2_home", "prob": 0.5}]
+    html = pages.render("fixtures", c.Links("server"),
+                        dict(EMPTY, picks={"selections": selections}))
+    assert ('<button type="button" class="fx-open" aria-expanded="false">a v b'
+            '</button>') in html
+
+
+def test_a_band_out_by_more_than_two_points_says_which_way_in_words():
+    """The colour said it alone, to anyone who could tell the colours apart."""
+    assert "overstated" not in pages._band_gap(-0.015)
+    assert "understated" not in pages._band_gap(0.015)
+    assert 'class="tag critical">overstated' in pages._band_gap(-0.025)
+    assert 'class="tag warning">understated' in pages._band_gap(0.025)
+    table = _reliability_table([("all", 0.30, 0.40, 0.35, 0.32, 9000)])
+    html = pages.render("reliability", c.Links("server"), dict(EMPTY, reliability=table))
+    assert "-3.00pp</span><span class=\"tag critical\">overstated" in html
 
 
 # -- static export ---------------------------------------------------------
