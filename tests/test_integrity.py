@@ -188,6 +188,7 @@ def run(monkeypatch):
         monkeypatch.setattr(pipeline, name, lambda: None)
     monkeypatch.setattr(card, "build", lambda: None)
     monkeypatch.setattr(evidence, "build", lambda: None)
+    monkeypatch.setattr(ledger, "write_closing", lambda: None)
 
     def go(stage=None, failure=None):
         if stage:
@@ -200,6 +201,13 @@ def run(monkeypatch):
 
 def test_a_clean_run_exits_zero(run):
     assert run() == 0
+
+
+def test_a_run_measures_the_ledger_against_the_close(run, monkeypatch):
+    measured = []
+    monkeypatch.setattr(ledger, "write_closing", lambda: measured.append(True))
+    run()
+    assert measured == [True]
 
 
 def test_a_run_through_a_provider_outage_still_exits_zero(run):

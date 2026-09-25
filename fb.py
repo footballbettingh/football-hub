@@ -165,21 +165,34 @@ def cmd_history(args):
         f"{head['no_result']} with no result" if head["no_result"] else "") if part)
     columns = ["day", "band", "match", "selection", "prob", "fair_odds", "outcome"]
     _show(frame.sort_values(["day", "band"], ascending=False)[columns])
+    closing = ledger.load_closing()
+    moved = ledger.drift_by_band(closing)
     for band in ledger.summary_by_band(frame):
         if band["settled"]:
-            print(f"  {band['band']:<6} {band['wins']}-{band['losses']}"
-                  f"   did {band['hit_rate']:.1%} vs said {band['expected']:.1%}")
+            line = (f"  {band['band']:<6} {band['wins']}-{band['losses']}"
+                    f"   did {band['hit_rate']:.1%} vs said {band['expected']:.1%}"
+                    f"   z {band['z']:+.2f}")
+            close = moved.get(band["band"]) or {}
+            if close.get("n"):
+                line += (f"   close {close['drift_pp']:+.1f}pp"
+                         + (f" ± {close['se_pp']:.1f}" if close["se_pp"] else "")
+                         + f" on {close['n']}")
+            print(line)
     print(f"\n  record {head['wins']}-{head['losses']}"
           + (f" ({aside})" if aside else "")
           + f", {head['pending']} pending")
     if head["hit_rate"] is not None:
-        low, high = head["hit_ci"]
-        print(f"  landed {head['hit_rate']:.1%} against {head['expected']:.1%} claimed"
-              f"  (95% interval {low:.1%} to {high:.1%})")
-        inside = low <= head["expected"] <= high
-        print("  the claim sits " + ("inside" if inside else "OUTSIDE")
-              + " that interval, on "
-              + f"{head['settled']} settled pick(s)")
+        print(f"  landed {head['wins']} against {head['expected_wins']:.1f} claimed "
+              f"({head['hit_rate']:.1%} against {head['expected']:.1%}): "
+              f"z {head['z']:+.2f}, Brier {head['brier']:.4f}, "
+              f"on {head['settled']} settled pick(s)")
+    pooled = ledger.drift(closing)
+    if pooled["n"]:
+        print(f"  at the close the same selections stood at {pooled['close']:.1%} "
+              f"against {pooled['claimed']:.1%} claimed: "
+              f"{pooled['drift_pp']:+.1f}pp"
+              + (f" ± {pooled['se_pp']:.1f}" if pooled["se_pp"] else "")
+              + f" on {pooled['n']} pick(s) with a closing line")
 
     accas = ledger.load_accas()
     if not accas.empty:
@@ -431,7 +444,7 @@ def cmd_run(args):
     upcoming matches all eventually kick off and the card has nothing to price.
     """
     from datetime import datetime
-    from hub import card, evidence, notify as tg, pipeline
+    from hub import card, evidence, ledger, notify as tg, pipeline
 
     started, skipped, broken = datetime.now(), [], []
 
@@ -472,6 +485,8 @@ def cmd_run(args):
     # Required: the card is what a notification is about. Sending yesterday's
     # pick because today's build failed is worse than sending nothing.
     _step("Pricing the card", lambda: card.build(), required=True)
+    step("Measuring the ledger against the closing line (free)",
+         lambda: ledger.write_closing())
 
     if args.no_notify:
         print("\nSkipping Telegram (--no-notify).")

@@ -39,6 +39,7 @@ def build_context():
     return {
         "picks": picks,
         "ledger": ledger.load(),
+        "closing": ledger.load_closing(),
         "accas": ledger.load_accas(),
         "reliability": artifacts.load_reliability(),
         "evidence": artifacts.load_evidence(),
@@ -52,13 +53,6 @@ def _pct(value, digits=1):
 
 def _num(value, digits=2):
     return NONE if value is None else f"{value:.{digits}f}"
-
-
-def _interval(pair):
-    """A Wilson interval, or the placeholder when there is nothing to bound."""
-    if not pair or pair[0] is None:
-        return NONE
-    return f"{_pct(pair[0], 0)}&ndash;{_pct(pair[1], 0)}"
 
 
 def _best_pick_section(picks):
@@ -1054,6 +1048,12 @@ def page_history(links, ctx):
     # what it says, and testing that needs a result, not a price.
     unpriced_note = ""
 
+    closing = ctx.get("closing")
+    if closing is None:
+        closing = pd.DataFrame(columns=ledger.CLOSE_COLUMNS)
+    moved = ledger.drift_by_band(closing)
+    pooled = ledger.drift(closing)
+
     bands = ledger.summary_by_band(frame)
     band_section = ""
     if len(bands) > 1:
@@ -1062,7 +1062,8 @@ def page_history(links, ctx):
             f"{row['wins']}&ndash;{row['losses']}",
             _pct(row["hit_rate"]),
             _pct(row["expected"]),
-            _interval(row.get("hit_ci")),
+            _z(row.get("z")),
+            _drift(moved.get(row["band"])),
             str(row["pending"]),
         ] for row in bands]
         band_section = f"""
@@ -1070,9 +1071,17 @@ def page_history(links, ctx):
   <h2>By price band</h2>
   <p class="note">Pooling the bands hides the failure worth catching: a forecast
   can be honest at 70% and overconfident at 40%. Read <em>did</em> against
-  <em>said</em> in each row, not the money.</p>
-  {c.table(["Band", "Record", "Did", "Said", "95% interval", "Pending"],
-           band_rows, numeric_from=1, raw=True)}
+  <em>said</em> in each row, not the money. <strong>z</strong> is how many
+  standard errors the wins sit from the sum of the claims; inside two either
+  way is what an honest forecast looks like.</p>
+  <p class="note"><strong>To the close</strong> is the same selection asked
+  again at kick-off, on the closing line, against the claim it was written down
+  at. It barely varies from pick to pick, so it says in dozens of picks what the
+  record needs hundreds for: negative is a claim the market had taken back by
+  the time the match started. A pick written down before a change to the model
+  carries that change in it too.</p>
+  {c.table(["Band", "Record", "Did", "Said", "z", "To the close", "Pending"],
+           band_rows, numeric_from=1, raw=True, blank=NONE, roles=BAND_ROLES)}
 </section>"""
 
 
@@ -1098,10 +1107,13 @@ def page_history(links, ctx):
 {c.kpis([
     ("Landed", _pct(head["hit_rate"]),
      f"said {_pct(head['expected'])}" if head["expected"] is not None else ""),
-    ("95% interval", _interval(head.get("hit_ci")),
-     "on what landed, not what was claimed"),
+    ("Against the claim", _z(head.get("z")),
+     (f"{head['wins']} won, {head['expected_wins']:.1f} claimed"
+      if head.get("expected_wins") is not None else "")),
+    ("To the close", _drift(pooled),
+     f"on {pooled['n']} pick(s) with a closing line" if pooled["n"] else
+     "no pick has reached the closing line yet"),
     ("Settled", f"{head['settled']}", _settled_note(head)),
-    ("Picks recorded", f"{head['recorded']}", "one per band per match day"),
 ])}
 {behind_note}
 {no_result_note}
@@ -1122,44 +1134,69 @@ def page_history(links, ctx):
                             "graded on the result, not on a price"])
 
 
+# On a phone: the band and what it did, its record and what it said, then the
+# z-score, the close and what is pending in small print.
+BAND_ROLES = ["title", "sub", "end", "end2 label", "meta label", "meta label",
+              "meta label"]
+
+
+def _z(value):
+    """A z-score as the page prints it, or the placeholder."""
+    return NONE if value is None or value != value else f"{value:+.2f}"
+
+
+def _drift(moved):
+    """Drift to the close, in points, with its standard error where it has one."""
+    if not moved or not moved.get("n"):
+        return NONE
+    out = f"{moved['drift_pp']:+.1f}pp"
+    if moved.get("se_pp"):
+        out += f" &plusmn;&nbsp;{moved['se_pp']:.1f}"
+    return out
+
+
 def _history_verdict(head):
     """Say plainly how little a short record proves.
 
-    Keyed off whether the claim sits inside the interval rather than off
-    whether the record is ahead. A run of wins and a run of losses are the
-    same event at this sample size, and saying so is the point of the page.
+    Keyed off how far the wins sit from what the claims added up to, in
+    standard errors, rather than off whether the record is ahead. A run of
+    wins and a run of losses are the same event at this sample size, and
+    saying so is the point of the page. It was a Wilson interval on the pooled
+    hit rate once; that treats picks claiming 45% and 77% as one coin, which
+    is wider than the truth when the claims are spread — as the bands make
+    sure they are.
     """
     settled = head["settled"]
     if settled == 0:
         return c.status_block("neutral", "Nothing settled yet",
                               "The first pick is still waiting on its match.")
 
-    low, high = head.get("hit_ci") or (None, None)
-    said = head["expected"]
-    if low is None or said is None:
+    z, expected = head.get("z"), head.get("expected_wins")
+    if z is None or z != z or expected is None:
         return c.status_block("neutral", f"{settled} settled, nothing to read yet",
                               "A hit rate needs a few dozen results before it "
                               "says anything at all.")
 
-    inside = low <= said <= high
+    count = (f"{head['wins']} landed against {expected:.1f} claimed, "
+             f"{z:+.1f} standard errors, over {settled} settled pick(s)")
     if settled < 100:
         return c.status_block(
             "warning", "Far too early to read anything into this",
-            f"{settled} settled pick(s). The interval on what landed runs "
-            f"{low:.0%} to {high:.0%}, which is wide enough to contain almost "
-            "any honest forecast. A hit rate starts meaning something in the "
-            "hundreds; the reliability tables get there, this does not.")
-    if inside:
+            f"{count}. At this size almost any honest forecast lands within two "
+            "standard errors of its claim and almost any dishonest one does too. "
+            "A hit rate starts meaning something in the hundreds; the reliability "
+            "tables get there, this does not.")
+    if abs(z) <= 2:
+        return c.status_block("good", "Landing where it said it would", f"{count}.")
+    if z > 0:
         return c.status_block(
-            "good", "Landing where it said it would",
-            f"The claimed {said:.1%} sits inside the {low:.0%} to {high:.0%} "
-            "interval on what actually happened, over "
-            f"{settled} settled picks.")
+            "warning", "Landing more often than it said it would",
+            f"{count}. Modest rather than wrong, which costs a reader nothing — "
+            "but it is still a claim that is not the truth.")
     return c.status_block(
-        "critical", "Not landing where it said it would",
-        f"The claimed {said:.1%} sits outside the {low:.0%} to {high:.0%} "
-        f"interval on what actually happened, over {settled} settled picks. "
-        "That is a calibration failure, not bad luck.")
+        "critical", "Landing less often than it said it would",
+        f"{count}. More than two standard errors short is something an honest "
+        "forecast does about one time in forty, and worth finding the cause of.")
 
 
 # -- 4. reliability --------------------------------------------------------
