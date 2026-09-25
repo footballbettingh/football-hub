@@ -1,4 +1,4 @@
-"""The same five pages, written to disk as files.
+"""The same seven pages, written to disk as files.
 
 This exists so the local server is not the only way to read the thing: the
 export opens over `file://`, drops onto a USB stick, and is the exact artefact

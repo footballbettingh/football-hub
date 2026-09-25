@@ -18,7 +18,6 @@ import requests
 
 from .. import config, files
 from confidence.teams import normalize
-from .football_data_org import SPORT_TO_COMPETITION
 
 USER_AGENT = "value-bets-mvp/0.3"
 
@@ -239,7 +238,9 @@ def fetch_odds(sport_key, regions=REGIONS, markets=MARKETS, price_method="best",
             "date": event["commence_time"][:10],
             "commence_time": event["commence_time"],
             "sport": sport_key,
-            "competition": SPORT_TO_COMPETITION.get(sport_key),
+            # Filled in by the caller, which knows every league's code
+            # (`hub.leagues.BY_SPORT`); this module knows none of them.
+            "competition": None,
             "home_team": home,
             "away_team": away,
             "home_odds": primary[home],
@@ -259,56 +260,3 @@ def fetch_odds(sport_key, regions=REGIONS, markets=MARKETS, price_method="best",
         frame["home_key"] = frame.home_team.map(normalize)
         frame["away_key"] = frame.away_team.map(normalize)
     return frame
-
-
-def fetch_alternate_totals(sport_key, lines=(1.5,), max_events=None, client=None):
-    """Per-event alternate Over/Under lines (1.5, 3.5, …).
-
-    The bulk /odds endpoint only serves *featured* markets, and for soccer that
-    means the 2.5 line and nothing else — verified: a totals pull returns 184
-    quotes at 2.5 and zero at 1.5. Anything else lives on the per-event odds
-    endpoint under `alternate_totals`.
-
-    That is priced per event, so a full round of fixtures costs roughly
-    2 credits x [events] — about 140 for a weekend across six leagues, i.e.
-    28% of a free month. Hence opt-in, with the bill printed before it is run.
-
-    Returns {(home, away): {column: price}}.
-    """
-    config.require("ODDS_API_KEY")
-    client = client or Client()
-
-    events = client.get(f"/sports/{sport_key}/events")  # free
-    if max_events:
-        events = events[:max_events]
-    print(f"  {len(events)} events x ~2 credits = ~{len(events) * 2} credits")
-
-    out = {}
-    for event in events:
-        try:
-            detail = client.get(f"/sports/{sport_key}/events/{event['id']}/odds",
-                                params={"regions": REGIONS, "markets": "alternate_totals",
-                                        "oddsFormat": "decimal"})
-        except requests.HTTPError:
-            continue
-        cols = {}
-        for line in lines:
-            tag = f"{line:g}".replace(".", "")
-            best = totals_prices(detail, line, "best")
-            cons = totals_prices(detail, line, "median")
-            if not best or not cons:
-                continue
-            cols[f"over{tag}_odds"], cols[f"under{tag}_odds"] = best
-            cols[f"over{tag}_odds_cons"], cols[f"under{tag}_odds_cons"] = cons
-        if cols:
-            out[(event["home_team"], event["away_team"])] = cols
-    print(f"  got alternate lines for {len(out)}/{len(events)} events, {client.report()}")
-    return out
-
-
-def check():
-    """Cheap liveness probe for the CLI's `quota` command."""
-    client = Client()
-    sports = list_sports(client)
-    active = sum(1 for s in sports if s.get("group") == "Soccer")
-    return active, client.report()

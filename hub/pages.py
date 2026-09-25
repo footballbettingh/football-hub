@@ -1,4 +1,4 @@
-"""The five pages, built from artifacts on disk.
+"""The seven pages, built from artifacts on disk.
 
 No page computes anything heavier than a sum: everything expensive was done by
 a job and written to `data/`. That keeps a page load instant, and means the

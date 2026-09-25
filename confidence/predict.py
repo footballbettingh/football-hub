@@ -4,7 +4,7 @@ The walk-forward run stores *parameters* (a pair of lambdas and a rho from the
 model, another pair from the closing line) rather than the ~45 probabilities
 they generate. Two reasons: predictions.csv stays a 10MB file instead of a
 300MB one, and re-fusing at a different market weight becomes a second of
-arithmetic instead of an hour of refitting — which is what makes `cf.py sweep`
+arithmetic instead of an hour of refitting — which is what makes `fb.py sweep`
 cheap enough to be honest with.
 """
 

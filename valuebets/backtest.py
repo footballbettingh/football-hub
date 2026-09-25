@@ -28,7 +28,7 @@ from .model import PoissonModel
 MIN_TRAINING_MATCHES = 150
 # Wider than the original 1.70-2.00. That band was a guess, and narrowing the
 # price range does not narrow the model's error — it just discards bets. See
-# `vb.py sweep` for the measured effect of each band.
+# the band sensitivity on the Evidence page for the measured effect of each.
 ODDS_MIN, ODDS_MAX = 1.60, 2.50
 MIN_EDGE = 0.03
 STAKE = 10

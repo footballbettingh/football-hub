@@ -515,12 +515,6 @@ def test_summary_of_an_empty_ledger_does_not_divide_by_zero(path):
     assert head["pnl"] == 0.0
 
 
-def test_the_equity_curve_accumulates_in_the_order_played(path):
-    curve = ledger.equity(_settled_ledger(path))
-    assert [round(point["cum"], 2) for point in curve] == [0.75, -0.25, 0.55]
-    assert curve[0]["won"] is True and curve[1]["won"] is False
-
-
 # -- providers that spell the same club differently ------------------------
 
 def test_a_pick_settles_when_the_results_file_uses_a_shorter_name():

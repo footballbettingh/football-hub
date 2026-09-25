@@ -37,6 +37,8 @@ def _load_env(path: Path) -> None:
 _load_env(ENV_PATH)
 
 
+# Read by nothing now, but an old .env or CI secret may still set it, and it
+# stays among SECRET_NAMES below so a stray print of it is scrubbed.
 FOOTBALL_DATA_KEY = os.environ.get("FOOTBALL_DATA_KEY", "")
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 
@@ -46,14 +48,8 @@ ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-FOOTBALL_DATA_BASE = "https://api.football-data.org/v4"
 ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 TELEGRAM_API_BASE = "https://api.telegram.org"
-
-# Free tier: 10 requests/minute. The API reports what's left in
-# X-Requests-Available-Minute and seconds-to-reset in X-RequestCounter-Reset,
-# so fetch_data.py steers by those headers rather than a blind sleep.
-FOOTBALL_DATA_RATE_LIMIT = 10
 
 # Refuse to spend paid Odds API credits below this floor, so an accidental
 # loop can't burn the whole monthly quota.

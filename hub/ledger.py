@@ -923,17 +923,3 @@ def _recorded_slip(row):
         # Carried so the page can say which build of the day this came from.
         "recorded_at": _text(row["recorded_at"]),
     }
-
-
-def equity(frame):
-    """Cumulative P&L, in the shape the site's chart already draws."""
-    priced = frame[frame["pnl"].notna()].copy()
-    if priced.empty:
-        return []
-    priced = priced.sort_values(["played_on", "day"])
-    cumulative = priced["pnl"].cumsum()
-    return [{"date": str(row.played_on or row.day)[:10], "match": row.match,
-             "outcome": row.selection, "odds": float(row.odds),
-             "won": row.outcome == "won", "pnl": float(row.pnl),
-             "cum": float(cumulative.iloc[i])}
-            for i, row in enumerate(priced.itertuples())]
