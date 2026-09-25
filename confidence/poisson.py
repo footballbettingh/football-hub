@@ -179,8 +179,32 @@ class PoissonModel:
         self.attack = (attack - attack.mean()) * self.shrink
         self.defence = (defence - defence.mean()) * self.shrink
         self.home_adv, self.base = float(theta[2 * n]), float(theta[2 * n + 1])
+        if self.shrink != 1.0:
+            self._refit_level(hi, ai, hg, ag, w)
         self.converged = bool(result.success)
         return self
+
+    def _refit_level(self, hi, ai, hg, ag, w):
+        """Put the league's level back after the strengths have been shrunk.
+
+        The base and home advantage were fitted alongside the full-spread
+        strengths, and a lambda is exp of their sum: squeeze the spread and
+        the average of exp falls with it (Jensen), so every match is predicted
+        a little under. Over the walk-forward that came to 9.695 corners a
+        match against 9.799 played — about 1%, which at a 9.5 or 10.5 line
+        leans every corner selection the same way, towards the under.
+
+        With the strengths held where the shrink put them, the likelihood's
+        own answer for the other two is exact: the weighted away counts fix
+        the base, the weighted home counts fix the base plus home advantage.
+        Nothing else in the fit moves.
+        """
+        home_pull = np.exp(self.attack[hi] - self.defence[ai])
+        away_pull = np.exp(self.attack[ai] - self.defence[hi])
+        self.base = float(np.log(max((w * ag).sum(), 1e-9)
+                                 / max((w * away_pull).sum(), 1e-9)))
+        self.home_adv = float(np.log(max((w * hg).sum(), 1e-9)
+                                     / max((w * home_pull).sum(), 1e-9)) - self.base)
 
     def _lambdas(self, hi, ai):
         lam = np.exp(self.base + self.home_adv + self.attack[hi] - self.defence[ai])

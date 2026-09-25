@@ -69,6 +69,10 @@ RIDGE = 0.05
 # still overdispersed against a Poisson (variance / mean of 1.18, against 1.02
 # for goals) and the slope is not yet 1.0, so this is a large improvement
 # rather than a repair.
+#
+# The shrink moves the strengths only; the league's level is refitted around
+# them (`PoissonModel._refit_level`). Without that the walk-forward predicted
+# 9.695 corners a match against 9.799 played.
 CORNER_SHRINK = 0.55
 
 # Weight on the market-implied score matrix when fusing it with the model's.
