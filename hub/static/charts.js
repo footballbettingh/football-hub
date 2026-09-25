@@ -22,10 +22,7 @@
   function applyLabel() {
     if (themeLabel) themeLabel.textContent = effectiveTheme() === 'dark' ? 'Light' : 'Dark';
   }
-  try {
-    var saved = localStorage.getItem('vb-theme');
-    if (saved) document.documentElement.setAttribute('data-theme', saved);
-  } catch (e) {}
+  // theme.js, in <head>, has already applied the saved choice.
   applyLabel();
   if (btn) btn.addEventListener('click', function () {
     var next = effectiveTheme() === 'dark' ? 'light' : 'dark';

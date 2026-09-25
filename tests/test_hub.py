@@ -948,6 +948,60 @@ def test_export_writes_a_self_contained_site(tmp_path, monkeypatch):
     assert 'href="fixtures.html"' in html
     assert 'href="/fixtures"' not in html          # would 404 on Pages
     assert "<button class=\"run" not in html
+    # Every file a page asks for is one the export wrote.
+    for name in re.findall(r'(?:src|href)="assets/([^"]+)"', html):
+        assert (out / "assets" / name).exists(), name
+
+
+def test_the_saved_theme_is_applied_before_anything_is_drawn():
+    """It was applied from the end of <body>, so a light choice on a dark
+    system drew a dark page first and flashed. theme.js is the one script in
+    <head>, ahead of the stylesheets."""
+    html = c.layout(c.Links("static"), "t", "index", "")
+    head = html[:html.index("</head>")]
+    assert re.findall(r'<script[^>]*src="([^"]+)"', head) == ["assets/theme.js"]
+    assert head.index("theme.js") < head.index('rel="stylesheet"')
+
+
+def test_the_build_time_is_utc_and_says_so():
+    from datetime import datetime, timezone
+    stamp = c.built_at(datetime(2026, 9, 25, 21, 35, 10, tzinfo=timezone.utc))
+    assert stamp == ('<time datetime="2026-09-25T21:35:10Z" data-when>'
+                     '25 Sep 2026, 21:35 UTC</time>')
+    assert "data-when" in c.layout(c.Links("server"), "t", "index", "")
+
+
+def _sort_keys(html):
+    return set(re.findall(r'<button type="button" class="sort" data-sort="([^"]+)"', html))
+
+
+def test_every_sortable_card_column_is_one_hub_js_can_sort():
+    """The header names the key; hub.js looks it up. A key on one side only
+    is a header that sorts by nothing."""
+    from pathlib import Path
+    script = (Path(pages.__file__).parent / "static" / "hub.js").read_text(encoding="utf-8")
+    table = script[script.index("var SORT = {"):]
+    known = set(re.findall(r"^\s+(\w+): function \(r\)", table[:table.index("};")], re.M))
+    html = pages.render("card", c.Links("server"), dict(EMPTY, picks={
+        "built": "2026-08-12T10:00:00", "n_fixtures": 1, "n_selections": 1,
+        "competitions": {"PL": "Premier League"}, "groups": {"ou": "Total goals"},
+        "ceilings": {}, "calibrated_on": 1, "selections": [
+            {"date": "2026-08-14", "competition": "PL", "match": "a v b",
+             "home_team": "a", "away_team": "b", "key": "ou0.5_over", "group": "ou",
+             "selection": "Over 0.5 goals", "prob": 0.93, "fair_odds": 1.08,
+             "odds": None, "edge": None, "hit_rate": 0.93, "hit_rate_n": 900,
+             "new_team": False, "validated": True, "implied_resid": 0.0}]}))
+    assert _sort_keys(html) == known
+    assert '<th class="num" aria-sort="descending">' in html   # the card's own order
+
+
+def test_the_fixtures_sort_on_every_column_they_show():
+    selections = [{"date": "2026-09-12", "competition": "E0", "match": "a v b",
+                   "new_team": False, "key": "1x2_home", "prob": 0.5}]
+    html = pages.render("fixtures", c.Links("server"),
+                        dict(EMPTY, picks={"selections": selections}))
+    assert _sort_keys(html) == ({"kickoff", "league", "match"}
+                                | {key for key, _, _ in pages.HEADLINE})
 
 
 # -- the card shows what was recorded --------------------------------------

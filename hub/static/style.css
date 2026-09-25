@@ -787,6 +787,15 @@ input:focus-visible, svg[tabindex]:focus-visible {
 button.fx-open { font: inherit; color: inherit; background: none; border: 0;
   padding: 0; margin: 0; text-align: left; cursor: pointer; }
 button.fx-open:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* A column header that sorts: the header's own words, as a button, and an
+   arrow drawn from the <th>'s aria-sort, so what a screen reader is told and
+   what is shown cannot disagree. */
+th button.sort { font: inherit; color: inherit; background: none; border: 0;
+  padding: 0; margin: 0; cursor: pointer; text-align: inherit; white-space: nowrap; }
+th button.sort:hover { color: var(--text-primary); }
+th button.sort::after { content: "\2195"; opacity: .3; margin-left: 3px; font-size: .85em; }
+th[aria-sort="ascending"] button.sort::after { content: "\2191"; opacity: 1; }
+th[aria-sort="descending"] button.sort::after { content: "\2193"; opacity: 1; }
 /* A chart with its points under the finger: a sideways drag walks along the
    curve, and an upward one still scrolls the page. */
 .chart svg[tabindex] { touch-action: pan-y; }

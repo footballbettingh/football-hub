@@ -65,6 +65,102 @@
     if (Date.now() - new Date(iso) > STALE_MS) t.classList.add('stale');
   });
 
+  // ---- search: the same with or without the accents -------------------
+  // "Gazisehir" has to find "Gazişehir", and "Malmo" "Malmö". Decomposed, most
+  // accented letters are a base letter and a mark, and the marks go; the few
+  // that do not decompose are spelled out.
+  var SPELLED = { 'ı': 'i', 'ø': 'o', 'ß': 'ss', 'æ': 'ae', 'œ': 'oe', 'đ': 'd',
+                  'ł': 'l', 'þ': 'th', 'ð': 'd' };
+  function plain(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[ıøßæœđłþð]/g, function (ch) { return SPELLED[ch]; });
+  }
+
+  // ---- the filters, in the address --------------------------------------
+  // A filtered card or a searched fixture list can be linked to, and comes
+  // back after a reload: every control registered here keeps its value in the
+  // part of the address after #, which never reaches a server, and takes it
+  // back from there when the page opens. Only what differs from the page's own
+  // default is written, so an untouched page has a bare address.
+  var fromAddress = new URLSearchParams(location.hash.slice(1));
+  var kept = [];
+  function keep(name, get, set) {
+    kept.push({ name: name, get: get, initial: get() });
+    if (fromAddress.has(name)) set(fromAddress.get(name));
+  }
+  function keepControl(name, control) {
+    if (!control) return;
+    keep(name, function () {
+      return control.type === 'checkbox' ? (control.checked ? '1' : '0') : control.value;
+    }, function (value) {
+      if (control.type === 'checkbox') control.checked = value === '1';
+      else if (control.tagName !== 'SELECT'
+               || [].some.call(control.options, function (o) { return o.value === value; })) {
+        control.value = value;
+      }
+    });
+  }
+  function remember() {
+    var out = new URLSearchParams();
+    kept.forEach(function (k) {
+      var value = k.get();
+      if (value !== k.initial) out.set(k.name, value);
+    });
+    var hash = out.toString();
+    try {
+      history.replaceState(null, '', location.pathname + location.search + (hash ? '#' + hash : ''));
+    } catch (e) {}
+  }
+
+  // ---- sorting by a column ----------------------------------------------
+  // A header whose <button class="sort"> names a key sorts by it; a second
+  // click turns the order round. `aria-sort` on the <th> says which way, and
+  // style.css draws the arrow from it. Missing values go last either way.
+  function compare(a, b, direction) {
+    var missingA = a === null || a === undefined || a !== a;
+    var missingB = b === null || b === undefined || b !== b;
+    if (missingA || missingB) return missingA === missingB ? 0 : (missingA ? 1 : -1);
+    if (typeof a === 'string') return a.localeCompare(b) * direction;
+    return (a - b) * direction;
+  }
+  function sortHeaders(table, name, initial, onSort) {
+    var state = { key: initial.key, direction: initial.direction };
+    var buttons = [].slice.call(table.querySelectorAll('th button.sort'));
+    function mark() {
+      buttons.forEach(function (button) {
+        var th = button.closest('th');
+        if (button.getAttribute('data-sort') === state.key) {
+          th.setAttribute('aria-sort', state.direction > 0 ? 'ascending' : 'descending');
+        } else {
+          th.removeAttribute('aria-sort');
+        }
+      });
+    }
+    buttons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var key = button.getAttribute('data-sort');
+        if (key === state.key) state.direction = -state.direction;
+        else {
+          state.key = key;
+          state.direction = button.getAttribute('data-first') === 'asc' ? 1 : -1;
+        }
+        mark();
+        onSort();
+      });
+    });
+    keep(name, function () {
+      return state.key + (state.direction > 0 ? '-asc' : '-desc');
+    }, function (value) {
+      // Split at the last dash: a key such as hcp_home-1.5 has one of its own.
+      var cut = value.lastIndexOf('-');
+      var parts = [value.slice(0, cut), value.slice(cut + 1)];
+      var known = buttons.some(function (b) { return b.getAttribute('data-sort') === parts[0]; });
+      if (known) { state.key = parts[0]; state.direction = parts[1] === 'asc' ? 1 : -1; }
+    });
+    mark();
+    return state;
+  }
+
   // ---- pages: a long table, one page at a time -------------------------
   // pages.py puts every row on the page, marks each with its page, hides all
   // but the first and draws the buttons in that state; this only moves
@@ -125,7 +221,15 @@
       // the keyboard focus onto the body with it.
       if (button.disabled) buttons[at].focus({ preventScroll: true });
     });
-    box.pager = { nav: nav };
+    box.pager = {
+      nav: nav,
+      page: function () { return buttons[at].getAttribute('data-page'); },
+      select: function (page) {
+        var index = buttons.map(function (b) { return b.getAttribute('data-page'); })
+          .indexOf(page);
+        if (index >= 0) go(index);
+      },
+    };
     go(0);
     return box.pager;
   }
@@ -170,7 +274,10 @@
     var PAGE = 200, limit = PAGE, pending = false;
     var more = $('card-more');
     var index = {};
-    rows.forEach(function (r) { index[r.match + '|' + r.key] = r; });
+    rows.forEach(function (r) {
+      index[r.match + '|' + r.key] = r;
+      r.search = plain(r.match);
+    });
 
     var controls = {
       q: $('f-q'), comp: $('f-comp'), group: $('f-group'), min: $('f-min'),
@@ -178,8 +285,11 @@
       priced: $('f-priced'),
     };
 
+    // Filtered in the card's own order, best first, so "one per fixture"
+    // keeps a fixture's strongest selection whichever column is sorted on;
+    // the sort only decides the order they are shown in.
     function visible() {
-      var q = (controls.q.value || '').toLowerCase();
+      var q = plain(controls.q.value);
       var comp = controls.comp.value, group = controls.group.value;
       var minProb = parseInt(controls.min.value, 10) / 100;
       var minOdds = parseInt(controls.odds.value, 10) / 100;
@@ -193,7 +303,7 @@
         if (!controls.unval.checked && !r.validated) return false;
         if (comp !== 'all' && r.competition !== comp) return false;
         if (group !== 'all' && r.group !== group) return false;
-        if (q && r.match.toLowerCase().indexOf(q) < 0) return false;
+        if (q && r.search.indexOf(q) < 0) return false;
         if (controls.one.checked) {
           if (seen[r.match]) return false;
           seen[r.match] = 1;
@@ -206,7 +316,7 @@
       $('f-min-v').textContent = controls.min.value + '%';
       $('f-odds-v').textContent = (parseInt(controls.odds.value, 10) / 100).toFixed(2);
 
-      var list = visible();
+      var list = sorted(visible());
       var showing = Math.min(list.length, limit);
       $('f-count').textContent = list.length + ' of ' + rows.length + ' selections'
         + (showing < list.length ? ', the first ' + showing + ' showing' : '');
@@ -257,9 +367,29 @@
     // times it fires before the next frame, the table is drawn once.
     function schedule() {
       limit = PAGE;
+      remember();
       if (pending) return;
       pending = true;
       requestAnimationFrame(function () { pending = false; render(); });
+    }
+
+    // What each sortable column sorts on, from pages.py's data-sort names.
+    var SORT = {
+      kickoff: function (r) { return r.kickoff || r.date; },
+      league: function (r) { return plain(r.competition_name || r.competition); },
+      prob: function (r) { return r.prob; },
+      fair: function (r) { return r.fair_odds; },
+      odds: function (r) { return r.odds; },
+      edge: function (r) { return r.edge; },
+      band: function (r) { return r.hit_rate; },
+    };
+    var order = sortHeaders($('cardtable'), 'sort', { key: 'prob', direction: -1 }, schedule);
+    function sorted(list) {
+      var value = SORT[order.key] || SORT.prob;
+      // Stable: equal keys keep the card's own order.
+      return list.map(function (r, i) { return [r, i]; }).sort(function (a, b) {
+        return compare(value(a[0]), value(b[0]), order.direction) || a[1] - b[1];
+      }).map(function (pair) { return pair[0]; });
     }
 
     body.addEventListener('change', function (event) {
@@ -312,6 +442,7 @@
     }
 
     Object.keys(controls).forEach(function (name) {
+      keepControl(name, controls[name]);
       if (controls[name]) controls[name].addEventListener('input', schedule);
     });
     var clear = $('acca-clear');
@@ -362,7 +493,8 @@
           + pct(acca.weakest_leg) + '</div></div>';
     }
 
-    select.addEventListener('input', render);
+    keepControl('slip', select);
+    select.addEventListener('input', function () { render(); remember(); });
     render();
   })();
 
@@ -382,7 +514,8 @@
       });
     }
 
-    select.addEventListener('input', show);
+    keepControl(id === 'pick-book-band' ? 'band' : 'legs', select);
+    select.addEventListener('input', function () { show(); remember(); });
     show();
   }
   books('pick-book-band', '.pick-book', 'data-band');
@@ -393,19 +526,24 @@
     var table = document.querySelector('table.fixtures');
     if (!table || !D.card) return;
     var rows = [].slice.call(table.querySelectorAll('tbody tr'));
+    var original = rows.slice();
     var search = $('fx-q'), count = $('fx-count');
-    var day = '0';
-    var days = pager(table.closest('.paged'), function (page) { day = page; filter(); });
+    var day = '0', ready = false;
+    rows.forEach(function (tr) { tr.search = plain(tr.getAttribute('data-match')); });
+    var days = pager(table.closest('.paged'), function (page) {
+      day = page;
+      filter();
+      if (ready) remember();
+    });
 
     function filter() {
-      var q = (search.value || '').toLowerCase();
+      var q = plain(search.value);
       // A search looks across every day — the team you are after may not play
       // on the one showing — so the day buttons stand aside while it does.
       if (days) days.nav.hidden = !!q;
       var shown = 0;
       rows.forEach(function (tr) {
-        var hit = q ? tr.getAttribute('data-match').toLowerCase().indexOf(q) >= 0
-          : tr.getAttribute('data-page') === day;
+        var hit = q ? tr.search.indexOf(q) >= 0 : tr.getAttribute('data-page') === day;
         tr.hidden = !hit;
         if (hit) shown++;
         // An open row's markets go and come back with it.
@@ -450,7 +588,42 @@
       });
     });
 
-    if (search) search.addEventListener('input', filter);
+    // Sorting moves the rows themselves, an open row's markets with it. The
+    // value is read off the cell: its <time> where it has one, the number in
+    // a numeric column, the words otherwise.
+    var column = {};
+    [].forEach.call(table.querySelectorAll('thead th'), function (th, i) {
+      var button = th.querySelector('button.sort');
+      if (button) column[button.getAttribute('data-sort')] = i;
+    });
+    function cellValue(tr, key) {
+      var cell = tr.children[column[key]];
+      if (!cell) return null;
+      var time = cell.querySelector('time[datetime]');
+      if (time) return time.getAttribute('datetime');
+      var text = cell.textContent.trim();
+      if (!cell.classList.contains('num')) return plain(text);
+      var n = parseFloat(text);
+      return n === n ? n : null;
+    }
+    function arrange() {
+      var body = table.tBodies[0];
+      original.map(function (tr, i) { return [tr, i, cellValue(tr, order.key)]; })
+        .sort(function (a, b) { return compare(a[2], b[2], order.direction) || a[1] - b[1]; })
+        .forEach(function (item) {
+          var tr = item[0], detail = tr.nextElementSibling;
+          body.appendChild(tr);
+          if (detail && detail.classList.contains('detail')) body.appendChild(detail);
+        });
+    }
+    var order = sortHeaders(table, 'sort', { key: 'kickoff', direction: 1 },
+                            function () { arrange(); remember(); });
+
+    keepControl('q', search);
+    if (days) keep('day', days.page, days.select);
+    ready = true;
+    if (search) search.addEventListener('input', function () { filter(); remember(); });
+    arrange();
     filter();
   })();
 
@@ -483,7 +656,8 @@
       }).join('');
     }
 
-    scope.addEventListener('input', render);
+    keepControl('market', scope);
+    scope.addEventListener('input', function () { render(); remember(); });
     render();
   })();
 
