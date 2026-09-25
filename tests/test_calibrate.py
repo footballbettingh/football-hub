@@ -7,7 +7,7 @@ mean nothing, so the leakage tests here matter more than the accuracy ones.
 import numpy as np
 import pytest
 
-from confidence.calibrate import Calibrators, Isotonic, walk_forward
+from confidence.calibrate import Calibrators, Isotonic, calibration_scope, walk_forward
 from confidence.evaluate import expected_calibration_error
 
 
@@ -120,11 +120,11 @@ def _fake_arrays(n=6000, seed=3):
     return keys, probs, results
 
 
-def test_calibrators_are_fitted_per_group():
+def test_calibrators_are_fitted_per_line_or_per_market():
     keys, probs, results = _fake_arrays()
     fitted = Calibrators.fit(keys, probs, results, min_samples=500)
-    assert set(fitted.by_group) == {"1x2", "btts"}
-    assert not fitted.by_group["1x2"].is_identity
+    assert set(fitted.by_scope) == {"1x2", "btts"}
+    assert not fitted.by_scope["1x2"].is_identity
 
 
 def test_apply_touches_only_finite_entries():
@@ -157,3 +157,65 @@ def test_walk_forward_improves_calibration_out_of_sample():
     raw = expected_calibration_error(probs[scored].ravel(), results[scored].ravel())
     fixed = expected_calibration_error(calibrated[scored].ravel(), results[scored].ravel())
     assert fixed < raw
+
+
+# -- one curve per line ------------------------------------------------------
+
+@pytest.mark.parametrize("key, scope", [
+    ("ou2.5_over", ("ou2.5", False)), ("ou2.5_under", ("ou2.5", True)),
+    ("tt1.5_away_under", ("tt1.5_away", True)),
+    ("corners10.5_over", ("corners10.5", False)),
+    ("btts_no", ("btts", True)), ("dnb_away", ("dnb", True)),
+    ("hcp_away+1.5", ("hcp_home-1.5", True)),
+    ("1x2_draw", ("1x2", False)), ("dc_x2", ("dc", False)),
+])
+def test_each_selection_knows_its_curve(key, scope):
+    assert calibration_scope(key) == scope
+
+
+def _two_lines(n=40000, seed=11):
+    """Two lines of one market, wrong in opposite directions at the same
+    probabilities: the low line's overs land less often than they say, the
+    high line's more — what a count more spread out than a Poisson does."""
+    rng = np.random.default_rng(seed)
+    low, high = rng.uniform(0.55, 0.85, n), rng.uniform(0.25, 0.55, n)
+    keys = ["corners8.5_over", "corners8.5_under", "corners10.5_over", "corners10.5_under"]
+    probs = np.column_stack([low, 1 - low, high, 1 - high])
+    over_low = rng.uniform(size=n) < low - 0.04
+    over_high = rng.uniform(size=n) < high + 0.04
+    results = np.column_stack([over_low, ~over_low, over_high, ~over_high]).astype(np.int8)
+    return keys, probs, results
+
+
+def test_lines_that_err_opposite_ways_are_each_mended():
+    """One pooled curve could not: at a shared probability it must move both
+    lines the same way. Scored on a second draw, not the one fitted."""
+    keys, probs, results = _two_lines()
+    fitted = Calibrators.fit(keys, probs, results)
+    fresh_keys, fresh_probs, fresh_results = _two_lines(seed=12)
+    out = fitted.apply(fresh_keys, fresh_probs)
+    for column in (0, 2):
+        gap = fresh_results[:, column].mean() - out[:, column].mean()
+        raw_gap = fresh_results[:, column].mean() - fresh_probs[:, column].mean()
+        assert abs(gap) < 0.01 < abs(raw_gap)
+
+
+def test_both_sides_of_a_line_still_add_to_one():
+    """A line is one curve and its complement, so over and under cannot drift
+    apart — the property the pooled curve had by being symmetric, kept."""
+    keys, probs, results = _two_lines()
+    out = Calibrators.fit(keys, probs, results).apply(keys, probs)
+    assert out[:, 0] + out[:, 1] == pytest.approx(np.ones(len(out)))
+    assert out[:, 2] + out[:, 3] == pytest.approx(np.ones(len(out)))
+
+
+def test_a_calibration_file_from_before_still_applies(tmp_path):
+    """A file with one curve per market group — which the cached data folder
+    holds until the next `fb.py calibrate` — keeps working, curve for curve."""
+    path = tmp_path / "calibration.json"
+    path.write_text('{"meta": {}, "groups": {"ou": {"x": [0.2, 0.8], "y": [0.3, 0.7], '
+                    '"n": 5000}}}', encoding="utf-8")
+    old = Calibrators.load(path)
+    curve = Isotonic([0.2, 0.8], [0.3, 0.7], n=5000)
+    assert old.calibrate("ou2.5_under", [0.5])[0] == pytest.approx(curve([0.5])[0])
+    assert old.calibrate("btts_yes", [0.5])[0] == pytest.approx(0.5)   # nothing fitted

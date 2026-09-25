@@ -80,7 +80,7 @@ def test_the_close_goes_through_the_live_calibration():
     close = ledger.closing_probs(_book([_pick("tt1.5_home_over")]), PREDICTIONS,
                                  calibrators, weight=0.9)
     raw = _at_the_close("tt1.5_home_over")
-    assert close[0] == pytest.approx(calibrators.by_group["tt"](np.array([raw]))[0])
+    assert close[0] == pytest.approx(calibrators.by_scope["tt"](np.array([raw]))[0])
 
 
 def test_there_is_no_close_for_corners_or_for_a_match_not_yet_reached():

@@ -554,9 +554,8 @@ def closing_probs(frame, predictions, calibrators=None, weight=None):
         p = markets.goal_probabilities(score_matrix(lam, mu, rho)).get(key)
         if p is None:
             continue
-        calibrator = (calibrators.by_group.get(markets.group_of(key))
-                      if calibrators is not None else None)
-        out[position] = float(calibrator(np.array([p]))[0]) if calibrator else p
+        out[position] = (float(calibrators.calibrate(key, np.array([p]))[0])
+                         if calibrators is not None else p)
     return out
 
 
