@@ -7,8 +7,8 @@ over-counts by ~5-7% in total. Removing it proportionally is the usual choice
 and is known to be wrong in a specific direction: the margin is not spread
 evenly, it is loaded onto longshots. Since this project ranks bets by *how
 likely* they are, that bias lands squarely on the favourites we care most
-about, so all three standard methods are implemented and `python cf.py devig`
-measures which one predicts real results best.
+about, so all three standard methods are implemented. The power method halved
+the calibration error of proportional scaling, and is what `config.DEVIG` uses.
 
 **The market-implied score matrix.** The closing line prices 1X2 and Over/Under
 2.5 and nothing else — no BTTS, no Over 1.5, no team totals. But a pair of

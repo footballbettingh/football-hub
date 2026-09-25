@@ -1,9 +1,7 @@
-"""The pipeline steps, in one place, callable from both the CLI and the buttons.
+"""The pipeline steps, in one place, called by the CLI.
 
-Each function takes a `progress` callable and returns a short dict for the job
-log. Nothing here prints directly to stdout on its own behalf — the job runner
-captures whatever the libraries print anyway, and the summaries these return are
-what ends up in status.json.
+Each function takes a `progress` callable and returns a short dict: `fb.py run`
+prints the lines as they come and tallies the dicts at the end.
 """
 
 import json

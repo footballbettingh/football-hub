@@ -190,7 +190,7 @@ def load_fixtures(source_dir=None, include_started=False, now=None) -> pd.DataFr
     if not files:
         raise SystemExit(
             f"No fixture files matching {config.FIXTURE_GLOB} in {source}.\n"
-            "Run `python fb.py fetch odds`, or press Fetch new prices."
+            "Run `python fb.py fetch odds`."
         )
 
     frames = []
@@ -231,14 +231,3 @@ def _not_started(df, now=None):
     # only dropped once the day itself is over.
     end_of_day = df["date"].dt.tz_localize("UTC") + pd.Timedelta(days=1)
     return kickoff.fillna(end_of_day) > moment
-
-
-def history_before(history: pd.DataFrame, competition: str, when) -> pd.DataFrame:
-    """Matches usable for a fit made on `when`.
-
-    STRICTLY before, never same-day: on Saturday morning you do not know
-    Saturday's other results, and letting them in is the single easiest way to
-    make a backtest look clever.
-    """
-    mask = (history["competition"] == competition) & (history["date"] < when)
-    return history.loc[mask]

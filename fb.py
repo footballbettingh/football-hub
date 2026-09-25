@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """fb — Football Hub. One entry point for both halves.
 
-    python fb.py serve            the site, with buttons (start here)
+    python fb.py serve            the site on localhost (start here)
     python fb.py export           the same site as static files
 
-Everything the buttons do is also a command, for scripting and scheduling:
+The site only reads files. These rebuild them, in this order:
 
     python fb.py fetch results    results + closing odds (free)
     python fb.py fetch leagues    which leagues could be priced (free)
@@ -17,6 +17,8 @@ Everything the buttons do is also a command, for scripting and scheduling:
     python fb.py evidence         re-run the value-betting backtest
     python fb.py evaluate         reliability tables, printed
     python fb.py sweep            how much the closing line deserves
+    python fb.py backtest-slate   choose the slate again over the history
+    python fb.py check-ledger     the ledger is the committed one plus new rows
 
     python fb.py run              all of it unattended, then Telegram
     python fb.py notify           send the current best pick to Telegram
@@ -437,11 +439,11 @@ def _evidence_is_stale():
 
 
 def cmd_run(args):
-    """Everything the buttons do, in dependency order, with nobody watching.
+    """Every step, in dependency order, with nobody watching.
 
-    The order is the one `full-refresh` uses, with prices in front of it: the
-    card reads its fixture list out of the odds files, so without a fetch the
-    upcoming matches all eventually kick off and the card has nothing to price.
+    Prices come first: the card reads its fixture list out of the odds files,
+    so without a fetch the upcoming matches all eventually kick off and the
+    card has nothing to price.
     """
     from datetime import datetime
     from hub import card, evidence, ledger, notify as tg, pipeline
@@ -684,7 +686,7 @@ def main(argv=None):
     p.add_argument("--legs", type=int, default=None, help="accumulator size")
     p.set_defaults(func=cmd_best)
 
-    p = sub.add_parser("history", help="the daily pick's record and P&L")
+    p = sub.add_parser("history", help="the daily pick's record against its claims")
     p.set_defaults(func=cmd_history)
 
     p = sub.add_parser("evidence", help="re-run the value-betting backtest")

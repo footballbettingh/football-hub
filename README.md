@@ -591,13 +591,14 @@ confidence/              calibrated probabilities (the card)
 valuebets/               value betting (the evidence)
 scripts/                 Windows scheduler, for running it locally instead
 .github/workflows/       the daily cloud run: refresh, notify, publish
-data/                    everything fetched and derived, gitignored
-tests/                   224 tests
+data/                    fetched and derived, gitignored — but for the ledger,
+                         the odds history and hand-checked results
+tests/                   python -m pytest
 ```
 
-`confidence` and `valuebets` are unchanged from the two projects this was merged
-from, other than pointing at one shared `data/` folder. Those two checkouts still
-exist and still run; **this one is now the one to edit.**
+`confidence` and `valuebets` began as two separate projects and were merged
+here, and have changed a good deal since. If the two old checkouts still
+exist, they are history: **this one is the one to edit.**
 
 ## What the numbers are
 

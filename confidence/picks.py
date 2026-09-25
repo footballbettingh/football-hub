@@ -673,33 +673,3 @@ def best_accumulator(picks, legs=None, target_odds=None, validated_only=True,
             for _, row in chosen.iterrows()
         ],
     }
-
-
-def accumulators(card, sizes=(2, 3, 4), pool=8):
-    """Parlays built from the top picks, one leg per fixture.
-
-    The joint probability is a straight product, which is only right because
-    the legs are different matches. Two selections from one fixture are not
-    independent and multiplying them would overstate the parlay — that is why
-    `shortlist(per_match=1)` feeds this.
-    """
-    if card.empty:
-        return pd.DataFrame()
-
-    legs = card.drop_duplicates("match").head(pool)
-    out = []
-    for size in sizes:
-        if len(legs) < size:
-            continue
-        chosen = legs.head(size)
-        joint = float(np.prod(chosen["prob"].to_numpy()))
-        priced = chosen["odds"].notna().all()
-        out.append({
-            "legs": size,
-            "selections": " + ".join(f"{r.match}: {r.selection}"
-                                     for r in chosen.itertuples()),
-            "probability": joint,
-            "fair_odds": 1.0 / max(joint, 1e-9),
-            "offered_odds": float(np.prod(chosen["odds"].to_numpy())) if priced else np.nan,
-        })
-    return pd.DataFrame(out)

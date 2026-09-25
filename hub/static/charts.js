@@ -1,4 +1,4 @@
-/* Site behaviour: theme toggle, charts, sortable/filterable tables.
+/* Site behaviour: the theme toggle, the phone menu and the charts.
  * Edited directly — the build copies this file verbatim.
  * Reads its data from the page's JSON block, #page-data, which pages.py writes.
  */
@@ -305,117 +305,6 @@
     host.appendChild(svg);
   }
 
-  // ---- bets table -----------------------------------------------------
-  var sortKey = 'date', sortDir = 1;
-  function renderBets() {
-    var tb = document.getElementById('bets-body');
-    if (!tb || !D.bets) return;
-    var q = (document.getElementById('f-q').value || '').toLowerCase();
-    var res = document.getElementById('f-res').value;
-    var out = document.getElementById('f-out').value;
-    var comp = document.getElementById('f-comp');
-    var compV = comp ? comp.value : 'all';
-    var mkt = document.getElementById('f-market');
-    var mktV = mkt ? mkt.value : 'all';
-
-    var rows = D.bets.filter(function (b) {
-      if (q && b.match.toLowerCase().indexOf(q) < 0) return false;
-      if (res === 'won' && !b.won) return false;
-      if (res === 'lost' && b.won) return false;
-      if (out !== 'all' && b.outcome !== out) return false;
-      if (compV !== 'all' && b.competition !== compV) return false;
-      if (mktV !== 'all' && b.market !== mktV) return false;
-      return true;
-    });
-    rows.sort(function (a, b) {
-      var x = a[sortKey], y = b[sortKey];
-      if (typeof x === 'string') return x.localeCompare(y) * sortDir;
-      return (x - y) * sortDir;
-    });
-
-    var pnl = rows.reduce(function (s, b) { return s + b.pnl; }, 0);
-    var roi = rows.length ? pnl / (rows.length * D.stake) * 100 : 0;
-    document.getElementById('f-count').textContent =
-      rows.length + ' of ' + D.bets.length + ' bets  ·  ROI ' + fmtPct(roi);
-
-    if (!rows.length) {
-      tb.innerHTML = '<tr><td colspan="10" class="empty">No bets match these filters.</td></tr>';
-      return;
-    }
-    tb.innerHTML = rows.map(function (b) {
-      var c = b.won ? 'var(--good)' : 'var(--critical)';
-      return '<tr>' +
-        '<td>' + esc(b.date) + '</td>' +
-        '<td>' + esc(b.competition) + '</td>' +
-        '<td>' + esc(b.market) + '</td>' +
-        '<td>' + esc(b.match) + '</td>' +
-        '<td>' + esc(b.score) + '</td>' +
-        '<td>' + esc(b.outcome) + '</td>' +
-        '<td class="num">' + b.odds.toFixed(2) + '</td>' +
-        '<td class="num">' + (b.model_prob * 100).toFixed(1) + '%</td>' +
-        '<td class="num">' + (b.edge * 100).toFixed(1) + '%</td>' +
-        '<td class="num"><span class="pill"><span class="dot" style="background:' + c + '"></span>' +
-        (b.won ? 'won' : 'lost') + ' ' + fmtMoney(b.pnl) + '</span></td></tr>';
-    }).join('');
-  }
-
-  function wireSort() {
-    Array.prototype.forEach.call(document.querySelectorAll('th.sortable'), function (th) {
-      th.addEventListener('click', function () {
-        var k = th.dataset.key;
-        if (k === sortKey) sortDir *= -1; else { sortKey = k; sortDir = 1; }
-        Array.prototype.forEach.call(document.querySelectorAll('th.sortable'), function (o) {
-          o.classList.toggle('active', o === th);
-          var a = o.querySelector('.arrow');
-          if (a) a.textContent = o === th ? (sortDir > 0 ? '▲' : '▼') : '▴▾';
-        });
-        renderBets();
-      });
-    });
-  }
-
-  // ---- top picks: reader chooses how many ------------------------------
-  function renderTopPicks() {
-    var body = document.getElementById('topn-body');
-    if (!body || !D.topPicks) return;
-    var sel = document.getElementById('f-topn');
-    var n = sel ? parseInt(sel.value, 10) : 10;
-    var rows = D.topPicks.slice(0, n);
-    var count = document.getElementById('topn-count');
-    if (count) {
-      var q = rows.filter(function (r) { return r.qualifies; }).length;
-      count.textContent = 'showing ' + rows.length + ' of ' + D.topPicks.length +
-        '  ·  ' + q + ' meet the criteria';
-    }
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="11" class="empty">No priced fixtures.</td></tr>';
-      return;
-    }
-    body.innerHTML = rows.map(function (p, i) {
-      var flag = p.qualifies
-        ? '<span class="pill"><span class="dot" style="background:var(--good)"></span>meets criteria</span>'
-        : '<span style="color:var(--muted)">skipped</span>';
-      var col = p.edge >= 0 ? 'var(--pos)' : 'var(--neg)';
-      return '<tr' + (p.qualifies ? '' : ' class="muted"') + '>' +
-        '<td>' + (i + 1) + '</td>' +
-        '<td>' + esc(p.date) + '</td>' +
-        '<td>' + esc(p.competition) + '</td>' +
-        '<td>' + esc(p.match) + '</td>' +
-        '<td>' + esc(p.market) + '</td>' +
-        '<td>' + esc(p.pick) + '</td>' +
-        '<td class="num">' + p.odds.toFixed(2) + '</td>' +
-        '<td class="num">' + (p.prob * 100).toFixed(1) + '%</td>' +
-        '<td class="num">' + (p.mkt * 100).toFixed(1) + '%</td>' +
-        '<td class="num" style="color:' + col + '">' + (p.edge >= 0 ? '+' : '') +
-          (p.edge * 100).toFixed(1) + '%</td>' +
-        '<td>' + flag + '</td></tr>';
-    }).join('');
-  }
-
-  var topSel = document.getElementById('f-topn');
-  if (topSel) topSel.addEventListener('input', renderTopPicks);
-  renderTopPicks();
-
   // ---- calibration: what it said against what happened ----------------
   // The one chart that states the site's claim rather than its results. A
   // point on the diagonal is a band that came in exactly where it said it
@@ -619,12 +508,6 @@
 
   function redraw() { drawEquity(); drawPeriods(); drawCalibration(); drawRecord(); }
 
-  ['f-q', 'f-res', 'f-out', 'f-comp', 'f-market'].forEach(function (id) {
-    var e = document.getElementById(id);
-    if (e) e.addEventListener('input', renderBets);
-  });
-  wireSort();
-  renderBets();
   redraw();
   var rt;
   addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(redraw, 120); });

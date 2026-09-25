@@ -112,7 +112,7 @@ def build(progress=print, weight=None, devig_method=None):
 
     # Write the day's pick down before the match, and grade any earlier ones
     # the results have caught up with. Both are no-ops when there is nothing
-    # new, so pressing the button repeatedly changes nothing.
+    # new, so building the card again changes nothing.
     written = ledger.record_slate(payload.get("slate"))
     for row in written:
         progress(f"Recorded {row['band']} pick for {row['day']}: "

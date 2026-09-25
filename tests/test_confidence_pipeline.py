@@ -148,14 +148,6 @@ def test_shortlist_respects_the_confidence_floor():
     assert set(card["prob"]) == {0.94, 0.88}
 
 
-def test_accumulators_multiply_across_fixtures_only():
-    card = picks_mod.shortlist(_fake_card(), min_confidence=0.7, per_match=1)
-    accas = picks_mod.accumulators(card, sizes=(2, 3))
-    assert accas.iloc[0]["probability"] == pytest.approx(0.94 * 0.81)
-    assert accas.iloc[1]["probability"] == pytest.approx(0.94 * 0.81 * 0.72)
-    assert accas.iloc[0]["fair_odds"] == pytest.approx(1 / (0.94 * 0.81))
-
-
 def test_shortlist_drops_lines_the_matrix_could_not_reproduce():
     """If the anchor missed the price by 22 percentage points, every market
     derived from it is fiction — and it will still look confident."""

@@ -22,7 +22,6 @@ from valuebets import config as vb_config
 DATA_DIR = vb_config.DATA_DIR
 EVIDENCE_JSON = DATA_DIR / "evidence.json"
 PICKS_JSON = DATA_DIR / "picks.json"
-STATUS_JSON = DATA_DIR / "status.json"
 
 
 @dataclass(frozen=True)
