@@ -353,3 +353,45 @@ def test_the_score_never_exceeds_the_claim():
     assert picks_mod.confidence_score(
         {"prob": 0.61, "hit_rate": None, "hit_rate_predicted": None,
          "hit_rate_n": 0}) == 0.61
+
+
+# -- the switch the card reads ------------------------------------------------
+
+def test_the_card_ignores_the_price_record_while_the_tiebreak_is_off(tmp_path, monkeypatch):
+    """Off, factors left on disk must not reach the ranking: replayed out of
+    sample the tie-break cost a point, and a stale file quietly deciding the
+    picks would be that point lost without anyone having chosen it."""
+    from hub import card as card_mod
+    factors = tmp_path / "pick_factors.csv"
+    factors.write_text("key,bin,factor\n1x2_home,20,0.5\n", encoding="utf-8")
+    monkeypatch.setattr(config, "PICK_FACTORS_CSV", factors)
+    monkeypatch.setattr(config, "PICK_TIEBREAK", False)
+    assert _factors_the_card_ranks_with(tmp_path, monkeypatch, card_mod) is None
+
+    monkeypatch.setattr(config, "PICK_TIEBREAK", True)
+    assert _factors_the_card_ranks_with(tmp_path, monkeypatch, card_mod) is not None
+
+
+def _factors_the_card_ranks_with(tmp_path, monkeypatch, card_mod):
+    """Run card.build as far as the ranking, on a one-row card, writing nothing."""
+    table = pd.DataFrame([{"competition": "PL", "match": "a v b", "prob": 0.6}])
+    seen = []
+    monkeypatch.setattr(config, "CALIBRATION_JSON", tmp_path / "absent.json")
+    monkeypatch.setattr(config, "RELIABILITY_CSV", tmp_path / "absent.csv")
+    monkeypatch.setattr(card_mod.cf_data, "load_history", lambda: pd.DataFrame())
+    monkeypatch.setattr(card_mod.cf_data, "load_fixtures", lambda: table)
+    monkeypatch.setattr(card_mod.leagues, "listed_fixtures", lambda: None)
+    monkeypatch.setattr(card_mod, "drop_quiet_leagues", lambda fixtures, *a, **k: fixtures)
+    monkeypatch.setattr(picks_mod, "price_fixtures", lambda *a, **k: table)
+    monkeypatch.setattr(picks_mod, "attach_hit_rates",
+                        lambda table, reliability, factors: seen.append(factors) or table)
+
+    class Ranked(Exception):
+        pass
+
+    def stop(*args, **kwargs):
+        raise Ranked
+    monkeypatch.setattr(card_mod.files, "write_csv", stop)
+    with pytest.raises(Ranked):
+        card_mod.build(progress=lambda *_: None)
+    return seen[0]

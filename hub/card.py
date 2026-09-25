@@ -96,11 +96,15 @@ def build(progress=print, weight=None, devig_method=None):
 
     reliability = (pd.read_csv(cf_config.RELIABILITY_CSV)
                    if cf_config.RELIABILITY_CSV.exists() else None)
-    factors = (pd.read_csv(cf_config.PICK_FACTORS_CSV)
-               if cf_config.PICK_FACTORS_CSV.exists() else None)
-    if factors is None:
-        progress("! No pick factors yet — the slate will fall back to the band "
-                 "record to break ties. Run Recalibrate.")
+    # The tie-break is off — see PICK_TIEBREAK — and without factors the slate
+    # ranks on the discounted score alone.
+    factors = None
+    if cf_config.PICK_TIEBREAK:
+        factors = (pd.read_csv(cf_config.PICK_FACTORS_CSV)
+                   if cf_config.PICK_FACTORS_CSV.exists() else None)
+        if factors is None:
+            progress("! No pick factors yet — the slate will rank on the score "
+                     "alone. Run `python fb.py calibrate`.")
     table = picks_mod.attach_hit_rates(table, reliability, factors)
     files.write_csv(table, cf_config.PICKS_CSV, index=False, float_format="%.5f")
 

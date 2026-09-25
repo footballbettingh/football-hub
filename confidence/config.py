@@ -131,18 +131,17 @@ ACCA_MAX_LEGS = 6
 # AT THAT PRICE — measured on a log grid of PICK_FACTOR_STEP, needing
 # PICK_FACTOR_MIN_N graded bets before a cell is allowed to speak.
 #
-# Worth being plain about the size of this, and about how well it is measured.
-# On the model as it now stands, backtested over 2,445 historical picks, it is
-# worth +3.07 points in the safe band, +1.60 in main and -0.86 in value: +1.27
-# pooled, against a standard error of about 1.4 points a band. Run against the
-# model as it was before the corner shrink the same test gave +0.25 / +0.76 /
-# +1.51, +0.84 pooled. The aggregate sign is stable across both; the per-band
-# split is not, which is what one standard error looks like at eight hundred
-# picks a band. Do not read the band numbers as a ranking of the bands.
-#
-# The price it buys does not move — 1.3016 to 1.3020, 1.6033 to 1.6042, 2.2069
-# to 2.2069 — which is the whole point: it changes which selection is taken,
-# not what is being bought. What really justifies it is what it replaces.
+# It is switched off. The test that put it at +1.27 points pooled drew its
+# factors from the same history it then chose picks on, so each pick was ranked
+# partly on its own result. Replayed strictly out of sample — `fb.py
+# backtest-slate --compare-tiebreak`, factors built from earlier months only —
+# it changed 1,203 of 3,127 picks and landed 1.02 points fewer than ranking on
+# the score alone: -2.0 in the safe band, 0.0 in main, -1.2 in value. That is
+# about a standard error, so it is not shown to do harm; it is shown not to
+# earn its complexity. With it off, `_rank` orders on the discounted score and
+# nothing else. The factors are still written by `fb.py calibrate`, so turning
+# it back on takes this switch and nothing more — and the replay to justify it.
+PICK_TIEBREAK = False
 PICK_PRICE_TOLERANCE = 0.05
 PICK_FACTOR_STEP = 1.025
 PICK_FACTOR_MIN_N = 300

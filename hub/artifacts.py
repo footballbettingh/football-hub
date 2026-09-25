@@ -48,7 +48,7 @@ ARTIFACTS = (
              "recalibrate", ("predictions",)),
     Artifact("pick-factors", "Selection record by price", cf_config.PICK_FACTORS_CSV,
              "recalibrate", ("predictions",),
-             note="breaks the tie between picks sharing a price"),
+             note="the tie-break's record; unused while PICK_TIEBREAK is off"),
     Artifact("picks", "The card", PICKS_JSON, "refresh-picks",
              ("history", "odds", "calibration")),
     Artifact("evidence", "Value-betting evidence", EVIDENCE_JSON, "rebuild-evidence",
