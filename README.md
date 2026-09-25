@@ -82,6 +82,15 @@ or the picker on, because it is the thing the site publishes. What it cannot
 replay is the earlier price the card is really bought at: the history only has
 the closing one.
 
+Read it for big regressions, not for fine print. At about a thousand picks a
+band its standard error is near 1.4 points, and a change that moves the picks
+moves the band gaps by as much again on its own: per-line calibration at 40,
+80 and 150 knots — three equally good fits by every per-selection measure —
+put the safe band at −1.7, +2.1 and +2.6. A calibration change is judged on the
+walk-forward over every selection (`fb.py evaluate`), where the sample is a
+hundred times larger; the replay says whether the published picks still look
+like their claims.
+
 ### Looking at it
 
 | Command | Does |
@@ -614,9 +623,14 @@ The short version, with the measurements in
    refitted after the shrink — squeezing the strengths under an unchanged base
    lowers the average of exp (Jensen), and the walk-forward was predicting
    9.695 corners a match against 9.799 played, every line leaning to the under.
-5. **Calibrate** per market with isotonic regression fitted only on earlier
-   matches. Over 45,484 out-of-sample matches every confidence band lands within
-   0.16pp of what it claimed.
+5. **Calibrate** each line with isotonic regression fitted only on earlier
+   matches — one curve per line, learned on one side of it, the other side its
+   complement. It was one curve per market, pooling lines that err in opposite
+   directions; per line, the average gap between a line's claim and its record
+   fell from 0.57 to 0.17 points on the goal totals, 0.68 to 0.20 on team
+   totals and 2.43 to 0.53 on both-teams-to-score, out of sample. The three
+   results and the three double chances, which have no single partner, keep
+   one curve each market.
 6. **Cap** each market at the highest confidence its own record supports.
    Corners stop at 85% and BTTS at 70% because they overstated themselves above
    that; the rest stop where the sample runs out.

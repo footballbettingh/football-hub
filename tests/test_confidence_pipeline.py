@@ -256,7 +256,7 @@ def test_calibrated_picks_stay_ordered_within_a_group():
     probs = np.array([[0.93, 0.78, 0.52]])
     results = np.array([[1, 1, 0]], dtype=np.int8)
     calibrators = Calibrators.fit(keys, probs, results, min_samples=10 ** 9)
-    frame = pd.DataFrame({"group": ["ou"] * 3, "prob_raw": probs[0]})
+    frame = pd.DataFrame({"key": keys, "group": ["ou"] * 3, "prob_raw": probs[0]})
     out = picks_mod._calibrate_column(frame, calibrators)
     assert list(out) == sorted(out, reverse=True)
 

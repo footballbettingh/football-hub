@@ -159,12 +159,10 @@ def price_fixtures(history, fixtures, calibrators=None, weight=None,
 
 
 def _calibrate_column(frame, calibrators):
-    """Apply the per-group calibrator to a long frame of picks."""
+    """Apply the calibrators to a long frame of picks, a selection at a time."""
     out = frame["prob_raw"].to_numpy(dtype=float).copy()
-    for group, calibrator in calibrators.by_group.items():
-        mask = frame["group"].to_numpy() == group
-        if mask.any():
-            out[mask] = calibrator(out[mask])
+    for key, rows in frame.groupby("key").indices.items():
+        out[rows] = calibrators.calibrate(key, out[rows])
     return out
 
 

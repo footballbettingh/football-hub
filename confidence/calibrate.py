@@ -14,9 +14,12 @@ reorder the picks. The cost is that it can overfit, which is why:
 * every number reported in the evaluation comes from a calibrator fitted on
   matches that finished BEFORE the ones it scores.
 
-One calibrator per market group, not per selection. `ou0.5_under` only ever
-takes values near 0.07, so on its own it can only ever learn a curve for that
-sliver; pooling the group covers the whole range and quadruples the sample.
+One calibrator per line, learned on one side of it — see `Calibrators` and
+`calibration_scope`. It was one per market group, which pooled lines that err
+in opposite directions. Out of sample over the walk-forward, the average gap
+between a line's claim and its record fell from 0.57 to 0.17 points on the goal
+totals, 0.68 to 0.20 on team totals, 0.54 to 0.21 on handicaps and 2.43 to 0.53
+on both-teams-to-score, with the Brier score level or better everywhere.
 
 Fitted on a market that is already well calibrated, isotonic does almost
 nothing — which is the expected result for anything anchored to a closing
@@ -24,6 +27,7 @@ line, and worth checking rather than assuming.
 """
 
 import json
+import re
 
 import numpy as np
 
@@ -155,11 +159,50 @@ class Isotonic:
         return cls(blob["x"], blob["y"], blob.get("n", 0))
 
 
-class Calibrators:
-    """One isotonic map per market group, plus a global fallback."""
+# Selections whose probabilities always add to one with a partner's. Each pair
+# gets one curve, learned on the first of the two; the second is one minus it.
+_PAIRED = re.compile(r"(ou[\d.]+|tt[\d.]+_(?:home|away)|corners[\d.]+)_(over|under)")
+_PAIRS = {
+    "btts_yes": ("btts", False), "btts_no": ("btts", True),
+    "dnb_home": ("dnb", False), "dnb_away": ("dnb", True),
+    # -1.5 for one side is exactly the complement of +1.5 for the other.
+    "hcp_home-1.5": ("hcp_home-1.5", False), "hcp_away+1.5": ("hcp_home-1.5", True),
+    "hcp_away-1.5": ("hcp_away-1.5", False), "hcp_home+1.5": ("hcp_away-1.5", True),
+}
 
-    def __init__(self, by_group=None, meta=None):
-        self.by_group = by_group or {}
+
+def calibration_scope(key):
+    """(scope, flipped): which curve calibrates a selection, and whether from
+    the other side of it.
+
+    A line and its complement share one curve: `ou2.5_under` is calibrated as
+    one minus the curve of `ou2.5_over`. Selections with no single partner —
+    the three results, the three double chances — share one curve per market,
+    as every market did before.
+    """
+    match = _PAIRED.fullmatch(key)
+    if match:
+        return match.group(1), match.group(2) == "under"
+    return _PAIRS.get(key, (group_of(key), False))
+
+
+class Calibrators:
+    """One isotonic map per line — or per market, where a market has no lines.
+
+    It was one per market group, pooling every line and both sides of each:
+    a 0.60 on over 8.5 corners and a 0.60 on under 10.5 went through the same
+    curve. A monotone curve can only move a probability one way, so wherever
+    the lines of a market err in opposite directions — corners do, being more
+    spread out than a Poisson allows, which leaves the low lines' overs too
+    high and the high lines' too low — the pooled curve can mend neither. One
+    curve per line can, and learning it on one side and deriving the other as
+    its complement keeps over and under summing to one, as the pooled curve
+    did by being symmetric. A line has a probability on every match, so the
+    sample is the whole history rather than a sliver of it.
+    """
+
+    def __init__(self, by_scope=None, meta=None):
+        self.by_scope = by_scope or {}
         self.meta = meta or {}
 
     @classmethod
@@ -167,31 +210,46 @@ class Calibrators:
             min_samples=MIN_SAMPLES, meta=None):
         """`probs` and `results` are the [match, selection] arrays; `mask`
         restricts the fit to rows whose result was known in time."""
-        groups = {}
         rows = np.ones(len(probs), dtype=bool) if mask is None else np.asarray(mask)
-        for group in sorted({group_of(k) for k in keys}):
-            columns = [i for i, k in enumerate(keys) if group_of(k) == group]
-            p = probs[np.ix_(rows, columns)].ravel()
-            r = results[np.ix_(rows, columns)].ravel().astype(float)
+        columns = {}
+        for index, key in enumerate(keys):
+            scope, flipped = calibration_scope(key)
+            columns.setdefault(scope, [])
+            if not flipped:
+                columns[scope].append(index)
+        scopes = {}
+        for scope, own in sorted(columns.items()):
+            p = probs[np.ix_(rows, own)].ravel()
+            r = results[np.ix_(rows, own)].ravel().astype(float)
             valid = (r >= 0) & np.isfinite(p)
-            groups[group] = Isotonic.fit(p[valid], r[valid], n_bins, min_samples)
-        return cls(groups, meta)
+            scopes[scope] = Isotonic.fit(p[valid], r[valid], n_bins, min_samples)
+        return cls(scopes, meta)
+
+    def calibrate(self, key, probs):
+        """Calibrated probabilities for one selection, or the raw ones where
+        nothing was fitted for it."""
+        probs = np.asarray(probs, dtype=float)
+        scope, flipped = calibration_scope(key)
+        curve = self.by_scope.get(scope)
+        if curve is None:
+            # A calibration file written before the curves went per line holds
+            # one per market group, applied to each selection as it stands.
+            curve = self.by_scope.get(group_of(key))
+            return probs if curve is None else curve(probs)
+        return 1.0 - curve(1.0 - probs) if flipped else curve(probs)
 
     def apply(self, keys, probs):
         out = np.array(probs, dtype=np.float64, copy=True)
-        for group, calibrator in self.by_group.items():
-            columns = [i for i, k in enumerate(keys) if group_of(k) == group]
-            if not columns:
-                continue
-            block = out[:, columns]
-            finite = np.isfinite(block)
-            block[finite] = calibrator(block[finite])
-            out[:, columns] = block
+        for index, key in enumerate(keys):
+            column = out[:, index]
+            finite = np.isfinite(column)
+            if finite.any():
+                column[finite] = self.calibrate(key, column[finite])
         return out
 
     def to_json(self):
         return json.dumps({"meta": self.meta,
-                           "groups": {g: c.to_dict() for g, c in self.by_group.items()}},
+                           "scopes": {s: c.to_dict() for s, c in self.by_scope.items()}},
                           indent=1)
 
     def save(self, path):
@@ -200,7 +258,8 @@ class Calibrators:
     @classmethod
     def load(cls, path):
         blob = json.loads(path.read_text(encoding="utf-8"))
-        return cls({g: Isotonic.from_dict(c) for g, c in blob["groups"].items()},
+        stored = blob.get("scopes", blob.get("groups", {}))
+        return cls({s: Isotonic.from_dict(c) for s, c in stored.items()},
                    blob.get("meta", {}))
 
 
