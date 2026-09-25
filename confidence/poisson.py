@@ -71,6 +71,33 @@ def score_matrix(lam, mu, rho=0.0, max_goals=12):
     return matrix / matrix.sum()
 
 
+def score_matrices(lam, mu, rho=0.0, max_goals=12):
+    """`score_matrix` for many matches at once: [n, max_goals+1, max_goals+1].
+
+    The same arithmetic in the same order, a match to a slice. Kept beside the
+    one-match version rather than replacing it, because the market-implied fit
+    calls that one thousands of times on a single match, where the arrays
+    would cost more than they save.
+    """
+    lam = np.asarray(lam, dtype=float)
+    mu = np.asarray(mu, dtype=float)
+    rho = np.broadcast_to(np.asarray(rho, dtype=float), lam.shape)
+    k = np.arange(max_goals + 1)
+
+    def pmfs(means):
+        means = np.maximum(means, 1e-12)[:, None]
+        return np.exp(-means + k * np.log(means) - _LOG_FACT[:max_goals + 1])
+
+    matrix = pmfs(lam)[:, :, None] * pmfs(mu)[:, None, :]
+    # A rho of zero multiplies by exactly one, so no row needs leaving out.
+    matrix[:, 0, 0] *= 1.0 - lam * mu * rho
+    matrix[:, 0, 1] *= 1.0 + lam * rho
+    matrix[:, 1, 0] *= 1.0 + mu * rho
+    matrix[:, 1, 1] *= 1.0 - rho
+    np.clip(matrix, 0.0, None, out=matrix)
+    return matrix / matrix.sum(axis=(1, 2), keepdims=True)
+
+
 class PoissonModel:
     """Joint-MLE team strengths over any pair of count columns."""
 

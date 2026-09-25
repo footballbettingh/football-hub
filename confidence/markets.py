@@ -16,6 +16,8 @@ returned rather than settled, and the evaluator must drop it instead of
 counting it as a loss.
 """
 
+from functools import lru_cache
+
 import numpy as np
 
 TOTAL_LINES = (0.5, 1.5, 2.5, 3.5, 4.5)
@@ -48,73 +50,87 @@ def group_of(key: str) -> str:
     raise KeyError(f"selection key {key!r} belongs to no known market group")
 
 
-def _totals_distribution(matrix):
-    """P(total goals = n) for n = 0 .. 2 * max_goals."""
-    n = matrix.shape[0]
-    totals = np.zeros(2 * n - 1)
-    for i in range(n):
-        totals[i:i + n] += matrix[i]
-    return totals
+# Every selection is the mass of one region of the score grid, so every
+# selection for any number of matches is one matrix product: the grids
+# flattened, against one column of ones and zeros per region. The functions
+# below work on a stack of matches; the one-match versions under them are the
+# same code on a stack of one, so the card and the calibration cannot come to
+# disagree about what a key means.
+
+@lru_cache(maxsize=None)
+def _regions(n, lines, team_lines):
+    """(names, weights): each region of an n x n grid, as a 0/1 column."""
+    i, j = np.indices((n, n))
+    regions = {}
+    if team_lines is not None:            # the goals grid; corners are totals only
+        regions.update({
+            "home": i > j, "draw": i == j, "away": i < j,
+            # BTTS: everything outside the first row and first column
+            "btts_yes": (i > 0) & (j > 0), "btts_no": (i == 0) | (j == 0),
+            "home_by2": i - j >= 2, "away_by2": i - j <= -2,
+        })
+        for line in team_lines:
+            regions[f"home<={line:g}"] = i <= np.floor(line)
+            regions[f"away<={line:g}"] = j <= np.floor(line)
+    for line in lines:
+        regions[f"total<={line:g}"] = i + j <= np.floor(line)
+    names = list(regions)
+    return names, np.stack([regions[k].ravel() for k in names], axis=1).astype(float)
 
 
-def goal_probabilities(matrix):
-    """Every goals-based selection, as {key: probability}."""
-    n = matrix.shape[0]
-    p_home = float(np.tril(matrix, -1).sum())
-    p_draw = float(np.trace(matrix))
-    p_away = float(np.triu(matrix, 1).sum())
+def _masses(matrices, lines, team_lines=None):
+    names, weights = _regions(matrices.shape[1], tuple(lines),
+                              None if team_lines is None else tuple(team_lines))
+    mass = matrices.reshape(len(matrices), -1) @ weights
+    return {name: mass[:, k] for k, name in enumerate(names)}
 
-    home_marginal = matrix.sum(axis=1)
-    away_marginal = matrix.sum(axis=0)
-    totals = _totals_distribution(matrix)
-    cum_totals = np.cumsum(totals)
 
-    diff = np.subtract.outer(np.arange(n), np.arange(n))
-    p_home_by2 = float(matrix[diff >= 2].sum())
-    p_away_by2 = float(matrix[diff <= -2].sum())
-
+def goal_probability_arrays(matrices):
+    """Every goals-based selection for a stack of score grids, {key: array}."""
+    m = _masses(matrices, TOTAL_LINES, TEAM_LINES)
+    home, draw, away = m["home"], m["draw"], m["away"]
     out = {
-        "1x2_home": p_home,
-        "1x2_draw": p_draw,
-        "1x2_away": p_away,
+        "1x2_home": home,
+        "1x2_draw": draw,
+        "1x2_away": away,
 
-        "dc_1x": p_home + p_draw,
-        "dc_12": p_home + p_away,
-        "dc_x2": p_draw + p_away,
+        "dc_1x": home + draw,
+        "dc_12": home + away,
+        "dc_x2": draw + away,
 
-        # BTTS: everything outside the first row and first column
-        "btts_yes": float(matrix[1:, 1:].sum()),
-        "btts_no": float(matrix[0, :].sum() + matrix[:, 0].sum() - matrix[0, 0]),
+        "btts_yes": m["btts_yes"],
+        "btts_no": m["btts_no"],
 
         # -1.5 wins by two clear goals; +1.5 survives anything short of it
-        "hcp_home-1.5": p_home_by2,
-        "hcp_home+1.5": 1.0 - p_away_by2,
-        "hcp_away-1.5": p_away_by2,
-        "hcp_away+1.5": 1.0 - p_home_by2,
+        "hcp_home-1.5": m["home_by2"],
+        "hcp_home+1.5": 1.0 - m["away_by2"],
+        "hcp_away-1.5": m["away_by2"],
+        "hcp_away+1.5": 1.0 - m["home_by2"],
 
         # Draw No Bet is void on a draw, so its probability is conditional
-        "dnb_home": p_home / max(p_home + p_away, 1e-12),
-        "dnb_away": p_away / max(p_home + p_away, 1e-12),
+        "dnb_home": home / np.maximum(home + away, 1e-12),
+        "dnb_away": away / np.maximum(home + away, 1e-12),
     }
 
     for line in TOTAL_LINES:
-        under = float(cum_totals[int(np.floor(line))])
+        under = m[f"total<={line:g}"]
         out[f"ou{line:g}_over"] = 1.0 - under
         out[f"ou{line:g}_under"] = under
 
-    for side, marginal in (("home", home_marginal), ("away", away_marginal)):
-        cum = np.cumsum(marginal)
+    for side in ("home", "away"):
         for line in TEAM_LINES:
-            under = float(cum[int(np.floor(line))])
+            under = m[f"{side}<={line:g}"]
             out[f"tt{line:g}_{side}_over"] = 1.0 - under
             out[f"tt{line:g}_{side}_under"] = under
 
     return out
 
 
-def goal_results(home_goals, away_goals):
-    """Settlement for every key in `goal_probabilities`. None means void."""
-    home_goals, away_goals = int(home_goals), int(away_goals)
+def goal_result_arrays(home_goals, away_goals):
+    """Settlement for every key, for arrays of finished scores: {key: int8
+    array}, 1 won, 0 lost, -1 void."""
+    home_goals = np.asarray(home_goals).astype(int)
+    away_goals = np.asarray(away_goals).astype(int)
     total = home_goals + away_goals
     margin = home_goals - away_goals
 
@@ -127,16 +143,13 @@ def goal_results(home_goals, away_goals):
         "dc_12": margin != 0,
         "dc_x2": margin <= 0,
 
-        "btts_yes": home_goals > 0 and away_goals > 0,
-        "btts_no": home_goals == 0 or away_goals == 0,
+        "btts_yes": (home_goals > 0) & (away_goals > 0),
+        "btts_no": (home_goals == 0) | (away_goals == 0),
 
         "hcp_home-1.5": margin >= 2,
         "hcp_home+1.5": margin >= -1,
         "hcp_away-1.5": margin <= -2,
         "hcp_away+1.5": margin <= 1,
-
-        "dnb_home": None if margin == 0 else margin > 0,
-        "dnb_away": None if margin == 0 else margin < 0,
     }
 
     for line in TOTAL_LINES:
@@ -148,28 +161,62 @@ def goal_results(home_goals, away_goals):
             out[f"tt{line:g}_{side}_over"] = goals > line
             out[f"tt{line:g}_{side}_under"] = goals < line
 
+    out = {key: won.astype(np.int8) for key, won in out.items()}
+    # Draw No Bet is returned on a draw rather than settled.
+    out["dnb_home"] = np.where(margin == 0, -1, margin > 0).astype(np.int8)
+    out["dnb_away"] = np.where(margin == 0, -1, margin < 0).astype(np.int8)
     return out
 
 
-def corner_probabilities(matrix, lines=CORNER_LINES):
-    """Total-corner selections from a corners score matrix."""
-    cum = np.cumsum(_totals_distribution(matrix))
+def corner_probability_arrays(matrices, lines=CORNER_LINES):
+    """Total-corner selections for a stack of corner score grids."""
+    m = _masses(matrices, lines)
     out = {}
     for line in lines:
-        under = float(cum[int(np.floor(line))])
+        under = m[f"total<={line:g}"]
         out[f"corners{line:g}_over"] = 1.0 - under
         out[f"corners{line:g}_under"] = under
     return out
 
 
+def corner_result_arrays(total_corners, lines=CORNER_LINES):
+    total_corners = np.asarray(total_corners, dtype=float)
+    out = {}
+    for line in lines:
+        out[f"corners{line:g}_over"] = (total_corners > line).astype(np.int8)
+        out[f"corners{line:g}_under"] = (total_corners < line).astype(np.int8)
+    return out
+
+
+def _one(arrays):
+    return {key: float(values[0]) for key, values in arrays.items()}
+
+
+def _settled(arrays):
+    return {key: None if values[0] < 0 else bool(values[0])
+            for key, values in arrays.items()}
+
+
+def goal_probabilities(matrix):
+    """Every goals-based selection, as {key: probability}."""
+    return _one(goal_probability_arrays(matrix[None]))
+
+
+def goal_results(home_goals, away_goals):
+    """Settlement for every key in `goal_probabilities`. None means void."""
+    # int() first: a missing score raises here rather than settling as garbage.
+    return _settled(goal_result_arrays([int(home_goals)], [int(away_goals)]))
+
+
+def corner_probabilities(matrix, lines=CORNER_LINES):
+    """Total-corner selections from a corners score matrix."""
+    return _one(corner_probability_arrays(matrix[None], lines))
+
+
 def corner_results(total_corners, lines=CORNER_LINES):
     if total_corners is None or total_corners != total_corners:
         return {}
-    out = {}
-    for line in lines:
-        out[f"corners{line:g}_over"] = total_corners > line
-        out[f"corners{line:g}_under"] = total_corners < line
-    return out
+    return _settled(corner_result_arrays([total_corners], lines))
 
 
 # -- presentation ---------------------------------------------------------
