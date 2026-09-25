@@ -22,7 +22,6 @@ import sys
 import time
 import unicodedata
 
-import numpy as np
 import pandas as pd
 import requests
 

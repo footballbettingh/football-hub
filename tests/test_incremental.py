@@ -123,7 +123,8 @@ def test_a_match_gone_from_the_history_is_dropped_and_results_are_refreshed(
     changed = changed[~((changed["date"] == first["date"]) & (changed["home"] == first["home"]))]
     _, kept, _ = pipeline._incremental_plan(changed, today="2026-09-25")
     assert not ((kept["date"] == first["date"]) & (kept["home"] == first["home"])).any()
-    row = kept[(kept["date"] == on_disk.iloc[1]["date"]) & (kept["home"] == on_disk.iloc[1]["home"])]
+    second = on_disk.iloc[1]
+    row = kept[(kept["date"] == second["date"]) & (kept["home"] == second["home"])]
     assert int(row["home_goals"].iloc[0]) == 9
 
 

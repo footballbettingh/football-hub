@@ -51,9 +51,11 @@ def devig(prices, method="power"):
             return raw / total
         # Each raw probability is below 1, so sum(raw**k) FALLS as k rises:
         # the exponent that removes a positive margin is above 1, not below.
-        f = lambda k: np.sum(raw ** k) - 1.0
+        def excess(k):
+            return np.sum(raw ** k) - 1.0
+
         try:
-            k = brentq(f, 1.0, 20.0, xtol=1e-12)
+            k = brentq(excess, 1.0, 20.0, xtol=1e-12)
         except ValueError:
             return raw / total
         out = raw ** k

@@ -175,7 +175,7 @@ def test_nothing_in_the_range_returns_nothing():
 def _three_days():
     """A card with something in every band on each of three days."""
     rows = []
-    for offset, day in enumerate(("2026-08-14", "2026-08-15", "2026-08-16")):
+    for day in ("2026-08-14", "2026-08-15", "2026-08-16"):
         for i, prob in enumerate((0.72, 0.55, 0.40, 0.20)):
             rows.append({"date": day, "match": f"{day} m{i}", "prob": prob})
         rows.append({"date": day, "match": f"{day} sure", "prob": 0.97})

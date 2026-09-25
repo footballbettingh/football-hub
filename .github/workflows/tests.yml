@@ -31,4 +31,11 @@ jobs:
 
       - run: pip install -r requirements-dev.txt
 
+      # Settings for both are in pyproject.toml.
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Types
+        run: python -m mypy
+
       - run: python -m pytest tests/ -q

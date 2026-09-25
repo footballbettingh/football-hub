@@ -121,9 +121,11 @@ MIN_CONFIDENCE = 0.75
 
 # Best pick of the day: the price range worth singling one out in. Below 1.60
 # the card is a wall of near-certainties that pay nothing; above 2.20 a single
-# pick is a coin flip whichever way you dress it up. The sibling project also
+# pick is a coin flip whichever way you dress it up. The sibling project
 # measured 1.70-2.00 as the only odds band whose value-betting ROI came out
-# positive, which is weak evidence but points the same way.
+# positive. On the 66,000 matches here it is not — -2.5% on 5,440 bets — but
+# it is still the band that loses least (1.60-2.50 -4.6%, 1.50-3.00 -5.0%,
+# every price -6.8%): weak evidence, pointing the same way.
 BEST_ODDS_MIN = 1.60
 BEST_ODDS_MAX = 2.20
 

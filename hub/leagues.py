@@ -193,7 +193,7 @@ RESULTS_STALE_DAYS = 14
 # promise to go and check results by hand for as long as the feed stays dead —
 # and a bet nobody gets round to checking does not fail loudly, it just sits at
 # pending for good, which is the exact hole all of this was built to close.
-GRADED_BY_HAND = set()
+GRADED_BY_HAND: set[str] = set()
 
 
 def quiet(history, today=None, listed=None):
