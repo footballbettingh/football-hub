@@ -133,11 +133,29 @@ def _with_manual_results(history, path=None):
         if column not in extra.columns:
             extra[column] = pd.Series(index=extra.index, dtype=history[column].dtype)
 
+    # The feed wins any fixture both of them have — and "the same fixture" is
+    # the same league, the same two clubs, within a week, as the ledger reads
+    # a postponed match. It used to take the exact date, so a score typed in
+    # against the local date of an evening kick-off, or a day out, survived
+    # the feed publishing the match and the model fitted it twice.
+    extra = extra[[not _published(history, row) for row in extra.itertuples()]]
     joined = pd.concat([history, extra[history.columns]], ignore_index=True)
-    # Feed first, so `keep="first"` drops the hand-typed row on the day the
-    # feed finally publishes the match. That is the direction that must win.
     return joined.drop_duplicates(subset=["competition", "date", "home", "away"],
                                   keep="first")
+
+
+# How far apart two dates can be and still be one fixture. The same week the
+# ledger allows a postponed match (`hub.ledger.POSTPONEMENT_DAYS`); a league
+# never plays the same home-and-away pairing twice inside it.
+SAME_FIXTURE_DAYS = 7
+
+
+def _published(history, row):
+    """Whether the feed already has this hand-entered match."""
+    same = history[(history["competition"] == row.competition)
+                   & (history["home"] == row.home) & (history["away"] == row.away)]
+    return bool(((same["date"] - row.date).abs()
+                 <= pd.Timedelta(days=SAME_FIXTURE_DAYS)).any())
 
 
 def from_feed(history):
