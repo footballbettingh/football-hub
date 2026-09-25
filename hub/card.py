@@ -24,7 +24,7 @@ from .artifacts import PICKS_JSON
 # Columns the page uses. Anything else stays in picks.csv for analysis.
 COLUMNS = ["date", "competition", "match", "home_team", "away_team", "key", "group",
            "selection", "prob", "fair_odds", "odds", "edge", "hit_rate", "hit_rate_n",
-           "new_team", "validated", "implied_resid"]
+           "new_team", "validated", "implied_resid", "kickoff", "priced_at"]
 
 
 def drop_quiet_leagues(fixtures, history, progress=print, today=None, listed=None):
@@ -164,6 +164,20 @@ def _new_team_flags(table):
             for row in rows.itertuples()}
 
 
+def _kickoffs(table):
+    """When each fixture on the card kicks off, by day and both team keys.
+
+    For the picks the ledger already holds, which were written down before it
+    carried a kick-off. Only the time: the price a recorded pick was made at is
+    its own, and today's re-priced one must not be shown beside it.
+    """
+    if table is None or getattr(table, "empty", True) or "kickoff" not in table:
+        return {}
+    rows = table.dropna(subset=["kickoff"]).drop_duplicates(subset=["date", "home", "away"])
+    return {(str(row.date)[:10], row.home, row.away): row.kickoff
+            for row in rows.itertuples()}
+
+
 def _apply_ledger(payload, table=None, path=None):
     """Replace every pick on the slate that has already been written down.
 
@@ -188,6 +202,7 @@ def _apply_ledger(payload, table=None, path=None):
 
     fresh = {(pick["day"], pick["band"]): pick for pick in slate}
     new_teams = _new_team_flags(table)
+    kickoffs = _kickoffs(table)
     # Config order first, then anything the ledger holds under a band this
     # installation no longer defines — a renamed band must not drop a recorded
     # pick off the page while it is still waiting to be graded.
@@ -219,6 +234,9 @@ def _apply_ledger(payload, table=None, path=None):
             flag = new_teams.get((day, pick.get("home"), pick.get("away")))
             if flag is not None:
                 pick["new_team"] = flag
+            kickoff = kickoffs.get((day, pick.get("home"), pick.get("away")))
+            if kickoff and not pick.get("kickoff"):
+                pick["kickoff"] = kickoff
             merged.append(pick)
 
     payload["slate"] = _plain(merged)
@@ -302,7 +320,10 @@ def to_payload(table, fixtures=None, reliability=None, calibrators=None):
     table = table.assign(competition_name=table["competition"].map(names))
 
     rows = []
-    for row in table[COLUMNS].itertuples(index=False):
+    # Reindexed rather than selected: a column the table does not carry — a
+    # kick-off, from a price file written before prices had one — comes
+    # through empty instead of taking the whole card down.
+    for row in table.reindex(columns=COLUMNS).itertuples(index=False):
         record = {column: _clean(value) for column, value in zip(COLUMNS, row)}
         record["date"] = str(record["date"])[:10]
         # "Premier League" rather than "PL". The code stays as the filter value

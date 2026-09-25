@@ -795,3 +795,7 @@ input:focus-visible, th.sortable:focus-visible {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
 }
+
+/* A price bought more than two days ago, counted by hub.js from the reader's
+   clock: the forecast on it is as old as the price. */
+time.stale { color: var(--warning); }

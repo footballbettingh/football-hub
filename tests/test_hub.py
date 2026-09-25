@@ -995,6 +995,57 @@ def test_a_recorded_band_survives_falling_off_the_card(tmp_path):
     assert "candidates" not in payload["slate"][1]
 
 
+def test_a_recorded_pick_takes_its_kickoff_from_the_card_but_not_its_price(tmp_path):
+    """The ledger never held a kick-off, so a recorded pick is given today's.
+    Not today's price time, though: the price it was written down at is its
+    own, and `recorded_at` already says when that was."""
+    path = tmp_path / "best_picks.csv"
+    _recorded(path)
+    table = pd.DataFrame([{"date": "2026-08-26", "home": "real madrid",
+                           "away": "sociedad", "new_team": False,
+                           "kickoff": "2026-08-26T19:00:00Z",
+                           "priced_at": "2026-08-25T09:00:00Z"}])
+    payload = {"slate": [_slate_pick()], "best_pick": _slate_pick()}
+
+    card._apply_ledger(payload, table, path=path)
+
+    assert payload["best_pick"]["kickoff"] == "2026-08-26T19:00:00Z"
+    assert "priced_at" not in payload["best_pick"]
+    html = pages._best_pick_section({"best_pick": payload["best_pick"],
+                                     "best_band": [1.6, 2.2]})
+    assert 'datetime="2026-08-26T19:00:00Z" data-when' in html
+    assert "Priced on the line" not in html
+
+
+def test_a_kickoff_goes_into_the_page_in_utc_for_the_browser_to_localise():
+    """The page is built in one time zone and read in another; the UTC text is
+    what a reader without scripts sees, and hub.js rewrites it."""
+    assert pages._kickoff("2026-09-27T14:00:00Z", "Sun 27 Sep") == (
+        '<time datetime="2026-09-27T14:00:00Z" data-when>Sun 27 Sep, 14:00 UTC</time>')
+    assert pages._kickoff(None, "Sun 27 Sep") == "Sun 27 Sep"
+
+
+def test_the_card_says_how_old_its_prices_are():
+    """Prices are bought league by league as each comes up, so a card holds
+    several ages; it says the oldest, and the newest beside it."""
+    def row(match, priced_at):
+        return {"date": "2026-09-27", "competition": "PL", "match": match,
+                "key": "1x2_home", "group": "1x2", "selection": "Home win",
+                "prob": 0.6, "fair_odds": 1.67, "odds": None, "edge": None,
+                "hit_rate": None, "hit_rate_n": 0, "new_team": False,
+                "validated": True, "kickoff": "2026-09-27T14:00:00Z",
+                "priced_at": priced_at}
+    picks = {"selections": [row("a v b", "2026-09-25T09:00:00Z"),
+                            row("c v d", "2026-09-26T09:00:00Z")],
+             "n_fixtures": 2, "n_selections": 2, "built": "2026-09-26T10:00:00",
+             "first_date": "2026-09-27", "competitions": {"PL": "Premier League"},
+             "groups": {"1x2": "1X2"}}
+    html = pages.render("card", c.Links("server"), dict(EMPTY, picks=picks))
+    prices = html.split('<div class="k">Prices</div>', 1)[1].split('<div class="kpi">', 1)[0]
+    assert 'datetime="2026-09-25T09:00:00Z" data-ago' in prices     # the oldest
+    assert 'newest <time datetime="2026-09-26T09:00:00Z" data-ago' in prices
+
+
 def test_the_recorded_pick_renders_with_no_qualifying_count(tmp_path):
     """`candidates` is absent for a band that is off the card, and the section
     used to interpolate it unconditionally."""
