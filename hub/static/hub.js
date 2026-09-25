@@ -3,11 +3,15 @@
  *
  * Plain ES5 in an IIFE, same as charts.js — no build step, and the file works
  * unchanged whether it is served by the local server or opened from disk.
- * Everything below reads window.__PAGE__ and nothing talks to the server, so
- * the two worlds behave identically.
+ * Everything below reads the page's JSON block and nothing talks to the
+ * server, so the two worlds behave identically.
  */
 (function () {
-  var D = window.__PAGE__ || {};
+  // charts.js has usually parsed it already; this is for a page without it.
+  var D = window.__PAGE__ = window.__PAGE__ || (function () {
+    var block = document.getElementById('page-data');
+    try { return block ? JSON.parse(block.textContent) : {}; } catch (e) { return {}; }
+  })();
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {

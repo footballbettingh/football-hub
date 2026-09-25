@@ -272,21 +272,37 @@ def test_unknown_link_mode_is_refused():
 
 # -- layout ----------------------------------------------------------------
 
+def _embedded(html):
+    """The page's data block, parsed the way the scripts parse it."""
+    match = re.search(r'<script type="application/json" id="page-data">(.*?)</script>',
+                      html, re.S)
+    return json.loads(match.group(1))
+
+
 def test_layout_escapes_titles_and_embeds_data():
     html = c.layout(c.Links("static"), "Card <script>", "index", "<p>body</p>",
                     page_data={"rows": [1, 2]})
     assert "&lt;script&gt;" in html
-    assert '"rows": [1, 2]' in html
+    assert _embedded(html) == {"rows": [1, 2]}
     assert "assets/style.css" in html
 
 
 def test_embedded_data_cannot_close_the_script_block():
     """A match named `</script>` would otherwise end the block early and spill
-    the rest of the payload into the document as markup."""
-    html = c.layout(c.Links("static"), "t", "index", "",
-                    page_data={"match": "</script><h1>x</h1>"})
-    assert "</script><h1>" not in html
-    assert "<\\/script>" in html
+    the rest of the payload into the document as markup. With no `<` left in
+    the block at all, nothing in a string can end it, or open a comment in it —
+    and it still reads back as exactly what was written."""
+    awkward = {"match": "</script><h1>x</h1> <!-- & -->", "rows": ["<SCRIPT>"]}
+    html = c.layout(c.Links("static"), "t", "index", "", page_data=awkward)
+    block = html.split('id="page-data">', 1)[1].split("</script>", 1)[0]
+    assert "<" not in block and ">" not in block
+    assert _embedded(html) == awkward
+
+
+def test_the_page_data_is_data_the_browser_never_runs():
+    html = c.layout(c.Links("static"), "t", "index", "", page_data={"a": 1})
+    assert '<script type="application/json" id="page-data">' in html
+    assert "window.__PAGE__ =" not in html
 
 
 def test_current_page_is_marked_for_screen_readers():

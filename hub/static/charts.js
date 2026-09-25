@@ -1,9 +1,15 @@
 /* Site behaviour: theme toggle, charts, sortable/filterable tables.
  * Edited directly — the build copies this file verbatim.
- * Reads its data from window.__PAGE__, injected per page by build.py.
+ * Reads its data from the page's JSON block, #page-data, which pages.py writes.
  */
 (function () {
-  var D = window.__PAGE__ || {};
+  // Data rather than code: parsed here, once, and left on window for hub.js,
+  // which runs next. A block that will not parse leaves the page without its
+  // charts rather than without its script.
+  var D = window.__PAGE__ = window.__PAGE__ || (function () {
+    var block = document.getElementById('page-data');
+    try { return block ? JSON.parse(block.textContent) : {}; } catch (e) { return {}; }
+  })();
 
   // ---- theme ----------------------------------------------------------
   var btn = document.getElementById('theme');

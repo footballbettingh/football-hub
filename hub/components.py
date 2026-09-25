@@ -234,10 +234,15 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
 
     data_script = ""
     if page_data is not None:
-        # </script> inside a JSON string would end the block early; escaping the
-        # slash is the standard fix and stays valid JSON.
-        blob = json.dumps(page_data).replace("</", "<\\/")
-        data_script = f"<script>window.__PAGE__ = {blob};</script>"
+        # Data, not code: a JSON block the browser never runs, read with
+        # JSON.parse. It used to be a script assigning the data, which a
+        # stray sequence in a team name could have turned into a script of
+        # its own. `<`, `>` and `&` are written as \u escapes — still the same
+        # JSON, and with no `<` in the block nothing in a string can end it
+        # or open a comment inside it.
+        blob = (json.dumps(page_data).replace("<", "\\u003c")
+                .replace(">", "\\u003e").replace("&", "\\u0026"))
+        data_script = f'<script type="application/json" id="page-data">{blob}</script>'
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
