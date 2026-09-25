@@ -36,7 +36,7 @@ safe to re-run, and every one prints what it did.
 | `python fb.py fetch leagues` | the league plan | ~5 s | **free** — it only asks what is in season |
 | `python fb.py fetch odds` | fixture prices | ~10 s per league | **Odds API credits, 2 per league** |
 | `python fb.py model` | walk-forward predictions | ~25 s; 5–8 min in full | — |
-| `python fb.py calibrate` | calibrators, the reliability record, the pick factors | ~2 min | — |
+| `python fb.py calibrate` | calibrators, the reliability record, the pick factors | ~10 s | — |
 | `python fb.py card` | the card, the slate and the two headline picks | ~20 s | — |
 | `python fb.py evidence` | the value-betting backtest and its insights | 5–15 min | — |
 
@@ -86,7 +86,7 @@ Chooses the slate again over the whole history, out of sample — a month at a
 time, with the calibrators, band records, ceilings and tie-break factors rebuilt
 from the months before it only, and the day's picks made by the same code the
 card uses — then grades it by band, market and year: what was claimed, what
-landed, the z-score between them. About three minutes a replay; every pick goes
+landed, the z-score between them. About a minute and a half a replay; every pick goes
 to `reports/slate_backtest.csv`. It is the number to judge a change to the model
 or the picker on, because it is the thing the site publishes. What it cannot
 replay is the earlier price the card is really bought at: the history only has
@@ -136,7 +136,7 @@ and what broke.
 |---|---|
 | `--no-odds` | spend no Odds API credits this run |
 | `--odds-every N` | buy the whole plan at once if the newest price is older than N days (`0` forces it) |
-| `--skip-model` | no walk-forward rebuild or recalibration (~1 min instead of 3–4, or ~10 on the weekly full walk) |
+| `--skip-model` | no walk-forward rebuild or recalibration (saves ~30 s, or ~6 min on the weekly full walk) |
 | `--skip-fetch` | re-price and notify from what is already on disk |
 | `--sports a,b,c` | buy prices for these leagues now, instead of the ones that play soon |
 | `--no-notify` | rebuild only, send nothing |
