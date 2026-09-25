@@ -13,6 +13,7 @@ import pandas as pd
 
 from confidence import config as cf_config, data as cf_data, evaluate, predict
 from confidence.calibrate import Calibrators, walk_forward
+from confidence.corners import CornerAnchor
 from confidence.walkforward import run as walk_forward_run
 from valuebets import config as vb_config, files
 from valuebets.sources import football_data_uk, football_data_world
@@ -480,7 +481,7 @@ def recalibrate(progress=print, weight=None, folds=5):
     weight = cf_config.MARKET_WEIGHT if weight is None else weight
 
     predictions = pd.read_csv(cf_config.PREDICTIONS_CSV, parse_dates=["date"])
-    keys, probs, results = predict.build_arrays(predictions, weight)
+    keys, probs, results = predict.out_of_sample_arrays(predictions, weight, folds)
     dates = predictions["date"].to_numpy()
 
     calibrated, scored = walk_forward(keys, probs, results, dates, n_folds=folds)
@@ -497,9 +498,16 @@ def recalibrate(progress=print, weight=None, folds=5):
     progress("  brier {brier_raw:.5f} -> {brier_calibrated:.5f}, "
              "calibration error {ece_raw:.5f} -> {ece_calibrated:.5f}".format(**scores))
 
-    production = Calibrators.fit(keys, probs, results, meta={
+    # The live card anchors corners on everything there is, so the live
+    # calibrators are fitted on probabilities anchored the same way.
+    anchor = CornerAnchor.fit(predictions)
+    _, live, _ = predict.build_arrays(predictions, weight, anchor=anchor)
+    progress(f"  corner anchor: {anchor.coefficients.round(3).tolist()} "
+             f"on {anchor.n:,} matches")
+    production = Calibrators.fit(keys, live, results, meta={
         "weight": weight, "folds": folds, "matches": int(len(predictions)),
-        "built": time.strftime("%Y-%m-%d %H:%M")})
+        "built": time.strftime("%Y-%m-%d %H:%M"),
+        "corner_anchor": anchor.to_dict()})
     files.write_text(cf_config.CALIBRATION_JSON, production.to_json())
     write_reliability(keys, calibrated, results, scored)
     factors = write_pick_factors(keys, calibrated, results, scored)
@@ -539,7 +547,7 @@ def sweep_market_weight(progress=print, weights=(0.0, 0.25, 0.5, 0.75, 0.9, 1.0)
     dates = predictions["date"].to_numpy()
     rows = []
     for weight in weights:
-        keys, probs, results = predict.build_arrays(predictions, weight)
+        keys, probs, results = predict.out_of_sample_arrays(predictions, weight, folds)
         calibrated, scored = walk_forward(keys, probs, results, dates, n_folds=folds)
         p, y = evaluate._flatten(keys, calibrated, results, scored)
         rows.append({"market_weight": weight, "n": len(p),
@@ -555,7 +563,7 @@ def evaluation_tables(weight=None, folds=5, threshold=None):
     weight = cf_config.MARKET_WEIGHT if weight is None else weight
     threshold = cf_config.MIN_CONFIDENCE if threshold is None else threshold
     predictions = pd.read_csv(cf_config.PREDICTIONS_CSV, parse_dates=["date"])
-    keys, probs, results = predict.build_arrays(predictions, weight)
+    keys, probs, results = predict.out_of_sample_arrays(predictions, weight, folds)
     calibrated, scored = walk_forward(keys, probs, results,
                                       predictions["date"].to_numpy(), n_folds=folds)
     return {

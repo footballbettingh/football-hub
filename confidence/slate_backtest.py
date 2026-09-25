@@ -25,6 +25,7 @@ import pandas as pd
 
 from . import config, evaluate, picks, predict
 from .calibrate import Calibrators
+from .corners import CornerAnchor
 from .markets import group_of, label
 
 # Months of history kept back before anything is calibrated, as a share of all
@@ -52,18 +53,28 @@ def replay(predictions, weight=None, tiebreak=None, competitions=None,
     weight = config.MARKET_WEIGHT if weight is None else weight
     tiebreak = config.PICK_TIEBREAK if tiebreak is None else tiebreak
     predictions = predictions.reset_index(drop=True)
-    keys, probs, results = predict.build_arrays(predictions, weight)
     dates = pd.to_datetime(predictions["date"])
     months = dates.dt.to_period("M").to_numpy()
     eligible = (predictions["competition"].isin(competitions).to_numpy()
                 if competitions is not None else np.ones(len(predictions), bool))
 
-    calibrated = np.full(probs.shape, np.nan)
+    keys = probs = results = calibrated = None
     scored = np.zeros(len(predictions), dtype=bool)
     chosen = []
     for month in sorted(set(months)):
         rows = months == month
         earlier = dates.to_numpy() < month.start_time.to_datetime64()
+        # A month's corners are anchored on the months before it, as its
+        # calibration is: the card's corner prices lean on the market through
+        # an anchor fitted on history, and so must the replay's.
+        anchor = CornerAnchor.fit(predictions[earlier]) if earlier.any() else None
+        keys, block, outcomes = predict.build_arrays(predictions[rows], weight,
+                                                     anchor=anchor)
+        if probs is None:
+            probs = np.full((len(predictions), len(keys)), np.nan, dtype=np.float32)
+            results = np.full((len(predictions), len(keys)), -1, dtype=np.int8)
+            calibrated = np.full(probs.shape, np.nan)
+        probs[rows], results[rows] = block, outcomes
         if earlier.sum() < warmup * len(predictions):
             continue
         calibrators = Calibrators.fit(keys, probs, results, earlier)
