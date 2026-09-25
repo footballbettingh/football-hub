@@ -17,7 +17,7 @@ import pandas as pd
 import requests
 
 from .. import config, files
-from ..teams import normalize
+from confidence.teams import normalize
 from .football_data_org import SPORT_TO_COMPETITION
 
 USER_AGENT = "value-bets-mvp/0.3"

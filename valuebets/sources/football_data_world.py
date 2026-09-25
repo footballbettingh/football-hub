@@ -27,7 +27,7 @@ import pandas as pd
 import requests
 
 from .. import config, files
-from ..teams import normalize
+from confidence.teams import normalize
 
 BASE = "https://www.football-data.co.uk/new"
 

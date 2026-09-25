@@ -3,7 +3,6 @@
 Layered so each piece can be tested without the one above it:
 
     config          settings + API keys from .env
-    teams           provider-neutral team-name keys
     model           the Poisson/Dixon-Coles model
     sources.*       one module per external data provider
     backtest        walk-forward simulation over matches + odds
