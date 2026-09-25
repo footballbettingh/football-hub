@@ -55,6 +55,28 @@ def _num(value, digits=2):
     return NONE if value is None else f"{value:.{digits}f}"
 
 
+# Times go into the page in UTC and come out in the reader's own clock: the
+# page is built on a server in one time zone and read in another, so only the
+# browser knows which. hub.js rewrites every <time> below; without it the UTC
+# text stands, which is still right.
+def _kickoff(iso, fallback):
+    """A kick-off as a <time> the browser shows locally, or the fallback text."""
+    stamp = pd.to_datetime(iso, utc=True, errors="coerce") if iso else pd.NaT
+    if pd.isna(stamp):
+        return c.e(fallback)
+    return (f'<time datetime="{c.e(iso)}" data-when>'
+            f'{stamp:%a} {stamp.day} {stamp:%b}, {stamp:%H:%M} UTC</time>')
+
+
+def _priced(iso):
+    """How long ago a price was bought, as a <time> the browser counts from now."""
+    stamp = pd.to_datetime(iso, utc=True, errors="coerce") if iso else pd.NaT
+    if pd.isna(stamp):
+        return NONE
+    return (f'<time datetime="{c.e(iso)}" data-ago>'
+            f'at {stamp.day} {stamp:%b} {stamp:%H:%M} UTC</time>')
+
+
 def _best_pick_section(picks):
     """The one bet, in a price range where a single pick is worth making."""
     best = picks.get("best_pick")
@@ -92,7 +114,7 @@ def _best_pick_section(picks):
     <div class="side">
       <div class="fixture">{c.e(best["match"])}</div>
       <div class="when">{c.e(best.get("competition_name") or best["competition"])}
-        &middot; {day:%a %d %b}
+        &middot; {_kickoff(best.get("kickoff"), f"{day:%a %d %b}")}
         {'<span class="tag warn">new team</span>' if best.get("new_team") else ''}</div>
       <div class="selection">Back <strong>{c.e(best["selection"])}</strong></div>
     </div>
@@ -104,9 +126,30 @@ def _best_pick_section(picks):
       {offered}{edge}
     </div>
   </div>
-  <p class="note">This band has landed {band}.</p>
+  <p class="note">This band has landed {band}.{_priced_note(best)}</p>
   {_recorded_note(best)}
 </section>"""
+
+
+def _priced_note(pick):
+    """When the pick's price was bought, where the pick is today's own.
+
+    Absent on a pick from the ledger: it carries the time it was written down
+    instead (see `_recorded_note`), and today's re-priced time is not its."""
+    if not pick.get("priced_at") or pick.get("recorded_at"):
+        return ""
+    return f" Priced on the line bought {_priced(pick['priced_at'])}."
+
+
+def _price_ages(picks):
+    """(value, meta) for the card's Prices figure: how old the oldest price on
+    it is, and how new the newest — prices are bought league by league, as
+    each one comes up, so a card holds several ages at once."""
+    stamps = sorted({row.get("priced_at") for row in picks.get("selections", [])
+                     if row.get("priced_at")})
+    if not stamps:
+        return NONE, "no purchase time on file"
+    return f"up to {_priced(stamps[0])}", f"newest {_priced(stamps[-1])}"
 
 
 def _recorded_note(pick):
@@ -160,7 +203,7 @@ def _slate_section(picks):
                     if pick.get("new_team") else "")
             edge = pick.get("edge")
             rows.append([
-                f'{when:%a %d %b}',
+                _kickoff(pick.get("kickoff"), f"{when:%a %d %b}"),
                 f'<span class="tag">{c.e(band)}</span> '
                 f'<span class="note">{pick["band_low"]:g}&ndash;{pick["band_high"]:g}</span>',
                 c.e(pick.get("competition_name") or pick["competition"]),
@@ -254,11 +297,12 @@ def _accumulator_section(picks):
 # picks.json for analysis, and no line of hub.js has ever read them.
 CARD_COLUMNS = ["date", "competition", "match", "key", "group", "selection",
                 "prob", "fair_odds", "odds", "edge", "hit_rate", "hit_rate_n",
-                "new_team", "validated"]
+                "new_team", "validated", "kickoff", "priced_at"]
 
 # The six that repeat themselves: thirteen dates, thirty-one competitions,
 # three hundred fixtures and forty markets, spread over every row on the card.
-CARD_INTERNED = ("date", "competition", "match", "key", "group", "selection")
+CARD_INTERNED = ("date", "competition", "match", "key", "group", "selection",
+                 "kickoff", "priced_at")
 
 # Sent as 0/1 rather than true/false. Four characters a row each, twice a row,
 # on six thousand rows.
@@ -558,7 +602,7 @@ def page_card(links, ctx):
 
     kpi = c.kpis([
         ("Fixtures priced", f"{picks['n_fixtures']}", picks.get("first_date", "")),
-        ("Selections", f"{picks['n_selections']:,}", "across all markets"),
+        ("Prices", *_price_ages(picks)),
         ("At 75% or better", f"{len(strong):,}", f"on {by_match} fixtures"),
         ("Calibrated on", f"{picks.get('calibrated_on', 0):,}",
          "historical matches"),
@@ -686,7 +730,8 @@ def page_fixtures(links, ctx):
     matches = {}
     for row in picks["selections"]:
         entry = matches.setdefault(row["match"], {
-            "date": row["date"], "competition": row["competition"],
+            "date": row["date"], "kickoff": row.get("kickoff"),
+            "competition": row["competition"],
             "competition_name": row.get("competition_name") or row["competition"],
             "match": row["match"], "new_team": row["new_team"], "probs": {}})
         if row["key"] in wanted:
@@ -705,7 +750,9 @@ def page_fixtures(links, ctx):
     # fixture, and matching on the rendered cell text would break the moment a
     # tag or an accent got in the way.
     rows = []
-    for entry in sorted(matches.values(), key=lambda m: (m["date"], m["match"])):
+    # In kick-off order within each day, now that the day shows the time.
+    for entry in sorted(matches.values(),
+                        key=lambda m: (m["date"], m.get("kickoff") or "", m["match"])):
         # Each figure carries its column's name, for the phone layout where
         # the header row is gone and the figures sit under the match.
         cells = "".join(
@@ -717,7 +764,7 @@ def page_fixtures(links, ctx):
         rows.append(
             f'<tr data-match="{c.e(entry["match"])}" data-page="{page}"'
             f'{" hidden" if page else ""}>'
-            f'<td class="nowrap fx-date">{c.e(entry["date"])}</td>'
+            f'<td class="nowrap fx-date">{_kickoff(entry["kickoff"], entry["date"])}</td>'
             f'<td class="col-league fx-league">{c.e(entry["competition_name"])}</td>'
             f'<td class="fx-match">{c.e(entry["match"])}{flag}</td>{cells}</tr>')
 

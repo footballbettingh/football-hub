@@ -225,8 +225,22 @@ def _price_one(fixture, model, corners, weight, devig_method, competition,
             "mu": mu,
             "new_team": bool(new_team),
             "implied_resid": float(resid) if resid == resid else np.nan,
+            # When it starts and when its price was bought, both in UTC. The
+            # page turns them into the reader's own clock: a card read in the
+            # evening before a match needs the kick-off, and a price three
+            # days old is a forecast three days old.
+            "kickoff": _utc_text(getattr(fixture, "commence_time", None)),
+            "priced_at": _utc_text(getattr(fixture, "fetched_at", None)),
         })
     return out
+
+
+def _utc_text(value):
+    """An ISO timestamp in UTC ending in Z, or None."""
+    if value is None or value != value:
+        return None
+    stamp = pd.to_datetime(value, utc=True, errors="coerce")
+    return None if pd.isna(stamp) else stamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 MIN_BAND_SAMPLE = 200      # below this a band has not been tested, only visited
@@ -530,7 +544,8 @@ def best_of_day(picks, odds_min=None, odds_max=None, day=None,
         **{key: (None if pd.isna(best[key]) else best[key])
            for key in ("date", "competition", "competition_name", "home", "away",
                        "match", "selection", "key", "group", "prob", "fair_odds",
-                       "odds", "edge", "hit_rate", "hit_rate_n", "new_team")
+                       "odds", "edge", "hit_rate", "hit_rate_n", "new_team",
+                       "kickoff", "priced_at")
            if key in best.index},
         "score": float(best["score"]),
     }
@@ -653,7 +668,7 @@ def best_accumulator(picks, legs=None, target_odds=None, validated_only=True,
              # home/away keys travel with the leg so it can be settled later
              for key in ("date", "competition", "competition_name", "home",
                          "away", "match", "key", "selection", "prob",
-                         "fair_odds", "odds", "hit_rate", "hit_rate_n")
+                         "fair_odds", "odds", "hit_rate", "hit_rate_n", "kickoff")
              if key in chosen.columns}
             for _, row in chosen.iterrows()
         ],

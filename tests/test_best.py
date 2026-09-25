@@ -395,3 +395,30 @@ def _factors_the_card_ranks_with(tmp_path, monkeypatch, card_mod):
     with pytest.raises(Ranked):
         card_mod.build(progress=lambda *_: None)
     return seen[0]
+
+
+# -- when it starts, and how old its price is --------------------------------
+
+def test_every_selection_carries_its_kickoff_and_when_its_price_was_bought():
+    """Both in UTC with a Z: the page turns them into the reader's clock."""
+    from collections import namedtuple
+    Fixture = namedtuple("Fixture", "home away date home_odds_cons draw_odds_cons "
+                                    "away_odds_cons home_team away_team "
+                                    "commence_time fetched_at")
+    fixture = Fixture("h", "a", pd.Timestamp("2026-09-27"), 2.0, 3.5, 3.8, "H", "A",
+                      "2026-09-27T14:00:00Z",
+                      pd.Timestamp("2026-09-25 09:12:44", tz="UTC"))
+
+    class Goals:
+        rho = -0.05
+
+        def expected_counts(self, home, away):
+            return 1.4, 1.1
+
+        def knows(self, team):
+            return True
+
+    rows = picks_mod._price_one(fixture, Goals(), None, 0.9, "power", "PL")
+    assert {row["kickoff"] for row in rows} == {"2026-09-27T14:00:00Z"}
+    assert {row["priced_at"] for row in rows} == {"2026-09-25T09:12:44Z"}
+

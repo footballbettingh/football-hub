@@ -33,6 +33,38 @@
       ? ' s-hide' : '') + '"' + (label ? ' data-label="' + label + '"' : '');
   }
 
+  // ---- times: the reader's own clock ------------------------------------
+  // pages.py writes every time in UTC, because the page is built in one time
+  // zone and read in another; only the browser knows the reader's. English
+  // words for the day and month, like the rest of the page; the reader's
+  // clock for the hour.
+  var WHEN = { weekday: 'short', day: 'numeric', month: 'short',
+               hour: '2-digit', minute: '2-digit' };
+  var STALE_MS = 2 * 86400000;     // a price older than this is marked
+  function localWhen(iso) {
+    var d = iso ? new Date(iso) : null;
+    return d && !isNaN(d) ? d.toLocaleString('en-GB', WHEN) : null;
+  }
+  function ago(iso) {
+    var ms = iso ? Date.now() - new Date(iso) : NaN;
+    if (!(ms >= 0)) return null;
+    var minutes = ms / 60000;
+    if (minutes < 60) return Math.max(1, Math.round(minutes)) + ' min ago';
+    if (minutes < 48 * 60) return Math.round(minutes / 60) + ' h ago';
+    return Math.round(minutes / 1440) + ' days ago';
+  }
+  [].forEach.call(document.querySelectorAll('time[data-when]'), function (t) {
+    var text = localWhen(t.getAttribute('datetime'));
+    if (text) t.textContent = text;
+  });
+  [].forEach.call(document.querySelectorAll('time[data-ago]'), function (t) {
+    var iso = t.getAttribute('datetime'), text = ago(iso);
+    if (!text) return;
+    t.textContent = text;
+    t.title = localWhen(iso) || '';
+    if (Date.now() - new Date(iso) > STALE_MS) t.classList.add('stale');
+  });
+
   // ---- pages: a long table, one page at a time -------------------------
   // pages.py puts every row on the page, marks each with its page, hides all
   // but the first and draws the buttons in that state; this only moves
@@ -187,7 +219,7 @@
         return '<tr class="' + (r.validated ? '' : 'unvalidated') + '">'
           + '<td class="pickbox"><input type="checkbox" data-key="' + esc(key) + '"'
             + (chosen[key] ? ' checked' : '') + '></td>'
-          + '<td class="nowrap' + stack('s-meta') + '>' + esc(r.date) + '</td>'
+          + '<td class="nowrap' + stack('s-meta') + '>' + esc(localWhen(r.kickoff) || r.date) + '</td>'
           + '<td class="col-league' + stack('s-meta') + '>'
             + esc(r.competition_name || r.competition) + '</td>'
           + '<td class="' + stack('s-title') + '>' + esc(r.match) + flags + '</td>'
@@ -281,7 +313,7 @@
         return;
       }
       body.innerHTML = acca.selections.map(function (leg) {
-        return '<tr><td class="nowrap' + stack('s-meta') + '>' + esc(leg.date) + '</td>'
+        return '<tr><td class="nowrap' + stack('s-meta') + '>' + esc(localWhen(leg.kickoff) || leg.date) + '</td>'
           + '<td class="col-league' + stack('s-meta') + '>'
             + esc(leg.competition_name || leg.competition) + '</td>'
           + '<td class="' + stack('s-title') + '>' + esc(leg.match) + '</td>'
