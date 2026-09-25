@@ -664,6 +664,7 @@ def page_card(links, ctx):
     </tr></thead>
     <tbody id="card-body"></tbody>
   </table></div>
+  <button type="button" class="more" id="card-more" hidden>Show more</button>
 
   <div class="acca" id="acca" hidden>
     <div class="legs" id="acca-legs"></div>

@@ -334,6 +334,12 @@ tr.muted td { color: var(--muted); }
   border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
 .pager button:disabled { opacity: .4; cursor: default; }
 .pager .gap { color: var(--muted); padding: 0 4px; }
+/* The card's next rows, under the ones showing. */
+.more { display: block; margin: 12px auto 0; font: inherit; font-size: 12.5px;
+  cursor: pointer; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--page); color: var(--text-secondary); }
+.more:hover { color: var(--text-primary); border-color: var(--series-1); }
+.more[hidden] { display: none; }
 .pager .n { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 3px; }
 /* The day buttons sit above their table rather than under it. */
 .paged > .pager:first-child { margin: 0 0 12px; }

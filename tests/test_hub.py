@@ -623,6 +623,8 @@ def test_the_card_page_shows_the_selections_it_was_given():
     # The column of checkboxes has a name for a screen reader to read out.
     assert "<th></th>" not in html
     assert '<th><span class="visually-hidden">On the slip</span></th>' in html
+    # hub.js draws a page of rows at a time and shows this when there are more.
+    assert '<button type="button" class="more" id="card-more" hidden>' in html
 
 
 @pytest.mark.parametrize("page", sorted(pages.BUILDERS))
