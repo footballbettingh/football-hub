@@ -491,6 +491,12 @@ and the page says so rather than letting a reader guess.
 | **Evidence** | Can a model beat the closing line (no), with the backtest that shows it |
 | **Method** | How a price becomes a probability, and what the thing cannot do |
 
+Most column headers on the card and the fixtures sort the table when clicked,
+and the search ignores accents: "bodo" finds Bodø/Glimt. Every filter,
+the sort and the match day are kept in the address after `#`, which never
+reaches a server, so a filtered page survives a reload and can be sent as a
+link.
+
 The card ships to the browser in full, so filtering and the accumulator tray are
 instant and work with no server at all. Tick two legs from the same fixture and
 it says so: they are not independent, and multiplying them overstates the parlay.

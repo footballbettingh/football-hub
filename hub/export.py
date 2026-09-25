@@ -19,7 +19,7 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 # The share card lives here rather than in the design folder it was drawn in:
 # that folder is deliberately outside the repository, so a CI export could not
 # see it and every og:image tag would have pointed at a 404.
-ASSETS = ("style.css", "fonts.css", "charts.js", "hub.js", "og-image.png")
+ASSETS = ("style.css", "fonts.css", "theme.js", "charts.js", "hub.js", "og-image.png")
 
 
 def export(out_dir="site"):

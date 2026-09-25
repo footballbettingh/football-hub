@@ -10,7 +10,7 @@ so there is no second copy of the markup to keep in step.
 import html
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -205,6 +205,18 @@ class Links:
         return f"/assets/{name}?v={stamp}" if stamp else f"/assets/{name}"
 
 
+def built_at(now=None):
+    """When the page was built, as a <time> hub.js puts in the reader's clock.
+
+    It said the build machine's local time with no zone: on the daily run that
+    is UTC, on a laptop it is whatever the laptop says, and the page read the
+    same either way. Now it is UTC, and says so, for a reader without scripts.
+    """
+    now = now or datetime.now(timezone.utc)
+    return (f'<time datetime="{now:%Y-%m-%dT%H:%M:%SZ}" data-when>'
+            f'{now:%d %b %Y, %H:%M} UTC</time>')
+
+
 def layout(links, title, current, body_html, page_data=None, subtitle="",
            badges=(), show_head=True):
     """Full page shell: topbar, nav, header, body, footer.
@@ -278,6 +290,7 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
 <meta name="twitter:title" content="{full_title}">
 <meta name="twitter:description" content="{description}">
 <meta name="twitter:image" content="{SITE_URL}/assets/{OG_IMAGE}">
+<script src="{links.asset('theme.js')}"></script>
 <link rel="preload" href="{links.asset('fonts/space-grotesk-variable-latin.woff2')}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{links.asset('fonts/ibm-plex-mono-400-latin.woff2')}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{links.asset('fonts.css')}">
@@ -302,7 +315,7 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
   {body_html}
   </main>
   <footer class="site">
-    <p>Built {datetime.now():%d %b %Y, %H:%M} from local data. Probabilities are
+    <p>Built {built_at()} from local data. Probabilities are
     anchored to <em>de-vigged</em> bookmaker prices — the current line on the card,
     the closing one in everything it was checked against: raw <code>1/odds</code>
     sums to about 1.07, and counting that margin as information is the easiest way

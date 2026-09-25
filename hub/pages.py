@@ -655,11 +655,14 @@ def page_card(links, ctx):
   <div class="tablewrap tall"><table class="sticky cardtable stack" id="cardtable">
     <thead><tr>
       <th><span class="visually-hidden">On the slip</span></th>
-      <th class="nowrap">Date</th><th class="col-league">League</th>
+      <th class="nowrap">{_sort("kickoff", "Date", "asc")}</th>
+      <th class="col-league">{_sort("league", "League", "asc")}</th>
       <th>Match</th><th>Selection</th>
-      <th class="num">Confidence</th><th class="num">Fair</th>
-      <th class="num col-offered">Offered</th><th class="num col-edge">Edge</th>
-      <th class="col-band">Band record</th>
+      <th class="num" aria-sort="descending">{_sort("prob", "Confidence")}</th>
+      <th class="num">{_sort("fair", "Fair", "asc")}</th>
+      <th class="num col-offered">{_sort("odds", "Offered")}</th>
+      <th class="num col-edge">{_sort("edge", "Edge")}</th>
+      <th class="col-band">{_sort("band", "Band record")}</th>
     </tr></thead>
     <tbody id="card-body"></tbody>
   </table></div>
@@ -709,6 +712,14 @@ HEADLINE = [("1x2_home", "Home", ""), ("1x2_draw", "Draw", ""),
             ("1x2_away", "Away", ""), ("btts_yes", "BTTS", "col-extra"),
             ("ou1.5_over", "O1.5", "col-extra"), ("ou2.5_over", "O2.5", ""),
             ("ou3.5_over", "O3.5", "col-extra")]
+
+
+def _sort(key, label, first="desc"):
+    """A column header hub.js sorts by: `key` is what it sorts on, `first` the
+    way a first click orders it — the likeliest and the soonest first."""
+    first = ' data-first="asc"' if first == "asc" else ""
+    return (f'<button type="button" class="sort" data-sort="{c.e(key)}"{first}>'
+            f'{c.e(label)}</button>')
 
 
 def _day_label(day):
@@ -774,11 +785,12 @@ def page_fixtures(links, ctx):
             f'aria-expanded="false">{c.e(entry["match"])}</button>{flag}</td>'
             f'{cells}</tr>')
 
-    headers = "".join(f'<th class="num {css}">{c.e(label)}</th>'
-                      for _, label, css in HEADLINE)
+    headers = "".join(f'<th class="num {css}">{_sort(key, label)}</th>'
+                      for key, label, css in HEADLINE)
     fixture_table = f"""<div class="tablewrap"><table class="fixtures">
-    <thead><tr><th class="nowrap">Date</th><th class="col-league">League</th>
-    <th>Match</th>{headers}</tr></thead>
+    <thead><tr><th class="nowrap" aria-sort="ascending">{_sort("kickoff", "Date", "asc")}</th>
+    <th class="col-league">{_sort("league", "League", "asc")}</th>
+    <th>{_sort("match", "Match", "asc")}</th>{headers}</tr></thead>
     <tbody>{''.join(rows)}</tbody></table></div>"""
     day_pager = c.pager(
         [(str(page_of[day]),
