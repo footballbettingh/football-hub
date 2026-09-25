@@ -505,6 +505,61 @@ def summary_by_band(frame, today=None):
     return out
 
 
+def _market_of(keys):
+    """Each selection key's market group, or None for one that is not a key."""
+    from confidence import markets
+
+    def one(key):
+        try:
+            return markets.group_of(key) if isinstance(key, str) else None
+        except KeyError:
+            return None
+    return pd.Series([one(key) for key in keys], index=getattr(keys, "index", None),
+                     dtype=object)
+
+
+def summary_by_market(frame, today=None):
+    """The same numbers, split by market, the most settled first.
+
+    The bands ask whether the claim holds at every price; this asks whether it
+    holds in every market. The calibrators are fitted one market at a time, and
+    a market that has gone wrong on its own can hide in a band's pooled record.
+    """
+    if frame.empty:
+        return []
+    groups = _market_of(frame["key"])
+    out = [{"group": group, **summary(frame[groups == group], today)}
+           for group in groups.dropna().unique()]
+    return sorted(out, key=lambda row: (-row["settled"], row["group"]))
+
+
+def record_curve(frame):
+    """Every decided pick in the order its match was played, with the running
+    count of wins, the running sum of what the picks claimed, and the spread an
+    honest forecast would show around that sum.
+
+    Each pick claimed something different, so the wins to expect are the sum
+    of the claims and their standard deviation the square root of the summed
+    p(1 - p) — the same yardstick as the `z` in `summary`, drawn pick by pick.
+    """
+    decided = frame[frame["outcome"].isin(("won", "lost"))]
+    if decided.empty:
+        return []
+    decided = decided.assign(_day=pd.to_datetime(decided["day"], errors="coerce"))
+    decided = decided.sort_values("_day", kind="stable")
+    prob = decided["prob"].astype(float).to_numpy()
+    won = (decided["outcome"] == "won").to_numpy()
+    wins, expected = np.cumsum(won), np.cumsum(prob)
+    spread = np.sqrt(np.cumsum(prob * (1 - prob)))
+    return [{"day": _text(row.day, ""), "match": _text(row.match, ""),
+             "selection": _text(row.selection, ""),
+             "band": _text(row.band, DEFAULT_BAND),
+             "prob": round(float(p), 4), "won": bool(w), "wins": int(n),
+             "expected": round(float(e), 3), "sd": round(float(s), 3)}
+            for row, p, w, n, e, s in zip(decided.itertuples(), prob, won, wins,
+                                          expected, spread)]
+
+
 # -- against the closing line ------------------------------------------------
 
 # What the closing line made of each pick. Derived, so it lives beside the
@@ -617,6 +672,15 @@ def drift_by_band(closing):
     bands = closing["band"].astype(str)
     return {band: drift(closing[bands == band])
             for band in ("safe", "main", "value") if (bands == band).any()}
+
+
+def drift_by_market(closing):
+    """`drift`, one market at a time. Corners never reach the close: nothing
+    quotes them, so they have no line to ask again."""
+    if len(closing) == 0:
+        return {}
+    groups = _market_of(closing["key"])
+    return {group: drift(closing[groups == group]) for group in groups.dropna().unique()}
 
 
 # -- the accumulator, kept in its own book ---------------------------------

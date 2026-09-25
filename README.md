@@ -414,7 +414,13 @@ price band**, and refreshing the card again before kick-off keeps the first
 answer — a record that follows whichever pick currently looks best would show a
 flattering history and mean nothing. Settlement only ever fills in the empty
 columns. The History page splits the record by band, because a forecast can be
-honest at 77% and overconfident at 45%, and pooling hides exactly that.
+honest at 77% and overconfident at 45%, and pooling hides exactly that — and by
+market, because the calibrators are fitted a market at a time and one can go
+wrong on its own. A market's z is left blank until it expects five wins and five
+losses; before that one miss swings it past any threshold. Above both tables,
+the record is drawn pick by pick: wins less the running sum of the claims,
+inside two standard errors of it, so the page shows whether the count has ever
+left the range an honest forecast stays in, not only where it ended.
 
 Two things it refuses to fudge:
 

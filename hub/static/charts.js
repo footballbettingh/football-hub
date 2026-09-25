@@ -529,7 +529,97 @@
     host.appendChild(svg);
   }
 
-  function redraw() { drawEquity(); drawPeriods(); drawCalibration(); }
+  // ---- the record: wins against the claim, pick by pick ------------------
+  // The History page's one chart. The line is wins less the sum of the claims,
+  // so an honest record wanders around zero; the band is two standard errors
+  // of that count either side, the square root of the summed p(1 - p). Both
+  // come from ledger.record_curve.
+  function drawRecord() {
+    var host = document.getElementById('record');
+    if (!host || !D.record || D.record.length < 2) return;
+    host.innerHTML = '';
+    var pts = D.record, n = pts.length;
+    var gap = function (p) { return p.wins - p.expected; };
+
+    var W = Math.max(host.clientWidth || 860, 280), H = W < 480 ? 220 : 260;
+    var M = { t: 14, r: 16, b: 30, l: W < 480 ? 36 : 46 };
+    var iw = W - M.l - M.r, ih = H - M.t - M.b;
+    var last = pts[n - 1];
+    var z = last.sd ? gap(last) / last.sd : 0;
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H,
+      role: 'img', 'aria-label': 'Wins less the sum of the claims, over ' + n +
+        ' settled picks, inside a band two standard errors wide. It ends ' +
+        (gap(last) >= 0 ? '+' : '') + gap(last).toFixed(1) + ' wins from the claim, ' +
+        (z >= 0 ? '+' : '') + z.toFixed(1) + ' standard errors.' });
+
+    var ys = [0];
+    pts.forEach(function (p) { ys.push(gap(p), 2 * p.sd, -2 * p.sd); });
+    var sc = niceScale(Math.min.apply(null, ys), Math.max.apply(null, ys), 4);
+    var X = function (i) { return M.l + i / (n - 1) * iw; };
+    var Y = function (v) { return M.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih; };
+
+    sc.ticks.forEach(function (v) {
+      svg.appendChild(el('line', { x1: M.l, x2: M.l + iw, y1: Y(v), y2: Y(v),
+        class: v === 0 ? 'baseline' : 'gridline' }));
+      var t = el('text', { x: M.l - 9, y: Y(v) + 4, class: 'tick', 'text-anchor': 'end' });
+      t.textContent = (v > 0 ? '+' : '') + v;
+      svg.appendChild(t);
+    });
+    [0, n - 1].forEach(function (i, k) {
+      var t = el('text', { x: X(i), y: H - 9, class: 'tick',
+        'text-anchor': k === 0 ? 'start' : 'end' });
+      t.textContent = pts[i].day;
+      svg.appendChild(t);
+    });
+
+    var upper = pts.map(function (p, i) { return X(i) + ' ' + Y(2 * p.sd); });
+    var lower = pts.map(function (p, i) { return X(i) + ' ' + Y(-2 * p.sd); }).reverse();
+    svg.appendChild(el('path', { d: 'M' + upper.join(' L') + ' L' + lower.join(' L') + ' Z',
+      fill: 'var(--series-1)', opacity: 0.12 }));
+    var claim = el('text', { x: M.l + iw - 4, y: Y(0) - 6, class: 'tick', 'text-anchor': 'end' });
+    claim.textContent = 'as claimed';
+    svg.appendChild(claim);
+
+    svg.appendChild(el('path', {
+      d: pts.map(function (p, i) { return (i ? 'L' : 'M') + X(i) + ' ' + Y(gap(p)); }).join(' '),
+      fill: 'none', stroke: 'var(--series-1)', 'stroke-width': 2,
+      'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+
+    var cross = el('line', { y1: M.t, y2: M.t + ih, class: 'baseline', opacity: 0 });
+    var dot = el('circle', { r: 4.5, fill: 'var(--series-1)', stroke: 'var(--surface-1)',
+      'stroke-width': 2, opacity: 0 });
+    svg.appendChild(cross); svg.appendChild(dot);
+
+    var hit = el('rect', { x: M.l, y: M.t, width: iw, height: ih, fill: 'transparent' });
+    svg.appendChild(hit);
+    var picks = explorable(svg, W, n, 'picks',
+      function (i) { return { x: X(i), y: Y(gap(pts[i])) }; },
+      function (i) {
+        var p = pts[i];
+        return '<div class="tt-h">' + esc(p.match) + '</div>' +
+          '<div class="tt-r">' + esc(p.day) + ' &middot; pick ' + (i + 1) + ' of ' + n + '</div>' +
+          '<div class="tt-r">' + esc(p.selection) + ' at ' + (p.prob * 100).toFixed(1) +
+            '% &middot; ' + (p.won ? 'won' : 'lost') + '</div>' +
+          '<div class="tt-r">' + p.wins + ' won against ' + p.expected.toFixed(1) +
+            ' claimed (&plusmn;' + (2 * p.sd).toFixed(1) + ')</div>';
+      },
+      function (i) {
+        cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.setAttribute('opacity', 1);
+        dot.setAttribute('cx', X(i)); dot.setAttribute('cy', Y(gap(pts[i]))); dot.setAttribute('opacity', 1);
+      },
+      function () { cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); });
+    function nearest(ev) {
+      var r = svg.getBoundingClientRect();
+      var sx = (ev.clientX - r.left) * (W / r.width);
+      picks.pointer(ev, Math.max(0, Math.min(n - 1, Math.round((sx - M.l) / iw * (n - 1)))));
+    }
+    hit.addEventListener('pointermove', nearest);
+    hit.addEventListener('pointerdown', nearest);
+    hit.addEventListener('pointerleave', picks.out);
+    host.appendChild(svg);
+  }
+
+  function redraw() { drawEquity(); drawPeriods(); drawCalibration(); drawRecord(); }
 
   ['f-q', 'f-res', 'f-out', 'f-comp', 'f-market'].forEach(function (id) {
     var e = document.getElementById(id);

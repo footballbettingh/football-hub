@@ -136,3 +136,82 @@ def test_the_history_page_shows_the_close_beside_the_record():
     assert "To the close" in html
     assert "-3.0pp" in html and "+1.0pp" in html
     assert "nan" not in html.lower()
+
+
+# -- the record drawn pick by pick, and split by market ------------------------
+
+def test_the_curve_runs_wins_against_claims_in_the_order_played():
+    frame = _book([
+        {"day": "2026-08-16", "band": "safe", "match": "e v f", "selection": "z",
+         "prob": 0.8, "outcome": "lost"},
+        {"day": "2026-08-14", "band": "main", "match": "a v b", "selection": "x",
+         "prob": 0.6, "outcome": "won"},
+        {"day": "2026-08-15", "band": "main", "match": "c v d", "selection": "y",
+         "prob": 0.5, "outcome": "void"},
+        {"day": "2026-08-17", "band": "main", "match": "g v h", "selection": "w",
+         "prob": 0.7, "outcome": "pending"},
+    ])
+    curve = ledger.record_curve(frame)
+    assert [point["match"] for point in curve] == ["a v b", "e v f"]  # decided only
+    assert [point["wins"] for point in curve] == [1, 1]
+    assert [point["expected"] for point in curve] == pytest.approx([0.6, 1.4])
+    assert curve[-1]["sd"] == pytest.approx(np.sqrt(0.24 + 0.16), abs=1e-3)
+    # The last point is the summary's own z, drawn.
+    head = ledger.summary(frame, today="2026-08-20")
+    last = curve[-1]
+    assert (last["wins"] - last["expected"]) / last["sd"] == pytest.approx(head["z"], abs=1e-2)
+
+
+def test_nothing_decided_draws_nothing():
+    frame = _book([{"day": "2026-08-14", "band": "main", "prob": 0.6,
+                    "outcome": "pending"}])
+    assert ledger.record_curve(frame) == []
+
+
+def test_the_record_splits_by_market_most_settled_first():
+    frame = _book([
+        {"day": "2026-08-14", "key": "btts_yes", "prob": 0.6, "outcome": "won"},
+        {"day": "2026-08-14", "key": "ou2.5_over", "prob": 0.6, "outcome": "won"},
+        {"day": "2026-08-15", "key": "ou1.5_over", "prob": 0.8, "outcome": "lost"},
+        {"day": "2026-08-16", "key": "ou3.5_under", "prob": 0.7, "outcome": "pending"},
+        {"day": "2026-08-16", "key": None, "prob": 0.7, "outcome": "won"},
+    ])
+    split = ledger.summary_by_market(frame, today="2026-08-20")
+    assert [(row["group"], row["wins"], row["losses"], row["pending"])
+            for row in split] == [("ou", 1, 1, 1), ("btts", 1, 0, 0)]
+
+
+def test_the_close_splits_by_market_and_corners_have_none():
+    closing = pd.DataFrame({
+        "day": ["2026-09-12"] * 3, "band": ["main"] * 3, "match": ["a v b"] * 3,
+        "key": ["ou2.5_over", "ou1.5_over", "corners9.5_over"],
+        "prob": [0.60, 0.80, 0.70], "prob_close": [0.58, 0.78, np.nan]})
+    moved = ledger.drift_by_market(closing)
+    assert moved["ou"]["n"] == 2 and moved["ou"]["drift_pp"] == pytest.approx(-2.0)
+    assert moved["corners"]["n"] == 0
+
+
+@pytest.mark.parametrize("wins, losses, expected, shown", [
+    (20, 15, 20.9, True),          # plenty of both expected
+    (0, 3, 2.31, False),           # three picks at 77%, all lost: z = -3.2, meaningless
+    (40, 2, 38.0, False),          # four losses expected: still too few
+])
+def test_a_markets_z_waits_until_it_can_mean_something(wins, losses, expected, shown):
+    row = {"wins": wins, "losses": losses, "expected_wins": expected, "z": -1.23}
+    assert (pages._readable_z(row) == "-1.23") is shown
+
+
+def test_the_history_page_draws_the_record_and_splits_it_by_market():
+    frame = _book([
+        {"day": f"2026-09-{day:02d}", "band": "main", "competition": "PL",
+         "competition_name": "Premier League", "match": f"m{day}", "selection": "x",
+         "key": key, "prob": 0.6, "fair_odds": 1.67, "outcome": outcome}
+        for day, key, outcome in ((1, "ou2.5_over", "won"), (2, "btts_yes", "lost"),
+                                  (3, "ou1.5_over", "won"))])
+    context = {"picks": None, "reliability": None, "evidence": None, "data": None,
+               "ledger": frame}
+    html = pages.render("history", c.Links("server"), context)
+    assert '<div class="chart" id="record"></div>' in html
+    assert '"record": [' in html or '"record":[' in html
+    assert "<h2>By market</h2>" in html
+    assert "Total goals" in html and "Both teams to score" in html
