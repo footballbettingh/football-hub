@@ -193,3 +193,28 @@ def test_corners_are_just_another_count():
                          dixon_coles=False, max_goals=25).fit(matches)
     lam, mu = model.expected_counts(teams[0], teams[1])
     assert 3 < lam < 9 and 2 < mu < 8
+
+
+def test_a_fit_that_stops_short_says_so(monkeypatch):
+    """`converged` was recorded and never read: a fit that ran out of
+    iterations handed on wherever the optimiser gave up, silently."""
+    import confidence.poisson as poisson_mod
+    from scipy.optimize import OptimizeResult
+
+    real = poisson_mod.minimize
+
+    def gives_up(*args, **kwargs):
+        result = real(*args, **kwargs)
+        return OptimizeResult(result, success=False, message="STOP: TOTAL NO. OF ITERATIONS")
+
+    monkeypatch.setattr(poisson_mod, "minimize", gives_up)
+    matches, _, _ = synthetic_league()
+    with pytest.warns(poisson_mod.ConvergenceWarning, match="without converging"):
+        model = PoissonModel(("home_goals", "away_goals"), dixon_coles=False).fit(matches)
+    assert model.converged is False
+
+
+def test_a_fit_that_converges_says_nothing(recwarn):
+    matches, _, _ = synthetic_league()
+    PoissonModel(("home_goals", "away_goals")).fit(matches)
+    assert not [w for w in recwarn if "converg" in str(w.message)]

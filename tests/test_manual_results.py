@@ -69,6 +69,30 @@ def test_the_feed_wins_a_fixture_both_of_them_have(typed_in):
     assert not bool(joined.iloc[0][cf_data.MANUAL])
 
 
+def test_the_feed_wins_even_when_the_dates_are_a_day_apart(typed_in):
+    """An evening kick-off typed in against its local date, or a day out: the
+    exact-date check let both rows stand, and the model fitted the match twice
+    — once with the feed's score and once with the guess."""
+    history = feed([("ARG-LIGAPROF", "boca juniors", "river plate",
+                     "2026-09-07", 0, 0)])
+    path = typed_in([("ARG-LIGAPROF", "Boca Juniors", "River Plate",
+                      "2026-09-06", 1, 0)])
+
+    joined = cf_data._with_manual_results(history, path)
+
+    assert len(joined) == 1 and not bool(joined.iloc[0][cf_data.MANUAL])
+
+
+def test_the_reverse_fixture_is_a_different_match(typed_in):
+    """Home and away swapped is the other leg, not a second copy of this one."""
+    history = feed([("ARG-LIGAPROF", "boca juniors", "river plate",
+                     "2026-09-07", 0, 0)])
+    path = typed_in([("ARG-LIGAPROF", "River Plate", "Boca Juniors",
+                      "2026-09-08", 1, 0)])
+
+    assert len(cf_data._with_manual_results(history, path)) == 2
+
+
 def test_a_file_with_nothing_in_it_cannot_take_the_site_down(typed_in, tmp_path):
     """Absent, blank, and header-only. This file is optional enough that none
     of the three may raise on the way to loading five years of history."""

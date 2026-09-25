@@ -18,12 +18,23 @@ that this project needs and that one didn't:
     log lambda_away = base            + attack[a] - defence[h]
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import gammaln
 
 _DC_MAX = 1          # Dixon-Coles only touches scorelines with 0 or 1 goals
+
+
+class ConvergenceWarning(RuntimeWarning):
+    """A fit that stopped before its optimiser said it had arrived.
+
+    Rare — over the whole history no fit needs more than about 40 of its 250
+    iterations — which is why it is said out loud: the strengths are then
+    wherever the optimiser gave up, and nothing downstream would know.
+    """
 
 # log(k!) for the goal grid. The market-implied fit builds a score matrix a few
 # dozen times per match over 64k matches, and scipy.stats.poisson.pmf spends
@@ -182,6 +193,10 @@ class PoissonModel:
         if self.shrink != 1.0:
             self._refit_level(hi, ai, hg, ag, w)
         self.converged = bool(result.success)
+        if not self.converged:
+            warnings.warn(f"{'/'.join(self.count_cols)} fit on {len(hg):,} matches stopped "
+                          f"without converging after {result.nit} iterations: "
+                          f"{result.message}", ConvergenceWarning, stacklevel=3)
         return self
 
     def _refit_level(self, hi, ai, hg, ag, w):
@@ -220,7 +235,11 @@ class PoissonModel:
             return -float((w * np.log(tau)).sum())
 
         result = minimize_scalar(neg_log_lik, bounds=(-0.2, 0.2), method="bounded")
-        return float(result.x) if result.success else 0.0
+        if not result.success:
+            warnings.warn(f"Dixon-Coles rho did not converge ({result.message}); "
+                          "using 0", ConvergenceWarning, stacklevel=3)
+            return 0.0
+        return float(result.x)
 
     # -- prediction -------------------------------------------------------
 
