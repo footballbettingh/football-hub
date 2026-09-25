@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, evaluate
+from .corners import CornerAnchor
 from .implied import devig, implied_lambdas
 from .teams import build_resolver
 from .markets import group_of, label
@@ -108,6 +109,9 @@ def price_fixtures(history, fixtures, calibrators=None, weight=None,
     half_life_days = config.HALF_LIFE_DAYS if half_life_days is None else half_life_days
     ridge = config.RIDGE if ridge is None else ridge
     min_train = config.MIN_TRAIN_MATCHES if min_train is None else min_train
+    # Fitted with the calibrators, on the same history, and stored beside them.
+    anchor = CornerAnchor.from_dict((calibrators.meta or {}).get("corner_anchor")
+                                    if calibrators is not None else None)
 
     rows = []
     for competition, block in fixtures.groupby("competition"):
@@ -141,7 +145,7 @@ def price_fixtures(history, fixtures, calibrators=None, weight=None,
 
         for fixture in block.itertuples():
             rows.extend(_price_one(fixture, model, corners, weight, devig_method,
-                                   competition, resolver))
+                                   competition, resolver, anchor))
 
     frame = pd.DataFrame(rows)
     if frame.empty:
@@ -167,7 +171,7 @@ def _calibrate_column(frame, calibrators):
 
 
 def _price_one(fixture, model, corners, weight, devig_method, competition,
-               resolver=None):
+               resolver=None, anchor=None):
     # Fall back to the feed's own key when nothing resolves: a wrong team is far
     # worse than an unknown one, and `new_team` already says the model is not
     # contributing.
@@ -189,6 +193,11 @@ def _price_one(fixture, model, corners, weight, devig_method, competition,
     corner_lam = corner_mu = np.nan
     if corners is not None:
         corner_lam, corner_mu = corners.expected_counts(home, away)
+        if anchor is not None and lam_market == lam_market:
+            # How open the market expects this match to be — see `corners`.
+            factor = anchor.factor(competition, lam_market, mu_market,
+                                   lam_model, mu_model)
+            corner_lam, corner_mu = corner_lam * factor, corner_mu * factor
 
     probs = match_probabilities(lam, mu, rho, 12, corner_lam, corner_mu)
     new_team = not (model.knows(home) and model.knows(away))

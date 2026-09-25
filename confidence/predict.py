@@ -43,8 +43,12 @@ def match_probabilities(lam, mu, rho, max_goals=12,
     return probs
 
 
-def build_arrays(predictions, weight, max_goals=12, keys=None):
+def build_arrays(predictions, weight, max_goals=12, keys=None, anchor=None):
     """Expand stored parameters into (keys, probs, results) arrays.
+
+    `anchor`, a `corners.CornerAnchor`, scales each match's corner expectation
+    by what its market line says first; it has to have been fitted on matches
+    other than these for the probabilities to be out of sample.
 
     probs   float32 [n_matches, n_keys], NaN where the selection is unavailable
             (corners in a division that has no corner data)
@@ -56,6 +60,8 @@ def build_arrays(predictions, weight, max_goals=12, keys=None):
     """
     keys = list(keys or markets.ALL_KEYS)
     index = {k: i for i, k in enumerate(keys)}
+    if anchor is not None:
+        predictions = anchor.adjust(predictions)
     n = len(predictions)
     probs = np.full((n, len(keys)), np.nan, dtype=np.float32)
     results = np.full((n, len(keys)), -1, dtype=np.int8)
@@ -82,4 +88,30 @@ def build_arrays(predictions, weight, max_goals=12, keys=None):
             if slot is not None and won is not None:
                 results[row_no, slot] = int(bool(won))
 
+    return keys, probs, results
+
+
+def out_of_sample_arrays(predictions, weight, folds=5, max_goals=12):
+    """`build_arrays`, each fold's corners anchored on the folds before it.
+
+    The same chronological folds `calibrate.walk_forward` scores on, so every
+    probability it scores was built with a corner anchor that never saw the
+    match. The first fold has nothing behind it and goes unanchored — it is
+    the fold the walk-forward leaves unscored anyway.
+    """
+    from .corners import CornerAnchor
+
+    predictions = predictions.reset_index(drop=True)
+    parts = np.array_split(np.argsort(predictions["date"].to_numpy(), kind="stable"),
+                           folds)
+    keys = probs = results = None
+    for position, part in enumerate(parts):
+        anchor = (CornerAnchor.fit(predictions.iloc[np.concatenate(parts[:position])])
+                  if position else None)
+        keys, block, outcomes = build_arrays(predictions.iloc[part], weight, max_goals,
+                                             anchor=anchor)
+        if probs is None:
+            probs = np.full((len(predictions), len(keys)), np.nan, dtype=np.float32)
+            results = np.full((len(predictions), len(keys)), -1, dtype=np.int8)
+        probs[part], results[part] = block, outcomes
     return keys, probs, results

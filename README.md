@@ -623,6 +623,12 @@ The short version, with the measurements in
    refitted after the shrink — squeezing the strengths under an unchanged base
    lowers the average of exp (Jensen), and the walk-forward was predicting
    9.695 corners a match against 9.799 played, every line leaning to the under.
+   And the market gets a word in after all: a match the line prices for more
+   goals than its league usually plays, or for more than the goals model
+   expects, is played at a pitch that yields more corners, and the corner
+   expectation is scaled for it (`confidence/corners.py`). Two coefficients,
+   fitted on earlier matches only; out of sample the corner lines' Brier score
+   fell by 0.0005 to 0.0007 on every split tried.
 5. **Calibrate** each line with isotonic regression fitted only on earlier
    matches — one curve per line, learned on one side of it, the other side its
    complement. It was one curve per market, pooling lines that err in opposite
