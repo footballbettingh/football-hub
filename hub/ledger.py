@@ -19,7 +19,6 @@ construction and look like a result.
 
 import json
 import math
-from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
@@ -28,6 +27,8 @@ from confidence import config as cf_config, data as cf_data, evaluate
 from confidence.markets import corner_results, goal_results
 from confidence.teams import build_resolver
 from valuebets import config as vb_config, files
+
+from . import clock
 
 LEDGER_CSV = vb_config.DATA_DIR / "best_picks.csv"
 ACCA_CSV = vb_config.DATA_DIR / "best_accas.csv"
@@ -117,14 +118,14 @@ def record(pick, path=LEDGER_CSV, today=None):
     taken = (frame["day"].astype(str) == day) & (frame["band"].astype(str) == band)
     if taken.any():
         return None
-    today = pd.to_datetime(today or date.today()).strftime("%Y-%m-%d")
+    today = pd.to_datetime(today or clock.today()).strftime("%Y-%m-%d")
     if day < today:
         return None
 
     row = {
         "day": day,
         "band": band,
-        "recorded_at": datetime.now().isoformat(timespec="seconds"),
+        "recorded_at": clock.stamp(),
         "competition": pick.get("competition"),
         "competition_name": pick.get("competition_name") or pick.get("competition"),
         "home": pick.get("home"), "away": pick.get("away"),
@@ -396,7 +397,7 @@ def settle(history, path=LEDGER_CSV):
                 "hand" if bool(match.get(cf_data.MANUAL, False)) else "feed")
         frame.loc[index, "outcome"] = outcome
         frame.loc[index, "pnl"] = profit(outcome, row["odds"])
-        frame.loc[index, "settled_at"] = datetime.now().isoformat(timespec="seconds")
+        frame.loc[index, "settled_at"] = clock.stamp()
         settled += 1
 
     if settled:
@@ -444,7 +445,7 @@ def summary(frame, today=None):
     # as no-result. What reaches it now is a league whose results have stopped
     # arriving altogether, which is worth saying out loud, because nothing else
     # on the page distinguishes a quiet feed from a quiet week.
-    now = pd.Timestamp.today() if today is None else pd.Timestamp(today)
+    now = clock.today() if today is None else pd.Timestamp(today)
     overdue = frame[(frame["outcome"] == "pending")
                     & (pd.to_datetime(frame["day"], errors="coerce")
                        < now - pd.Timedelta(days=POSTPONEMENT_DAYS + 7))]
@@ -720,7 +721,7 @@ def record_acca(acca, path=ACCA_CSV, today=None):
     if not acca:
         return None
     frame = load_accas(path)
-    issued = pd.to_datetime(today or date.today()).strftime("%Y-%m-%d")
+    issued = pd.to_datetime(today or clock.today()).strftime("%Y-%m-%d")
     same = ((frame["issued"].astype(str) == issued)
             & (pd.to_numeric(frame["legs"], errors="coerce") == int(acca["legs"])))
     if same.any():
@@ -728,7 +729,7 @@ def record_acca(acca, path=ACCA_CSV, today=None):
 
     row = {
         "issued": issued,
-        "recorded_at": datetime.now().isoformat(timespec="seconds"),
+        "recorded_at": clock.stamp(),
         "legs": acca["legs"], "target_odds": acca["target_odds"],
         "min_leg_odds": acca["min_leg_odds"],
         "probability": acca["probability"], "fair_odds": acca["fair_odds"],
@@ -812,7 +813,7 @@ def settle_accas(history, path=ACCA_CSV):
             frame.loc[index, "settled_probability"] = float(np.prod(chances))
         frame.loc[index, "outcome"] = outcome
         frame.loc[index, "pnl"] = pnl
-        frame.loc[index, "settled_at"] = datetime.now().isoformat(timespec="seconds")
+        frame.loc[index, "settled_at"] = clock.stamp()
         settled += 1
 
     if settled:
@@ -894,7 +895,7 @@ def recorded_accas(issued=None, path=ACCA_CSV):
     frame = load_accas(path)
     if frame.empty:
         return {}
-    issued = pd.to_datetime(issued or date.today()).strftime("%Y-%m-%d")
+    issued = pd.to_datetime(issued or clock.today()).strftime("%Y-%m-%d")
     out = {}
     for _, row in frame[frame["issued"].astype(str) == issued].iterrows():
         slip = _recorded_slip(row)

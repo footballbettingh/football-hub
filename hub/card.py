@@ -8,7 +8,6 @@ no server to ask.
 """
 
 import json
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,7 @@ from confidence.calibrate import Calibrators
 from confidence.markets import GROUPS
 from valuebets import files
 
-from . import leagues, ledger
+from . import clock, leagues, ledger
 from .artifacts import PICKS_JSON
 
 # Columns the page uses. Anything else stays in picks.csv for analysis.
@@ -343,7 +342,7 @@ def to_payload(table, fixtures=None, reliability=None, calibrators=None):
 
     meta = (calibrators.meta if calibrators else {}) or {}
     return {
-        "built": datetime.now().isoformat(timespec="seconds"),
+        "built": clock.stamp(),
         "best_pick": _plain(best),
         "slate": _plain(slate),
         "bands": {name: list(edges) for name, edges in cf_config.PICK_BANDS.items()},
