@@ -34,7 +34,7 @@ safe to re-run, and every one prints what it did.
 |---|---|---|---|
 | `python fb.py fetch results` | match history and closing odds | 1–3 min | free, no API key |
 | `python fb.py fetch leagues` | the league plan | ~5 s | **free** — it only asks what is in season |
-| `python fb.py fetch odds` | fixture prices | ~10 s per league | **Odds API credits, ~4 per league** |
+| `python fb.py fetch odds` | fixture prices | ~10 s per league | **Odds API credits, 2 per league** |
 | `python fb.py model` | walk-forward predictions | 6–8 min | — |
 | `python fb.py calibrate` | calibrators, the reliability record, the pick factors | ~2 min | — |
 | `python fb.py card` | the card, the slate and the two headline picks | ~20 s | — |
@@ -97,10 +97,10 @@ run exits 0 either way and ends with a tally of what it skipped.
 | Flag | Effect |
 |---|---|
 | `--no-odds` | spend no Odds API credits this run |
-| `--odds-every N` | only fetch prices when the ones on file are older than N days (default 8) |
+| `--odds-every N` | buy the whole plan at once if the newest price is older than N days (`0` forces it) |
 | `--skip-model` | no walk-forward rebuild or recalibration (~1 min instead of ~12) |
 | `--skip-fetch` | re-price and notify from what is already on disk |
-| `--sports a,b,c` | fetch prices for these leagues only |
+| `--sports a,b,c` | buy prices for these leagues now, instead of the ones that play soon |
 | `--no-notify` | rebuild only, send nothing |
 | `--only-if-changed` | stay quiet unless the pick itself changed |
 
@@ -112,35 +112,45 @@ all free and local.
 
 | | Credits |
 |---|---|
-| One league, one fetch | 4 |
-| 31 tracked leagues, one fetch | ~124 |
+| One league, one fetch (`eu` region, 1X2 and totals) | 2 |
+| 31 tracked leagues, one fetch | ~62 |
+| Which leagues play soon, and how many credits are left | free |
 | Free tier | 500 per month |
-| Fetches that fit | 4 |
 
-**The free tier is the binding constraint**, and `--odds-every` is what keeps a
-daily run inside it. At every seventh day a year of runs would want 539 credits
-a month; every eighth day wants 471. That is the whole reason the default is 8.
+**The free tier is the binding constraint, and the prices are the forecast** —
+the model is nine parts closing line to one part itself, so a price four days
+old is a forecast four days old. So a run does not buy every league at once. It
+asks the free events endpoint which leagues have a match in the next three days,
+and buys those, stalest first, up to today's share of what is left:
+(credits remaining − 50) ÷ days to the monthly reset. The remaining count comes
+from the API itself, on a free call, so the run cannot overspend however the
+cache fares or whoever else is using the key. The reset date is not published;
+the run watches for the used count falling and remembers the day in
+`data/odds_quota.json`, and assumes the first of the month until it has seen one.
 
-The price files reach about twelve days ahead, so an eight-day threshold still
-leaves the card several days of fixtures at its thinnest. A run that finds fresh
-prices spends nothing and re-prices the card against the new results anyway, so
-the card keeps improving on days no credit is spent.
+Simulated against seven months of fixtures from the history, that spends 374 to
+450 credits a month and writes a pick down on prices 1.2 days old. The rule it
+replaced — every league at once whenever the newest price was eight days old —
+spent 308 to 512 and wrote picks down on prices 3.7 days old.
+
+One region, not two: `eu,uk` cost four credits a league. Measured on 1,122
+events before it was dropped, the UK books moved the de-vigged 1X2 by 0.36
+points on average and the 2.5 total by 0.20, with no lean either way and the
+same totals coverage — against 2.24 points for a price three to seven days old.
+The exchange stays through its EU copy, and Pinnacle is in `eu`.
 
 Three ways to spend nothing at all:
 
 ```bash
 python fb.py run --no-odds        # this run fetches no prices
-python fb.py run --odds-every 30  # only if the ones on file are a month old
+python fb.py run --odds-every 30  # the whole plan, only if the prices are a month old
 python fb.py fetch leagues        # asks what is in season; always free
 ```
 
-And one way to spend deliberately: `--odds-every 0` forces a fetch regardless of
-how fresh the files are. `python fb.py fetch odds --sports a,b,c` fetches a named
-subset, at 4 credits each, which is how you price one league without paying for
+And ways to spend deliberately: `python fb.py run --odds-every 0` buys every
+league in the plan now, and `python fb.py fetch odds --sports a,b,c` buys a named
+subset, at 2 credits each, which is how you price one league without paying for
 thirty-one.
-
-Usage and remaining balance are on your Odds API dashboard; this project does not
-track them, so `--odds-every` is a guard rather than a guarantee.
 
 ### Telegram
 
@@ -217,7 +227,7 @@ score you enter in `data/manual_results.csv`. The list is empty by default,
 because a bet nobody gets round to checking does not fail loudly — it sits at
 pending for good.
 
-As of August 2026 that is **31 leagues, about 124 credits** for a full fetch
+As of August 2026 that is **31 leagues, about 62 credits** for a full fetch
 against a 500/month free tier — which turns a six-league card of 70 fixtures
 into a 31-league one of 334. Nine competitions in the dataset have no feed at
 all (the National League, the lower Scottish divisions, Switzerland, Ireland,
@@ -462,11 +472,12 @@ publishes `site/` to GitHub Pages. Nothing of yours has to be switched on.
 Three things about it are worth knowing, because each one is a way the cycle
 could quietly stop being true:
 
-**The cache is what makes it affordable.** `data/` is restored from the previous
-run before anything else happens. `fb.py run` decides whether to spend Odds API
-credits by reading `fetched_at` out of the price files, so with no cache there
-are no price files, every run looks overdue, and 31 leagues at 4 credits drains
-the 500-a-month free tier in four days.
+**The cache is what keeps the card whole.** `data/` is restored from the
+previous run before anything else happens. The spending no longer depends on it
+— the run paces itself on the API's own count of the credits left — but the
+price files are the fixture list, the evidence that a league's results have
+stopped, and the odds history nothing else sells; and `odds_quota.json` is
+where the day the quota resets is remembered.
 
 **The ledger is committed back.** Everything else under `data/` is derived and
 can be rebuilt; `best_picks.csv` and `best_accas.csv` cannot, because each row

@@ -146,7 +146,34 @@ def list_sports(client=None):
     return client.get("/sports")  # free
 
 
-def fetch_odds(sport_key, regions="eu,uk", markets="h2h,totals", price_method="best",
+def list_events(sport_key, client=None):
+    """One league's upcoming fixtures, without prices. Costs ZERO credits.
+
+    What decides which leagues are worth paying for today: a league with
+    nothing kicking off soon can wait. The response still carries the quota
+    headers, so the client learns what is left without spending any of it.
+    """
+    client = client or Client()
+    return client.get(f"/sports/{sport_key}/events")  # free
+
+
+# One region. `eu,uk` cost four credits a league and `eu` costs two, and what
+# the second region added was measured before it was dropped: over 1,122
+# events, the de-vigged 1X2 moved 0.36 points on average (0.88 at the 95th
+# percentile) and the 2.5 total 0.20, with no lean either way and the same
+# totals coverage. A price three to seven days old had moved 2.24. So the UK
+# books went, and the credits they cost buy fresher prices instead. The
+# exchange stays through its EU copy, and Pinnacle is in `eu`.
+REGIONS = "eu"
+MARKETS = "h2h,totals"
+
+
+def credits(regions=REGIONS, markets=MARKETS):
+    """What one league's /odds call costs: markets times regions."""
+    return len(markets.split(",")) * len(regions.split(","))
+
+
+def fetch_odds(sport_key, regions=REGIONS, markets=MARKETS, price_method="best",
                totals_lines=(2.5, 1.5, 3.5), client=None):
     """Current odds for upcoming matches. Costs [markets] x [regions] credits.
 
@@ -260,7 +287,7 @@ def fetch_alternate_totals(sport_key, lines=(1.5,), max_events=None, client=None
     for event in events:
         try:
             detail = client.get(f"/sports/{sport_key}/events/{event['id']}/odds",
-                                params={"regions": "eu,uk", "markets": "alternate_totals",
+                                params={"regions": REGIONS, "markets": "alternate_totals",
                                         "oddsFormat": "decimal"})
         except requests.HTTPError:
             continue
