@@ -604,6 +604,19 @@ The short version, with the measurements in
    and lands on the three markets most of the slate is picked from.
 3. Fuse in a joint-MLE goals model at **10%**. Measured, not assumed: 0.90 beats
    both 0.75 and the pure market, paired by match at p = 2.3e-07.
+
+   All of that is measured on closing prices, and the card is priced a day or
+   two earlier. Two ways of adjusting for that were tried on the early
+   (Friday-afternoon) prices football-data keeps beside the closing ones, over
+   35,163 matches out of sample, and both turned down: a lower market weight
+   against the early price (0.9 still wins: Brier 0.18462, 0.18470 at 0.75),
+   and calibrating on early prices instead of closing ones (0.18462 against
+   0.18459 — the two lean the same way and differ only in how much they know).
+   The early price's real cost, 0.18398 on the closing line against 0.18459,
+   is paid down by buying the price later, which is what the paced fetch does.
+   Nor does Pinnacle's closing price beat the average of the books it would
+   replace (RPS 0.20186 against 0.20187 over 34,050 matches), and football-data
+   stopped publishing it in 2025.
 4. **Shrink the corner strengths to 55%** before reading a corner line off
    them. Corners are the one market here with no closing line behind them, so
    nothing else holds the fitted strengths in and they came out about twice as
