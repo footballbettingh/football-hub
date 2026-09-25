@@ -9,7 +9,9 @@ Every response carries x-requests-remaining / x-requests-used / x-requests-last,
 so cost is tracked exactly rather than estimated.
 """
 
+import gzip
 import json
+import re
 from datetime import datetime, timezone
 
 import numpy as np
@@ -172,6 +174,38 @@ def credits(regions=REGIONS, markets=MARKETS):
     return len(markets.split(",")) * len(regions.split(","))
 
 
+_RESPONSE = r"odds_{sport}_\d{{8}}T\d{{6}}Z\.json"
+
+
+def keep_response(sport_key, events, when=None):
+    """Keep the raw response, gzipped, beside the league's earlier ones.
+
+    Nothing reads these. They are the per-bookmaker detail the parsed files
+    collapse to a best and a median price, kept for what only they can answer:
+    what a second region adds, how often a line is quoted. Plain, a response
+    averaged 121 KB, and paced fetching makes a couple of hundred a month;
+    gzipped it is 6 KB. A plain one written before this is compressed
+    the next time its league is fetched, and removed only once the compressed
+    copy reads back the same. Failing at any of that never fails the fetch.
+    """
+    when = when or datetime.now(timezone.utc)
+    raw = config.RAW_DIR
+    files.write_gzip(raw / f"odds_{sport_key}_{when:%Y%m%dT%H%M%SZ}.json.gz",
+                     json.dumps(events))
+    plain_name = re.compile(_RESPONSE.format(sport=re.escape(sport_key)))
+    for plain in sorted(raw.glob(f"odds_{sport_key}_*.json")):
+        if not plain_name.fullmatch(plain.name):
+            continue                       # another league whose key starts the same
+        try:
+            text = plain.read_text(encoding="utf-8")
+            packed = plain.with_name(plain.name + ".gz")
+            files.write_gzip(packed, text)
+            if gzip.decompress(packed.read_bytes()).decode("utf-8") == text:
+                plain.unlink()
+        except (OSError, ValueError):
+            continue
+
+
 def fetch_odds(sport_key, regions=REGIONS, markets=MARKETS, price_method="best",
                totals_lines=(2.5, 1.5, 3.5), client=None):
     """Current odds for upcoming matches. Costs [markets] x [regions] credits.
@@ -203,9 +237,7 @@ def fetch_odds(sport_key, regions=REGIONS, markets=MARKETS, price_method="best",
                         params={"regions": regions, "markets": markets, "oddsFormat": "decimal"})
     print(f"  cost {client.last_cost} credits, {client.report()}")
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    files.write_text(config.RAW_DIR / f"odds_{sport_key}_{stamp}.json",
-                     json.dumps(events))
+    keep_response(sport_key, events)
 
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows = []

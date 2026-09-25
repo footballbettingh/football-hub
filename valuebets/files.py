@@ -12,6 +12,7 @@ then committed what it found: the one file in the project that cannot be
 rebuilt, shortened, with nothing to say so.
 """
 
+import gzip
 import os
 import tempfile
 from pathlib import Path
@@ -30,6 +31,26 @@ def write_text(path, text, encoding="utf-8", newline=None):
     try:
         with os.fdopen(handle, "w", encoding=encoding, newline=newline) as out:
             out.write(text)
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+
+
+def write_gzip(path, text, encoding="utf-8"):
+    """`text`, gzipped, replacing `path` in one step, as `write_text` does."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.",
+                                         suffix=".tmp")
+    try:
+        with os.fdopen(handle, "wb") as out:
+            out.write(gzip.compress(text.encode(encoding), compresslevel=6))
             out.flush()
             os.fsync(out.fileno())
         os.replace(temporary, path)

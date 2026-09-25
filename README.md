@@ -535,6 +535,14 @@ price files are the fixture list, the evidence that a league's results have
 stopped, and the odds history nothing else sells; and `odds_quota.json` is
 where the day the quota resets is remembered.
 
+It is also all that grows. The price files add a row per fixture per fetch,
+a couple of megabytes a year. Each fetch's whole response goes into
+`data/raw/` beside them — the per-bookmaker detail the price files reduce to a
+best and a median, which nothing reads but is what questions like "what does a
+second region add" were answered from. Those are gzipped, about 6 KB each
+against 121 KB plain, so a year of paced fetching is about sixteen megabytes
+rather than three hundred and twenty.
+
 **The ledger is committed back.** Everything else under `data/` is derived and
 can be rebuilt; `best_picks.csv` and `best_accas.csv` cannot, because each row
 was written down *before* its match. The workflow commits and pushes them after
