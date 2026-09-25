@@ -247,6 +247,26 @@ def group_ceilings(reliability, min_n=MIN_BAND_SAMPLE, max_gap=MAX_OVERSTATEMENT
     Corners fail at 85% and BTTS at 75% — both are model-only or near enough,
     and the tails are where an unanchored Poisson goes wrong.
     """
+    return {group: ceiling for group, (ceiling, _)
+            in _ceiling_walks(reliability, min_n, max_gap).items()}
+
+
+# Why a market's ceiling is where it is — said on the Reliability page, which
+# used to name two markets by hand and went on naming them whatever the record
+# came to say.
+TESTED_TO_THE_TOP = "tested to the top"
+OVERSTATED = "overstated itself in the band above"
+TOO_FEW = "too few bets above it to check"
+
+
+def ceiling_reasons(reliability, min_n=MIN_BAND_SAMPLE, max_gap=MAX_OVERSTATEMENT):
+    """For each market, why its ceiling stops where it does."""
+    return {group: reason for group, (_, reason)
+            in _ceiling_walks(reliability, min_n, max_gap).items()}
+
+
+def _ceiling_walks(reliability, min_n, max_gap):
+    """{group: (ceiling, why it stops there)} — see `group_ceilings`."""
     out = {}
     if reliability is None or reliability.empty or "scope" not in reliability:
         return out
@@ -256,14 +276,21 @@ def group_ceilings(reliability, min_n=MIN_BAND_SAMPLE, max_gap=MAX_OVERSTATEMENT
         # the 30-40% band would let a thin bucket down there truncate a market
         # that is perfectly well behaved everywhere it matters.
         block = block[block["band_low"] >= floor].sort_values("band_low")
-        ceiling, expected_low = 0.0, None
+        ceiling, expected_low, reason = 0.0, None, TESTED_TO_THE_TOP
         for row in block.itertuples():
             gap_ok = row.actual >= row.predicted - max_gap
             contiguous = expected_low is None or row.band_low <= expected_low + 1e-9
-            if row.n < min_n or not gap_ok or not contiguous:
+            if row.n < min_n or not contiguous:
+                reason = TOO_FEW
+                break
+            if not gap_ok:
+                reason = OVERSTATED
                 break
             ceiling, expected_low = row.band_high, row.band_high
-        out[group] = ceiling
+        else:
+            if ceiling < 0.999:           # the table simply ends below the top
+                reason = TOO_FEW
+        out[group] = (ceiling, reason)
     return out
 
 

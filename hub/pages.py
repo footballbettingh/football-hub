@@ -13,7 +13,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from confidence import config as cf_config
+from confidence import config as cf_config, picks as picks_mod
 from confidence.markets import GROUPS
 
 from . import artifacts, components as c, ledger
@@ -405,6 +405,11 @@ def _landing_calibration(links, ctx):
     if not points:
         return ""
     worst = max(abs(p["actual"] - p["predicted"]) for p in points)
+    # Counted, not asserted: this sentence used to say "all" whatever the
+    # bands did, on the page whose whole case is claims checked against records.
+    inside = sum(abs(p["actual"] - p["predicted"]) <= 0.01 for p in points)
+    inside_text = (f"All {len(points)} bands land" if inside == len(points)
+                   else f"{inside} of {len(points)} bands land")
     return f"""
 <div class="lsection lcal">
   <h2>Does an 85% pick win 85% of the time?</h2>
@@ -415,11 +420,11 @@ def _landing_calibration(links, ctx):
       what then happened. A dot on the dashed line is a band that came in exactly
       where it said it would; the shaded strip is one percentage point either
       side of it.</p>
-      <p>All {len(points)} bands land inside that strip. The worst is off by
+      <p>{inside_text} inside that strip. The worst is off by
       <strong>{worst * 100:.2f} points</strong>. Dot size is the number of bets
       behind each one.</p>
       <p><a href="{links.href('reliability')}">The same thing market by market</a>,
-      including the two that fail.</p>
+      and where each one stops being checked.</p>
     </div>
   </div>
 </div>"""
@@ -445,16 +450,18 @@ def page_landing(links, ctx):
     # Each stage names what it takes in and what it puts out. That line is
     # literally what the code at that stage does, not a caption.
     steps = [
-        ("First, the closing price",
-         "closing line", "fair probability", "",
-         "The closing line is the sharpest number a bookmaker publishes. Raw "
-         "<code>1/odds</code> sums to about 1.07, and counting that margin as "
-         "information is the easiest way to fool yourself \u2014 so it is removed first."),
+        ("First, the market price",
+         "bookmakers' price", "fair probability", "",
+         "Every number starts from the bookmakers' own. Raw <code>1/odds</code> "
+         "sums to about 1.07, and counting that margin as information is the "
+         "easiest way to fool yourself \u2014 so it is removed first. The card "
+         "is priced on the current line; everything it was checked against, "
+         "on the closing one."),
         ("Then a model, walked forward",
-         "goals", "model probability", "",
-         "Team strengths are estimated from goals with a low-score correction, "
-         "refitted as the season moves, and every match is predicted using only "
-         "what was known before it kicked off."),
+         "goals and shots", "model probability", "",
+         "Team strengths are estimated from goals and shots on target with a "
+         "low-score correction, refitted as the season moves, and every match "
+         "is predicted using only what was known before it kicked off."),
         ("Then the calibration",
          "model probability", "calibrated probability", "pivot",
          "The raw number is fitted to what actually happened, on folds it never "
@@ -504,10 +511,10 @@ def page_landing(links, ctx):
     probability says how often something happens. Whether the price on offer is
     worth taking is a different question, and it needs a price this does not
     always have.</li>
-    <li><strong>It is mostly the market.</strong> The closing line carries most
-    of the forecast by design; the model's job is to add to it without damaging
-    it. Measured on 45,580 out-of-sample matches, it does not beat the line — it
-    keeps up with it.</li>
+    <li><strong>It is mostly the market.</strong> The bookmakers' line carries
+    most of the forecast by design; the model's job is to add to it without
+    damaging it. Measured out of sample over every season on file, it does not
+    beat the closing line — it keeps up with it.</li>
     <li><strong>The record is young.</strong> A handful of settled picks is not
     evidence of anything. The reliability tables run on tens of thousands of
     matches; the daily ledger does not, and is labelled with how few it has.</li>
@@ -580,7 +587,7 @@ def page_card(links, ctx):
   same bet — stacking them makes a card look far more diversified than it is.</p>
   <p class="note"><strong>Offered</strong> and <strong>Edge</strong> are blank
   wherever the price feed does not quote that market. It carries 1X2 and, where
-  they are quoted, Over/Under 1.5 and 2.5. Handicaps, team
+  they are quoted, Over/Under 1.5, 2.5 and 3.5. Handicaps, team
   totals, BTTS and corners are priced here and nowhere else, so there is no
   offer to compare against. <strong>Fair</strong> is always filled in: it is what
   the price would have to be for the bet to break even.</p>
@@ -630,7 +637,7 @@ def page_card(links, ctx):
   <p class="note">The top of any such card is a wall of 96% picks at fair odds of
   1.04, and those are the prices bookmakers get most right. <strong>Edge</strong> is
   the only column about money, and it only exists where the fixture feed quotes a
-  price — 1X2. Drag the fair-odds slider up to ask the more useful question: of the
+  price — 1X2 and the goal totals. Drag the fair-odds slider up to ask the more useful question: of the
   bets that actually pay something, which are the safest?</p>
   {c.next_links(links, [
       ("reliability", "Is 85% really 85%?", "the out-of-sample record"),
@@ -1201,6 +1208,14 @@ def _history_verdict(head):
 
 # -- 4. reliability --------------------------------------------------------
 
+def _overstated_note(names):
+    """Which markets stop because they overstated themselves, from the record."""
+    if not names:
+        return "Right now the first applies to none of them."
+    listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    return f"Right now the first applies to {c.e(listed)}."
+
+
 def page_reliability(links, ctx):
     table = ctx["reliability"]
     if table is None or table.empty:
@@ -1223,10 +1238,16 @@ def page_reliability(links, ctx):
     worst_gap = float(worst["gap"].max()) if len(worst) else 0.0
     total = int(overall["n"].sum())
 
-    ceilings = (ctx["picks"] or {}).get("ceilings") or {}
+    # From the table on this page, with the reason each walk stopped where it
+    # did — the note above the table used to name the failing markets by hand.
+    ceilings = picks_mod.group_ceilings(table)
+    reasons = picks_mod.ceiling_reasons(table)
     ceiling_rows = [[GROUPS.get(group, group),
-                     "no ceiling — tested to the top" if value >= 0.999 else _pct(value, 0)]
+                     "no ceiling" if value >= 0.999 else _pct(value, 0),
+                     reasons.get(group, "")]
                     for group, value in sorted(ceilings.items(), key=lambda kv: kv[1])]
+    overstated = sorted(GROUPS.get(g, g) for g, why in reasons.items()
+                        if why == picks_mod.OVERSTATED)
 
     scopes = sorted(set(table["scope"]) - {"all"})
     options = "".join(f'<option value="{c.e(s)}">{c.e(GROUPS.get(s, s))}</option>'
@@ -1242,7 +1263,8 @@ def page_reliability(links, ctx):
 {c.kpis([
     ("Graded selections", f"{total:,}", "out of sample"),
     ("Worst band gap", f"{worst_gap * 100:.2f}pp", "predicted vs actual"),
-    ("Bands", f"{len(overall)}", "50% up to 100%"),
+    ("Bands", f"{len(overall)}",
+     f"{overall['band_low'].min():.0%} up to 100%" if len(overall) else ""),
 ])}
 
 <section class="card">
@@ -1257,17 +1279,18 @@ def page_reliability(links, ctx):
 
 <section class="card">
   <h2>Where the numbers stop being checked</h2>
-  <p class="note">Each market is trusted only as far up as its own record supports.
-  Two different reasons show up: corners and BTTS <em>overstated themselves</em> in
-  their top bands, while the rest simply never produce enough bets that high to have
-  been tested. Picks above the ceiling are dropped from the card.</p>
-  {c.table(["Market", "Checked up to"], ceiling_rows, numeric_from=1)
+  <p class="note">Each market is trusted only as far up as its own record supports,
+  and the walk up its bands stops for one of two reasons: the band above
+  <em>overstated itself</em>, or too few bets that high have been graded to say.
+  {_overstated_note(overstated)} Picks above the ceiling are dropped from the
+  card.</p>
+  {c.table(["Market", "Checked up to", "Why it stops here"], ceiling_rows, numeric_from=1)
    if ceiling_rows else '<div class="empty">No ceilings computed yet.</div>'}
 </section>
 
 <section class="card">
   <h2>By market</h2>
-  <p class="note">The pooled table above hides the two markets that fail. Pick one.</p>
+  <p class="note">The pooled table can hide a market that fails on its own. Pick one.</p>
   <div class="filters">
     <label class="visually-hidden" for="rel-scope">Market</label>
     <select id="rel-scope">{options}</select>
@@ -1450,9 +1473,10 @@ def page_method(links, ctx):
     <li><strong>Fuse a model in, at 10%.</strong> Joint-MLE attack and defence with
     time decay, rated on goals and shots on target. Measured: 0.90 beats both 0.75
     and pure market, paired by match at p = 2.3e-07.</li>
-    <li><strong>Calibrate.</strong> Isotonic regression per market group, fitted only
-    on earlier matches. It barely touches the market-anchored markets and rescues
-    corners, which have no anchor at all.</li>
+    <li><strong>Calibrate.</strong> Isotonic regression, one curve per line — over
+    2.5, home over 1.5, over 9.5 corners — fitted only on earlier matches. It
+    barely touches the market-anchored markets and does the most for corners,
+    which have the least anchor.</li>
     <li><strong>Check, then cap.</strong> Every market is trusted only as far as its
     own out-of-sample record supports.</li>
   </ol>
@@ -1464,11 +1488,15 @@ def page_method(links, ctx):
     <li>No injuries, lineups, weather, motivation or fixture congestion. The model
     sees goals, shots on target and corners; the price sees everything else, which is
     most of why the price carries 90% of the weight.</li>
-    <li>Corners have no market anchor and are capped at 85% confidence for it.</li>
+    <li>Corners have no price of their own. The market reaches them only through
+    how open it expects the match to be, and they are trusted only as high as
+    their own record supports.</li>
     <li>A team with no history in its division is carried almost entirely by the
     price, and is flagged on the card.</li>
-    <li>The fixture feed quotes 1X2 only, so upcoming matches are anchored on two
-    constraints rather than three.</li>
+    <li>The card is priced on the line of the day it is built, a day or two
+    before kick-off, and everything above was checked on closing prices, which
+    know more. Calibrating on the earlier prices instead was tried and bought
+    nothing: they lean the same way, and only know less.</li>
     <li>Accumulator maths assumes independent fixtures. Legs from one match are not
     independent, which is why the tray warns when you tick two.</li>
     <li>Nothing here is a claim of profit.</li>
@@ -1477,9 +1505,10 @@ def page_method(links, ctx):
 
 <section class="card">
   <h2>Data</h2>
-  <p class="note">{span}. Closing prices throughout — the sharpest number a
-  bookmaker publishes. Backtesting against opening prices flatters a model that is
-  really just slower than the market.</p>
+  <p class="note">{span}. Closing prices throughout the history — the sharpest
+  number a bookmaker publishes. Backtesting against opening prices flatters a
+  model that is really just slower than the market. The card itself is priced on
+  the current line.</p>
   {c.table(["Competition", "Matches", "From", "To"], coverage, numeric_from=1)
    if coverage else '<div class="empty">No coverage listed yet.</div>'}
 </section>
