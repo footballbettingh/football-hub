@@ -1,7 +1,9 @@
 """Team-name keys, so two providers' spellings land on the same club.
 
-Adapted from the sibling project's `valuebets/teams.py`. The rule that matters
-is in `resolve`: a short form maps onto a longer one only when EXACTLY ONE
+The only set of rules for a club's name in the project. The value-betting
+half kept its own copy, which drifted — no transliteration, none of the
+token aliases — and wrote the keys history.csv is de-duplicated on with it;
+its fetchers use this one now. The rule that matters is in `resolve`: a short form maps onto a longer one only when EXACTLY ONE
 candidate matches, so "Manchester" resolves to neither City nor United and is
 reported unknown instead. A fixture skipped is a nuisance; a fixture silently
 priced with the wrong team's strengths is a bug you never notice.

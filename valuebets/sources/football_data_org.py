@@ -19,7 +19,7 @@ import pandas as pd
 import requests
 
 from .. import config, files
-from ..teams import normalize
+from confidence.teams import normalize
 
 USER_AGENT = "value-bets-mvp/0.3"
 
