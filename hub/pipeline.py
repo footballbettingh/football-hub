@@ -14,7 +14,7 @@ import pandas as pd
 from confidence import config as cf_config, data as cf_data, evaluate, predict
 from confidence.calibrate import Calibrators, walk_forward
 from confidence.walkforward import run as walk_forward_run
-from valuebets import config as vb_config
+from valuebets import config as vb_config, files
 from valuebets.sources import football_data_uk, football_data_world
 
 from . import leagues
@@ -98,7 +98,7 @@ def fetch_results(progress=print, seasons=None, include_world=True,
 
     frame = (frame.drop_duplicates(subset=["date", "home_key", "away_key"])
                   .sort_values("date"))
-    frame.to_csv(out, index=False)
+    files.write_csv(frame, out, index=False)
     progress(f"Saved {len(frame):,} matches to {out}")
 
     # New results are exactly what a pending pick is waiting for. Settling only
@@ -176,7 +176,7 @@ def discover_leagues(progress=print):
                  "cannot be priced: " + ", ".join(unknown[:8])
                  + ("…" if len(unknown) > 8 else ""))
 
-    LEAGUE_PLAN.write_text(json.dumps(plan, indent=1), encoding="utf-8")
+    files.write_text(LEAGUE_PLAN, json.dumps(plan, indent=1))
     new = sum(1 for entry in plan if not entry["tracked"])
     full = len(plan) * odds_api.credits()
     progress(f"\n{len(plan)} leagues can be priced ({new} new). A full price "
@@ -282,7 +282,7 @@ def _fetch_one(sport, regions, markets, progress, client=None):
     # and writing produces one file with two spellings of the same date —
     # which the next reader infers a format from and then chokes on.
     frame["date"] = cf_data.parse_dates(frame["date"], out.name).dt.strftime("%Y-%m-%d")
-    frame.to_csv(out, index=False)
+    files.write_csv(frame, out, index=False)
     progress(f"  {sport}: {len(frame)} rows")
     return len(frame)
 
@@ -426,9 +426,8 @@ def days_to_reset(used, today, path=None):
     if used is not None and state.get("used") is not None and used < state["used"]:
         reset_day = today.day
     if used is not None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"reset_day": reset_day, "used": used,
-                                    "seen": today.isoformat()}), encoding="utf-8")
+        files.write_text(path, json.dumps({"reset_day": reset_day, "used": used,
+                                           "seen": today.isoformat()}))
     return _days_until(today, reset_day or 1)
 
 
@@ -464,7 +463,8 @@ def rebuild_model(progress=print, refit_days=None, competitions=None):
     started = time.time()
     predictions = walk_forward_run(history, refit_days=refit_days,
                                    competitions=competitions, progress=progress)
-    predictions.to_csv(cf_config.PREDICTIONS_CSV, index=False, float_format="%.6f")
+    files.write_csv(predictions, cf_config.PREDICTIONS_CSV, index=False,
+                    float_format="%.6f")
     progress(f"Priced {len(predictions):,} matches out of sample in "
              f"{time.time() - started:.0f}s")
     return {"matches": int(len(predictions)),
@@ -500,7 +500,7 @@ def recalibrate(progress=print, weight=None, folds=5):
     production = Calibrators.fit(keys, probs, results, meta={
         "weight": weight, "folds": folds, "matches": int(len(predictions)),
         "built": time.strftime("%Y-%m-%d %H:%M")})
-    production.save(cf_config.CALIBRATION_JSON)
+    files.write_text(cf_config.CALIBRATION_JSON, production.to_json())
     write_reliability(keys, calibrated, results, scored)
     factors = write_pick_factors(keys, calibrated, results, scored)
     progress(f"Calibrators -> {cf_config.CALIBRATION_JSON}")
@@ -522,7 +522,7 @@ def write_reliability(keys, calibrated, results, scored):
             block.insert(0, "scope", group)
             frames.append(block)
     table = pd.concat(frames, ignore_index=True)
-    table.to_csv(cf_config.RELIABILITY_CSV, index=False, float_format="%.5f")
+    files.write_csv(table, cf_config.RELIABILITY_CSV, index=False, float_format="%.5f")
     return table
 
 
@@ -538,7 +538,7 @@ def write_pick_factors(keys, calibrated, results, scored):
     table = evaluate.key_price_factors(
         keys, calibrated, results, scored,
         step=cf_config.PICK_FACTOR_STEP, min_n=cf_config.PICK_FACTOR_MIN_N)
-    table.to_csv(cf_config.PICK_FACTORS_CSV, index=False, float_format="%.5f")
+    files.write_csv(table, cf_config.PICK_FACTORS_CSV, index=False, float_format="%.5f")
     return table
 
 

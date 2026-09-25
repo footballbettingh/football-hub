@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from .. import config
+from .. import config, files
 from ..teams import normalize
 
 BASE = "https://www.football-data.co.uk/new"
@@ -111,7 +111,7 @@ def fetch(codes=None, since=2021, use_cache=True, pause=0.5):
                 print(f"{code}: skipped ({exc})", file=sys.stderr)
                 continue
             text = resp.content.decode("utf-8-sig", errors="replace")
-            cache.write_text(text, encoding="utf-8")
+            files.write_text(cache, text)
             source = "downloaded"
             time.sleep(pause)
 

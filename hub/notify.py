@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from valuebets import config
+from valuebets import config, files
 
 from .artifacts import DATA_DIR, load_picks
 
@@ -307,9 +307,8 @@ def notify(payload=None, only_if_changed=False, dry_run=False, token=None,
 
     result["chats"] = send_message(text, token=token, chats=chats)
     result["status"] = "sent"
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps(
+    files.write_text(state_path, json.dumps(
         {"fingerprint": mark, "chats": result["chats"],
          "sent_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
-        indent=2), encoding="utf-8")
+        indent=2))
     return result

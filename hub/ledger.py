@@ -27,7 +27,7 @@ import pandas as pd
 from confidence import config as cf_config, data as cf_data
 from confidence.markets import corner_results, goal_results
 from confidence.teams import build_resolver
-from valuebets import config as vb_config
+from valuebets import config as vb_config, files
 
 LEDGER_CSV = vb_config.DATA_DIR / "best_picks.csv"
 ACCA_CSV = vb_config.DATA_DIR / "best_accas.csv"
@@ -62,6 +62,11 @@ COLUMNS = [
     "result_source",
 ]
 
+# What settlement fills in. Everything else in a row is written before the
+# match and never touched again — see `changes`.
+SETTLEMENT = ("played_on", "home_goals", "away_goals", "outcome", "pnl",
+              "settled_at", "result_source")
+
 # What a row without a band is. Rows written before the slate existed were all
 # from the flagship 1.60-2.20 range, so labelling them anything else would
 # misfile the only real history there is.
@@ -91,8 +96,9 @@ def load(path=LEDGER_CSV):
 
 
 def save(frame, path=LEDGER_CSV):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    frame[COLUMNS].to_csv(path, index=False, float_format="%.5f")
+    # In one step: a ledger cut off part-way is the one loss here that no
+    # fetch can repair. See `valuebets.files`.
+    files.write_csv(frame[COLUMNS], path, index=False, float_format="%.5f")
 
 
 def record(pick, path=LEDGER_CSV, today=None):
@@ -138,6 +144,35 @@ def record(pick, path=LEDGER_CSV, today=None):
     # and at a few rows a day the cost never matters.
     save(pd.DataFrame(frame.to_dict("records") + [row], columns=COLUMNS), path)
     return row
+
+
+def changes(before, after, settlement):
+    """What `after` does to `before` that an append-only book may not.
+
+    Both are a book read as text (`dtype=str, keep_default_na=False`), so a
+    blank cell is "" and nothing is reformatted on the way in. The rules are
+    the ledger's own: rows are only ever added at the end, a column written
+    before the match never changes, and a settlement column only goes from
+    blank — or "pending" — to an answer, once. Returns what broke them, one
+    line each; empty when `after` is `before` with rows added and blanks filled.
+    """
+    problems = []
+    if len(after) < len(before):
+        problems.append(f"{len(before) - len(after)} row(s) gone: {len(before)} "
+                        f"committed, {len(after)} now")
+    gone = [column for column in before.columns if column not in after.columns]
+    if gone:
+        problems.append(f"column(s) gone: {', '.join(gone)}")
+    for row in range(min(len(before), len(after))):
+        for column in before.columns:
+            if column in gone:
+                continue
+            was, now = before.at[row, column], after.at[row, column]
+            if was == now or (column in settlement and was in ("", "pending")):
+                continue
+            # +2: a header line, and people count from one.
+            problems.append(f"line {row + 2}, {column}: {was!r} became {now!r}")
+    return problems
 
 
 def record_slate(slate, path=LEDGER_CSV, today=None):
@@ -471,6 +506,9 @@ ACCA_COLUMNS = [
 ACCA_TEXT = ("issued", "recorded_at", "first_day", "last_day", "selections",
              "outcome", "settled_at")
 
+ACCA_SETTLEMENT = ("legs_won", "legs_void", "settled_probability", "outcome",
+                   "pnl", "settled_at")
+
 
 def load_accas(path=ACCA_CSV):
     if path.exists():
@@ -525,8 +563,7 @@ def record_acca(acca, path=ACCA_CSV, today=None):
 
 
 def save_accas(frame, path=ACCA_CSV):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    frame[ACCA_COLUMNS].to_csv(path, index=False, float_format="%.5f")
+    files.write_csv(frame[ACCA_COLUMNS], path, index=False, float_format="%.5f")
 
 
 def settle_accas(history, path=ACCA_CSV):

@@ -18,7 +18,7 @@ import time
 import pandas as pd
 import requests
 
-from .. import config
+from .. import config, files
 from ..teams import normalize
 
 USER_AGENT = "value-bets-mvp/0.3"
@@ -126,7 +126,7 @@ def fetch_matches(competitions, seasons, use_cache=True):
                     hint = {403: "not on your plan", 404: "no such competition/season"}.get(code, "")
                     print(f"{comp} {season}: skipped ({code} {hint})", file=sys.stderr)
                     continue
-                cache.write_text(json.dumps(payload), encoding="utf-8")
+                files.write_text(cache, json.dumps(payload))
                 got = (payload.get("resultSet") or {}).get("count", 0)
                 print(f"{comp} {season}: {got} matches (quota left this minute: {client.available})")
             all_rows.extend(parse_matches(payload, comp))

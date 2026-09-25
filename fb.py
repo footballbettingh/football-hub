@@ -234,13 +234,41 @@ def cmd_sweep(args):
 # unattended
 # --------------------------------------------------------------------------
 
-def _step(label, fn, required=False, skipped=None):
+def _expected_failures():
+    """The failures a stage is allowed to have without anything being wrong.
+
+    A guard saying there is no data or no key (SystemExit), a provider having
+    a bad afternoon (anything requests raises), Telegram refusing a message.
+    Everything else is a bug in this code.
+    """
+    from requests import RequestException
+
+    from hub.notify import NotifyError
+    return (SystemExit, RequestException, NotifyError)
+
+
+def _annotate(level, message):
+    """A line the Actions summary shows at the top of the run. Nothing locally."""
+    import os
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::{level}::{' '.join(str(message).split())}")
+
+
+def _step(label, fn, required=False, skipped=None, broken=None):
     """One stage of an unattended run: timed, and survivable unless required.
 
     A scheduled job that dies on a provider's bad afternoon refreshes nothing
     and says nothing. Optional stages log the failure and let the run continue
     on yesterday's copy of that data.
+
+    But only a provider's failure is an afternoon. A stage that fails on a bug
+    used to be logged the same way — "skipped", one line, exit 0 — so a
+    KeyError in the model rebuild left a green run publishing a card built on
+    last week's model, and nothing anywhere said so. A bug is still survived,
+    so the card and the ledger go out on yesterday's data; but it prints its
+    traceback, it lands in `broken`, and `cmd_run` exits non-zero for it.
     """
+    import traceback
     from datetime import datetime
 
     from valuebets.config import redact
@@ -253,9 +281,18 @@ def _step(label, fn, required=False, skipped=None):
             raise
         # Redacted here as well as where the errors are raised: this is the
         # line every failure of an unattended run ends up printed through.
-        print(f"  [!] skipped - {type(exc).__name__}: {redact(exc)}")
-        if skipped is not None:
-            skipped.append(label)
+        message = f"{type(exc).__name__}: {redact(exc)}"
+        if isinstance(exc, _expected_failures()):
+            print(f"  [!] skipped - {message}")
+            _annotate("warning", f"{label}: skipped - {message}")
+            if skipped is not None:
+                skipped.append(label)
+        else:
+            print(f"  [!!] FAILED ON A BUG - {message}")
+            print(redact(traceback.format_exc()))
+            _annotate("error", f"{label}: failed on a bug - {message}")
+            if broken is not None:
+                broken.append(label)
         return False
 
 
@@ -331,12 +368,15 @@ def cmd_run(args):
     from datetime import datetime
     from hub import card, evidence, notify as tg, pipeline
 
-    started, skipped = datetime.now(), []
+    started, skipped, broken = datetime.now(), [], []
+
+    def step(label, fn):
+        return _step(label, fn, skipped=skipped, broken=broken)
+
     print(f"=== Football Hub run {started:%Y-%m-%d %H:%M:%S} ===")
 
     if not args.skip_fetch:
-        _step("Fetching results and closing odds",
-              lambda: pipeline.fetch_results(), skipped=skipped)
+        step("Fetching results and closing odds", lambda: pipeline.fetch_results())
 
         sports = args.sports.split(",") if args.sports else None
         if args.no_odds:
@@ -345,9 +385,8 @@ def cmd_run(args):
         elif sports is None and args.odds_every is None:
             # The default: only the leagues that play soon, at the pace the
             # month's quota allows. See `pipeline.fetch_odds_paced`.
-            _step("Fetching prices for the leagues that play soon (free to plan, "
-                  "paced to the quota)",
-                  lambda: pipeline.fetch_odds_paced(), skipped=skipped)
+            step("Fetching prices for the leagues that play soon (free to plan, "
+                 "paced to the quota)", lambda: pipeline.fetch_odds_paced())
         else:
             # Asked for by name: these leagues, or everything once the newest
             # price is older than --odds-every days.
@@ -357,14 +396,13 @@ def cmd_run(args):
                       f"{args.odds_every}; not spending credits today. "
                       f"Force with --odds-every 0.")
             else:
-                _step("Fetching prices",
-                      lambda: pipeline.fetch_odds(sports=sports), skipped=skipped)
+                step("Fetching prices", lambda: pipeline.fetch_odds(sports=sports))
 
     if args.skip_model:
         print("\nSkipping the model rebuild (--skip-model).")
     else:
-        _step("Rebuilding the model", lambda: pipeline.rebuild_model(), skipped=skipped)
-        _step("Recalibrating", lambda: pipeline.recalibrate(), skipped=skipped)
+        step("Rebuilding the model", lambda: pipeline.rebuild_model())
+        step("Recalibrating", lambda: pipeline.recalibrate())
 
     # Required: the card is what a notification is about. Sending yesterday's
     # pick because today's build failed is worse than sending nothing.
@@ -373,25 +411,87 @@ def cmd_run(args):
     if args.no_notify:
         print("\nSkipping Telegram (--no-notify).")
     else:
-        _step("Sending the best pick to Telegram",
-              lambda: _notify(tg, only_if_changed=args.only_if_changed),
-              skipped=skipped)
+        step("Sending the best pick to Telegram",
+             lambda: _notify(tg, only_if_changed=args.only_if_changed))
 
     if args.no_evidence:
         print("\nSkipping the evidence rebuild (--no-evidence).")
     elif args.force_evidence or _evidence_is_stale():
         # Free, but the slowest thing here, which is why it runs after the
         # notification rather than in front of it.
-        _step("Rebuilding the value-betting evidence (no credits, ~10 min)",
-              lambda: evidence.build(), skipped=skipped)
+        step("Rebuilding the value-betting evidence (no credits, ~10 min)",
+             lambda: evidence.build())
     else:
         print("\nEvidence is current with the results on file; not rebuilding.")
 
-    # Exit 0 either way: the card was rebuilt, which is what the run is for.
-    # The tally is here so a skimmed log shows a degraded run at a glance.
+    # A provider's bad afternoon still exits 0: the card was rebuilt, which is
+    # what the run is for. A bug does not — the card went out on yesterday's
+    # data to keep the site whole, and the exit code is what makes somebody
+    # look. The tally is here so a skimmed log shows which it was.
     minutes = (datetime.now() - started).total_seconds() / 60
     tail = f", {len(skipped)} skipped: {'; '.join(skipped)}" if skipped else ""
+    if broken:
+        tail += f", {len(broken)} FAILED ON A BUG: {'; '.join(broken)}"
     print(f"\n=== done in {minutes:.1f} min{tail} ===")
+    return 1 if broken else 0
+
+
+def cmd_check_ledger(args):
+    """Is each book on disk the committed one, with rows added and blanks filled?
+
+    The two ledgers are the only files here that cannot be rebuilt, and the
+    daily run reaches them by a route with two weak points: the data cache is
+    saved even after a failed run, so it can bring back a book that run cut
+    short, and the commit step commits whatever it finds. Before that commit
+    this refuses a book that breaks the append-only rules (`ledger.changes`);
+    right after the cache is restored, `--restore` replaces such a book with
+    the committed one instead of refusing, so the run goes on from the record
+    rather than from the damage.
+    """
+    import subprocess
+    from io import StringIO
+    from pathlib import Path
+
+    from hub import ledger
+    from valuebets import config, files
+
+    books = ((ledger.LEDGER_CSV, ledger.SETTLEMENT),
+             (ledger.ACCA_CSV, ledger.ACCA_SETTLEMENT))
+    refused = 0
+    for path, settlement in books:
+        name = Path(path).relative_to(config.PROJECT_ROOT).as_posix()
+        shown = subprocess.run(["git", "show", f"{args.against}:{name}"],
+                               capture_output=True, cwd=config.PROJECT_ROOT)
+        if shown.returncode != 0:
+            print(f"{name}: not in {args.against}, so nothing to hold it to")
+            continue
+        committed = shown.stdout.decode("utf-8")
+        before = pd.read_csv(StringIO(committed), dtype=str, keep_default_na=False)
+        try:
+            after = pd.read_csv(path, dtype=str, keep_default_na=False)
+            problems = ledger.changes(before, after, settlement)
+        except (OSError, ValueError) as exc:          # missing, or cut off mid-row
+            after, problems = None, [f"unreadable: {type(exc).__name__}: {exc}"]
+
+        if not problems:
+            added = len(after) - len(before)
+            print(f"{name}: ok, {added} row(s) added since {args.against}")
+            continue
+        print(f"{name}: not the committed book plus new rows")
+        for problem in problems[:10]:
+            print(f"  {problem}")
+        if len(problems) > 10:
+            print(f"  ... and {len(problems) - 10} more")
+        if args.restore:
+            files.write_text(path, committed, newline="")
+            print(f"  restored from {args.against}")
+            _annotate("warning", f"{name} was damaged and has been restored from "
+                                 f"{args.against}: {problems[0]}")
+        else:
+            refused += 1
+            _annotate("error", f"{name} breaks the append-only rules, not committing: "
+                               f"{problems[0]}")
+    return 1 if refused else 0
 
 
 def _notify(tg, only_if_changed=False, dry_run=False, full=False):
@@ -539,6 +639,13 @@ def main(argv=None):
     p.add_argument("--only-if-changed", action="store_true",
                    help="stay quiet when the pick is the same as last time")
     p.set_defaults(func=cmd_run)
+
+    p = sub.add_parser("check-ledger",
+                       help="refuse a ledger that is not the committed one plus new rows")
+    p.add_argument("--against", default="HEAD", help="the commit to hold it to")
+    p.add_argument("--restore", action="store_true",
+                   help="put the committed book back instead of refusing")
+    p.set_defaults(func=cmd_check_ledger)
 
     p = sub.add_parser("notify", help="send the current best pick to Telegram")
     p.add_argument("--only-if-changed", action="store_true")

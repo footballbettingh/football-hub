@@ -11,7 +11,7 @@ import json
 
 import numpy as np
 
-from valuebets import config as vb_config
+from valuebets import config as vb_config, files
 from valuebets.backtest import (BacktestConfig, by_market, by_period, equity_curve,
                                 load_dataset, run, summary, sweep_bands, validate)
 from valuebets.insights import compute
@@ -109,7 +109,6 @@ def build(progress=print, data=None):
                    "stake": cfg.stake},
     })
 
-    EVIDENCE_JSON.parent.mkdir(parents=True, exist_ok=True)
-    EVIDENCE_JSON.write_text(json.dumps(payload), encoding="utf-8")
+    files.write_text(EVIDENCE_JSON, json.dumps(payload))
     progress(f"Wrote {EVIDENCE_JSON}")
     return payload

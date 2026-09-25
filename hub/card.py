@@ -16,6 +16,7 @@ import pandas as pd
 from confidence import config as cf_config, data as cf_data, picks as picks_mod
 from confidence.calibrate import Calibrators
 from confidence.markets import GROUPS
+from valuebets import files
 
 from . import leagues, ledger
 from .artifacts import PICKS_JSON
@@ -101,7 +102,7 @@ def build(progress=print, weight=None, devig_method=None):
         progress("! No pick factors yet — the slate will fall back to the band "
                  "record to break ties. Run Recalibrate.")
     table = picks_mod.attach_hit_rates(table, reliability, factors)
-    table.to_csv(cf_config.PICKS_CSV, index=False, float_format="%.5f")
+    files.write_csv(table, cf_config.PICKS_CSV, index=False, float_format="%.5f")
 
     payload = to_payload(table, fixtures, reliability, calibrators)
 
@@ -136,8 +137,7 @@ def build(progress=print, weight=None, devig_method=None):
         progress(f"  recorded:  {swapped['recorded']}")
         progress(f"  re-priced: {swapped['repriced']}")
 
-    PICKS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    PICKS_JSON.write_text(json.dumps(payload), encoding="utf-8")
+    files.write_text(PICKS_JSON, json.dumps(payload))
     progress(f"Priced {len(table):,} selections -> {PICKS_JSON}")
 
     graded = ledger.settle(history) + ledger.settle_accas(history)

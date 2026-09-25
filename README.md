@@ -91,8 +91,11 @@ kick off.
 
 Each stage is independently survivable: a provider having a bad afternoon logs a
 line and the run carries on with yesterday's copy of that data. Only the card is
-fatal, because notifying about a stale card is worse than saying nothing. The
-run exits 0 either way and ends with a tally of what it skipped.
+fatal, because notifying about a stale card is worse than saying nothing. A
+stage that fails on anything but a provider — a bug — is survived as well, but
+prints its traceback and makes the run exit 1 once it has finished; a provider's
+failure alone exits 0. Either way the run ends with a tally of what it skipped
+and what broke.
 
 | Flag | Effect |
 |---|---|
@@ -483,6 +486,22 @@ where the day the quota resets is remembered.
 can be rebuilt; `best_picks.csv` and `best_accas.csv` cannot, because each row
 was written down *before* its match. The workflow commits and pushes them after
 each run, which is also why it asks for `contents: write`.
+
+Twice a run it holds them to their own rules with `python fb.py check-ledger`:
+rows only ever added at the end, a column written before the match never
+changed, a result only ever filled into a blank. Right after the cache is
+restored, a book that breaks them — one a failed run cut short, say, since the
+cache is saved whatever happened — is put back to the committed one
+(`--restore`); right before the commit, it is refused. Every file under `data/`
+is also written whole or not at all, into a temporary file renamed over the old
+one, so a run killed mid-write leaves the previous version rather than half of
+the new one.
+
+**A bug turns the run red, after the fact.** A provider failing is a skipped
+stage and the run exits 0. Any other failure prints its traceback and makes
+`fb.py run` exit 1 — but the run still finishes, so the ledger is committed and
+the site published from what is on hand, and only then does the `verdict` job
+fail the workflow.
 
 **The clock drifts.** GitHub cron is UTC only, so 09:00 UTC is noon in Sofia
 under summer time and 11:00 once the clocks go back.
