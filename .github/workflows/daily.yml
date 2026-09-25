@@ -23,10 +23,11 @@ on:
       - "requirements.txt"
       - ".github/workflows/daily.yml"
 
+# Nothing by default; each job asks for what it uses and no more. The refresh
+# job pushes the ledger, the deploy job publishes Pages, the verdict job
+# needs nothing at all.
 permissions:
-  contents: write             # the ledger is committed back after each run
-  pages: write
-  id-token: write
+  contents: read
 
 # Never let two runs overlap. They write the same CSVs, and the ledger commit
 # of one would land on top of the other's.
@@ -38,15 +39,14 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: write         # the ledger is committed back after each run
     outputs:
       run: ${{ steps.run.outcome }}
+    # The API keys are not here: a job-level variable is in every step's
+    # environment, pip's and the tests' included. They are given to the one
+    # step that spends them.
     env:
-      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-      FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
-      # Empty secrets are not an error: the run reports the notification as
-      # unconfigured and still publishes.
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       PYTHONIOENCODING: utf-8
     steps:
       - uses: actions/checkout@v7
@@ -55,6 +55,10 @@ jobs:
           # the run was going, and a rebase on a depth-1 clone is a coin toss.
           # The repo is under a megabyte, so this costs nothing.
           fetch-depth: 0
+          # Left in .git/config, the token that can push would be readable by
+          # every step after this one — every package pip installs among them.
+          # The ledger step brings it back for itself.
+          persist-credentials: false
 
       - uses: actions/setup-python@v7
         with:
@@ -101,6 +105,11 @@ jobs:
         continue-on-error: true
         env:
           EXTRA_ARGS: ${{ inputs.args }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          # Empty secrets are not an error: the run reports the notification
+          # as unconfigured and still publishes.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           if [[ ! "$EXTRA_ARGS" =~ ^[-A-Za-z0-9_.,=\ ]*$ ]]; then
             echo "::error::The extra flags may hold only letters, digits, spaces and - _ . , ="
@@ -120,11 +129,14 @@ jobs:
       # down before its match and graded afterwards, so losing it loses the
       # only out-of-sample record the project has.
       - name: Commit the ledger
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           # Refuses a book that is not the committed one plus new rows.
           python fb.py check-ledger
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git add data/best_picks.csv data/best_accas.csv
           if git diff --cached --quiet; then
             echo "No new picks or gradings."
@@ -144,6 +156,9 @@ jobs:
   deploy:
     needs: refresh
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -158,6 +173,7 @@ jobs:
     needs: [refresh, deploy]
     if: always() && needs.refresh.outputs.run == 'failure'
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - run: |
           echo "::error::A stage of fb.py run failed on a bug. The ledger and the site went out on what was on hand; the refresh log names the stage."

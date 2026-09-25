@@ -541,13 +541,15 @@ Repo → **Settings → Pages → Source: GitHub Actions**, then
 | Secret | Needed for |
 |---|---|
 | `ODDS_API_KEY` | upcoming prices, and therefore the fixture list |
-| `FOOTBALL_DATA_KEY` | fixture metadata |
 | `TELEGRAM_BOT_TOKEN` | the daily message |
 | `TELEGRAM_CHAT_ID` | who receives it |
 
-All four are optional in the sense that the run degrades rather than fails
+All three are optional in the sense that the run degrades rather than fails
 without them — but with no odds key there are no upcoming fixtures, and so no
-card.
+card. Each is handed only to the step that fetches and notifies, and the
+workflow's token can push only from the step that commits the ledger. A
+`FOOTBALL_DATA_KEY` secret left over from earlier setups is no longer read by
+anything and can be deleted.
 
 ## Layout
 
