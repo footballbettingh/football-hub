@@ -52,8 +52,16 @@ class Client:
                 f"({config.ODDS_API_MIN_CREDITS}). Raise ODDS_API_MIN_CREDITS in .env "
                 f"to override.")
 
+        # The key rides in the query string — the API takes it nowhere else —
+        # so every error requests raises from here quotes it. Scrubbed where
+        # it is raised, and `from None`, because the original would otherwise
+        # print in full as the context of the clean one.
         params = dict(params or {}, apiKey=self.key)
-        resp = self.session.get(f"{config.ODDS_API_BASE}{path}", params=params, timeout=30)
+        try:
+            resp = self.session.get(f"{config.ODDS_API_BASE}{path}", params=params,
+                                    timeout=30)
+        except requests.RequestException as exc:
+            raise config.scrubbed(exc, self.key) from None
 
         for attr, header in (("remaining", "x-requests-remaining"), ("used", "x-requests-used")):
             value = resp.headers.get(header)
@@ -64,8 +72,12 @@ class Client:
         if resp.status_code == 401:
             raise SystemExit("Odds API rejected the key (401). Check ODDS_API_KEY in .env.")
         if resp.status_code == 422:
-            raise SystemExit(f"Odds API rejected the request (422): {resp.text[:200]}")
-        resp.raise_for_status()
+            raise SystemExit("Odds API rejected the request (422): "
+                             + config.redact(resp.text[:200], self.key))
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as exc:
+            raise config.scrubbed(exc, self.key) from None
         return resp.json()
 
     def report(self):

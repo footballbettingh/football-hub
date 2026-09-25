@@ -242,6 +242,8 @@ def _step(label, fn, required=False, skipped=None):
     on yesterday's copy of that data.
     """
     from datetime import datetime
+
+    from valuebets.config import redact
     print(f"\n[{datetime.now():%H:%M:%S}] {label}")
     try:
         fn()
@@ -249,7 +251,9 @@ def _step(label, fn, required=False, skipped=None):
     except (Exception, SystemExit) as exc:        # SystemExit: the "no data" guards
         if required:
             raise
-        print(f"  [!] skipped - {type(exc).__name__}: {exc}")
+        # Redacted here as well as where the errors are raised: this is the
+        # line every failure of an unattended run ends up printed through.
+        print(f"  [!] skipped - {type(exc).__name__}: {redact(exc)}")
         if skipped is not None:
             skipped.append(label)
         return False
