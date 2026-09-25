@@ -193,17 +193,22 @@ things, which is why the Method page can say 40 while the card shows six.
 it against the history here. That call is free, so the expensive question — what
 would a full refresh cost? — gets answered before anything is spent. It writes
 `data/leagues.json`, and **Fetch new prices** then follows that plan instead of
-only refreshing the files that already exist.
+only refreshing the files that already exist. `fetch odds` redraws the plan
+itself before every fetch, so a league coming into season is added the first
+time it is quoted, without anyone running `fetch leagues` again.
 
 A league is left out of that plan if its **results have stopped arriving**, even
 when the price feed is happy to sell it. Russia's Premier League published its
 last result on 2 August 2026 and was still quoted for weeks afterwards; every
 bet taken on it in that window can never be graded, and unlike an abandoned
 fixture it cannot even be recorded as having no result, because a feed that says
-nothing is not evidence that nothing happened. Twenty-one days behind is the
-line — in-season leagues run two to ten days behind even through an
-international break — and a league returns to the card by itself the day its
-results resume.
+nothing is not evidence that nothing happened. The test is a match rather than
+a calendar: a fixture the price files listed kicked off more than fourteen days
+ago, and the results file has nothing from that day on — in-season leagues run
+two to ten days behind even through an international break. It used to be
+three weeks since the newest result, which read every league as dead in
+mid-August and after every winter break, and left the first round back
+unpriced. A league returns to the card by itself the day its results resume.
 
 If you would rather keep betting one of them and look the results up yourself,
 add its code to `GRADED_BY_HAND` in `hub/leagues.py`. It stays on the card, the

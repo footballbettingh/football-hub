@@ -26,7 +26,7 @@ COLUMNS = ["date", "competition", "match", "home_team", "away_team", "key", "gro
            "new_team", "validated", "implied_resid"]
 
 
-def drop_quiet_leagues(fixtures, history, progress=print, today=None):
+def drop_quiet_leagues(fixtures, history, progress=print, today=None, listed=None):
     """Fixtures minus the leagues whose results have stopped arriving.
 
     A league can be in season, priceable, and quoted happily by the price feed
@@ -43,9 +43,14 @@ def drop_quiet_leagues(fixtures, history, progress=print, today=None):
     the rule is measured against the clock, so a test that cannot pin it has to
     hardcode dates and quietly becomes a bomb on the day the real clock walks
     past them. One did.
+
+    `listed` is the evidence: every fixture the price feed has listed, the
+    played ones included (`leagues.listed_fixtures`). `fixtures` cannot serve,
+    because it holds only matches still to come, and a league is judged on
+    the ones that have already been played.
     """
-    silent = leagues.skipped(history, today)
-    for code in sorted(leagues.GRADED_BY_HAND & leagues.quiet(history, today)):
+    silent = leagues.skipped(history, today, listed)
+    for code in sorted(leagues.GRADED_BY_HAND & leagues.quiet(history, today, listed)):
         progress(f"Pricing {leagues.label(code)} even though its results have "
                  f"stopped arriving — its bets settle only from scores you "
                  f"check and enter yourself")
@@ -71,7 +76,8 @@ def build(progress=print, weight=None, devig_method=None):
         # already been played, which is what an off-season looks like.
         raise SystemExit("Every fixture on file has already kicked off. "
                          "Fetch new prices to get the next round.")
-    fixtures = drop_quiet_leagues(fixtures, history, progress)
+    fixtures = drop_quiet_leagues(fixtures, history, progress,
+                                  listed=leagues.listed_fixtures())
     progress(f"{len(fixtures)} upcoming fixtures, "
              f"{fixtures['competition'].nunique()} competitions")
 

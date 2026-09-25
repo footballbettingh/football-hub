@@ -124,8 +124,10 @@ def test_a_typed_result_does_not_bring_a_dead_league_back_onto_the_card():
                     ("RUS-PREMIERL", "dynamo moscow", "spartak moscow",
                      "2026-09-06", 2, 1)])
     history.loc[1, cf_data.MANUAL] = True
+    listed = pd.DataFrame([{"competition": "RUS-PREMIERL", "date": "2026-08-08",
+                            "commence_time": "2026-08-08T16:30:00Z"}])
 
-    assert leagues.quiet(history, today="2026-09-10") == {"RUS-PREMIERL"}
+    assert leagues.quiet(history, today="2026-09-10", listed=listed) == {"RUS-PREMIERL"}
 
 
 def test_a_typed_result_does_not_close_someone_elses_bet_as_having_none():
