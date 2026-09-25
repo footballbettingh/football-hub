@@ -118,7 +118,9 @@ def test_the_close_is_written_beside_the_ledger_not_into_it(tmp_path, monkeypatc
     assert book.read_bytes() == before
 
 
-def test_the_history_page_shows_the_close_beside_the_record():
+def test_the_z_and_the_close_stay_off_the_page_for_the_command_line():
+    """Both are true, and both are for whoever works on the model rather than
+    for a reader: `fb.py history` prints them, the page does not."""
     frame = _book([
         {"day": "2026-09-12", "band": "safe", "competition": "PL",
          "competition_name": "Premier League", "match": "a v b", "selection": "x",
@@ -133,9 +135,12 @@ def test_the_history_page_shows_the_close_beside_the_record():
     context = {"picks": None, "reliability": None, "evidence": None, "data": None,
                "ledger": frame, "closing": closing}
     html = pages.render("history", c.Links("server"), context)
-    assert "To the close" in html
-    assert "-3.0pp" in html and "+1.0pp" in html
+    assert "To the close" not in html and "Against the claim" not in html
+    assert "standard error" not in html.lower()
+    assert "<th class=\"num\">z</th>" not in html and ">z<" not in html
+    assert "-3.0pp" not in html
     assert "nan" not in html.lower()
+    assert ledger.drift(closing)["drift_pp"] == pytest.approx(-1.0)   # still worked out
 
 
 # -- the record drawn pick by pick, and split by market ------------------------
@@ -179,26 +184,6 @@ def test_the_record_splits_by_market_most_settled_first():
     split = ledger.summary_by_market(frame, today="2026-08-20")
     assert [(row["group"], row["wins"], row["losses"], row["pending"])
             for row in split] == [("ou", 1, 1, 1), ("btts", 1, 0, 0)]
-
-
-def test_the_close_splits_by_market_and_corners_have_none():
-    closing = pd.DataFrame({
-        "day": ["2026-09-12"] * 3, "band": ["main"] * 3, "match": ["a v b"] * 3,
-        "key": ["ou2.5_over", "ou1.5_over", "corners9.5_over"],
-        "prob": [0.60, 0.80, 0.70], "prob_close": [0.58, 0.78, np.nan]})
-    moved = ledger.drift_by_market(closing)
-    assert moved["ou"]["n"] == 2 and moved["ou"]["drift_pp"] == pytest.approx(-2.0)
-    assert moved["corners"]["n"] == 0
-
-
-@pytest.mark.parametrize("wins, losses, expected, shown", [
-    (20, 15, 20.9, True),          # plenty of both expected
-    (0, 3, 2.31, False),           # three picks at 77%, all lost: z = -3.2, meaningless
-    (40, 2, 38.0, False),          # four losses expected: still too few
-])
-def test_a_markets_z_waits_until_it_can_mean_something(wins, losses, expected, shown):
-    row = {"wins": wins, "losses": losses, "expected_wins": expected, "z": -1.23}
-    assert (pages._readable_z(row) == "-1.23") is shown
 
 
 def test_the_history_page_draws_the_record_and_splits_it_by_market():

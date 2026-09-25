@@ -545,12 +545,10 @@
     var M = { t: 14, r: 16, b: 30, l: W < 480 ? 36 : 46 };
     var iw = W - M.l - M.r, ih = H - M.t - M.b;
     var last = pts[n - 1];
-    var z = last.sd ? gap(last) / last.sd : 0;
     var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H,
       role: 'img', 'aria-label': 'Wins less the sum of the claims, over ' + n +
-        ' settled picks, inside a band two standard errors wide. It ends ' +
-        (gap(last) >= 0 ? '+' : '') + gap(last).toFixed(1) + ' wins from the claim, ' +
-        (z >= 0 ? '+' : '') + z.toFixed(1) + ' standard errors.' });
+        ' settled picks, inside the band an honest forecast stays in. It ends ' +
+        (gap(last) >= 0 ? '+' : '') + gap(last).toFixed(1) + ' wins from the claim.' });
 
     var ys = [0];
     pts.forEach(function (p) { ys.push(gap(p), 2 * p.sd, -2 * p.sd); });

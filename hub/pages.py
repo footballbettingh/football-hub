@@ -39,7 +39,6 @@ def build_context():
     return {
         "picks": picks,
         "ledger": ledger.load(),
-        "closing": ledger.load_closing(),
         "accas": ledger.load_accas(),
         "reliability": artifacts.load_reliability(),
         "evidence": artifacts.load_evidence(),
@@ -1109,46 +1108,27 @@ def page_history(links, ctx):
     # what it says, and testing that needs a result, not a price.
     unpriced_note = ""
 
-    closing = ctx.get("closing")
-    if closing is None:
-        closing = pd.DataFrame(columns=ledger.CLOSE_COLUMNS)
-    moved = ledger.drift_by_band(closing)
-    pooled = ledger.drift(closing)
-
+    # The z-score and the drift to the closing line were on this page once, in
+    # the tables and the figures above them. Both are true, and both are for
+    # whoever is working on the model rather than for a reader: `fb.py history`
+    # prints them. What a reader gets is the record, what it claimed, and the
+    # chart.
     bands = ledger.summary_by_band(frame)
     band_section = ""
     if len(bands) > 1:
-        band_rows = [[
-            BAND_LABEL.get(row["band"], row["band"]),
-            f"{row['wins']}&ndash;{row['losses']}",
-            _pct(row["hit_rate"]),
-            _pct(row["expected"]),
-            _z(row.get("z")),
-            _drift(moved.get(row["band"])),
-            str(row["pending"]),
-        ] for row in bands]
         band_section = f"""
 <section class="card">
   <h2>By price band</h2>
   <p class="note">Pooling the bands hides the failure worth catching: a forecast
   can be honest at 70% and overconfident at 40%. Read <em>did</em> against
-  <em>said</em> in each row, not the money. <strong>z</strong> is how many
-  standard errors the wins sit from the sum of the claims; inside two either
-  way is what an honest forecast looks like.</p>
-  <p class="note"><strong>To the close</strong> is the same selection asked
-  again at kick-off, on the closing line, against the claim it was written down
-  at. It barely varies from pick to pick, so it says in dozens of picks what the
-  record needs hundreds for: negative is a claim the market had taken back by
-  the time the match started. A pick written down before a change to the model
-  carries that change in it too.</p>
-  {c.table(["Band", "Record", "Did", "Said", "z", "To the close", "Pending"],
-           band_rows, numeric_from=1, raw=True, blank=NONE, roles=BAND_ROLES)}
+  <em>said</em> in each row, not the money.</p>
+  {_record_table("Band", [(BAND_LABEL.get(row["band"], row["band"]), row)
+                          for row in bands])}
 </section>"""
-
 
     curve = ledger.record_curve(frame)
     record_section = _record_section(curve)
-    market_section = _market_section(frame, closing)
+    market_section = _market_section(frame)
 
     gap = ""
     if head["hit_rate"] is not None and head["expected"] is not None:
@@ -1172,12 +1152,6 @@ def page_history(links, ctx):
 {c.kpis([
     ("Landed", _pct(head["hit_rate"]),
      f"said {_pct(head['expected'])}" if head["expected"] is not None else ""),
-    ("Against the claim", _z(head.get("z")),
-     (f"{head['wins']} won, {head['expected_wins']:.1f} claimed"
-      if head.get("expected_wins") is not None else "")),
-    ("To the close", _drift(pooled),
-     f"on {pooled['n']} pick(s) with a closing line" if pooled["n"] else
-     "no pick has reached the closing line yet"),
     ("Settled", f"{head['settled']}", _settled_note(head)),
 ])}
 {behind_note}
@@ -1202,29 +1176,18 @@ def page_history(links, ctx):
                             "graded on the result, not on a price"])
 
 
-# On a phone: the band and what it did, its record and what it said, then the
-# z-score, the close and what is pending in small print.
-BAND_ROLES = ["title", "sub", "end", "end2 label", "meta label", "meta label",
-              "meta label"]
+# On a phone: the band or market and what it did, its record and what it
+# said, then what is pending in small print.
+BAND_ROLES = ["title", "sub", "end", "end2 label", "meta label"]
 
 
-def _z(value):
-    """A z-score as the page prints it, or the placeholder."""
-    return NONE if value is None or value != value else f"{value:+.2f}"
-
-
-# A z-score reads a count of wins as roughly normal around the claims, which
-# it only is once a few of each outcome are expected. Three picks at 77% that
-# all lose come out at z = -3.2, alarming and meaningless in the same breath.
-READABLE_Z = 5
-
-
-def _readable_z(row):
-    expected = row.get("expected_wins")
-    decided = row["wins"] + row["losses"]
-    if expected is None or min(expected, decided - expected) < READABLE_Z:
-        return NONE
-    return _z(row.get("z"))
+def _record_table(first, rows):
+    """A record split one way: (name, summary) per row, as `ledger.summary`."""
+    return c.table(
+        [first, "Record", "Did", "Said", "Pending"],
+        [[c.e(name), f"{row['wins']}&ndash;{row['losses']}", _pct(row["hit_rate"]),
+          _pct(row["expected"]), str(row["pending"])] for name, row in rows],
+        numeric_from=1, raw=True, blank=NONE, roles=BAND_ROLES)
 
 
 def _record_section(curve):
@@ -1237,52 +1200,27 @@ def _record_section(curve):
   <h2>Wins against the claim, pick by pick</h2>
   <p class="note">The line is the running count of wins less the running sum of
   what the picks claimed, in the order they were played: on zero, the record is
-  exactly where it said it would be. The shaded band is two standard errors
-  either side. At any one point an honest forecast sits inside it about 95 times
-  in 100, and it widens as picks are added, because a count of wins spreads as
-  the claims pile up. A line that leaves it and stays out is a claim that is not
+  exactly where it said it would be. The shaded band is where an honest
+  forecast sits about 95 times in 100 at any one point, and it widens as picks
+  are added, because a count of wins spreads as the claims pile up. A line that leaves it and stays out is a claim that is not
   the truth.</p>
   <div class="chart" id="record"></div>
 </section>"""
 
 
-def _market_section(frame, closing):
+def _market_section(frame):
     """The record one market at a time, most settled first."""
     rows = ledger.summary_by_market(frame)
     if len(rows) < 2:
         return ""
-    moved = ledger.drift_by_market(closing)
-    table_rows = [[
-        c.e(GROUPS.get(row["group"], row["group"])),
-        f"{row['wins']}&ndash;{row['losses']}",
-        _pct(row["hit_rate"]),
-        _pct(row["expected"]),
-        _readable_z(row),
-        _drift(moved.get(row["group"])),
-        str(row["pending"]),
-    ] for row in rows]
     return f"""
 <section class="card">
   <h2>By market</h2>
   <p class="note">The calibrators are fitted one market at a time, and a market
-  that has gone wrong on its own can hide inside a band's pooled record. The
-  columns read as the band table's. <strong>z</strong> is left blank until a
-  market expects at least {READABLE_Z} wins and {READABLE_Z} losses; before
-  that a single miss swings it past any threshold worth drawing. Corners have no
-  closing line to ask, so nothing to the close.</p>
-  {c.table(["Market", "Record", "Did", "Said", "z", "To the close", "Pending"],
-           table_rows, numeric_from=1, raw=True, blank=NONE, roles=BAND_ROLES)}
+  that has gone wrong on its own can hide inside a band's pooled record.</p>
+  {_record_table("Market", [(GROUPS.get(row["group"], row["group"]), row)
+                            for row in rows])}
 </section>"""
-
-
-def _drift(moved):
-    """Drift to the close, in points, with its standard error where it has one."""
-    if not moved or not moved.get("n"):
-        return NONE
-    out = f"{moved['drift_pp']:+.1f}pp"
-    if moved.get("se_pp"):
-        out += f" &plusmn;&nbsp;{moved['se_pp']:.1f}"
-    return out
 
 
 def _history_verdict(head):
@@ -1308,14 +1246,13 @@ def _history_verdict(head):
                               "says anything at all.")
 
     count = (f"{head['wins']} landed against {expected:.1f} claimed, "
-             f"{z:+.1f} standard errors, over {settled} settled pick(s)")
+             f"over {settled} settled pick(s)")
     if settled < 100:
         return c.status_block(
             "warning", "Far too early to read anything into this",
-            f"{count}. At this size almost any honest forecast lands within two "
-            "standard errors of its claim and almost any dishonest one does too. "
-            "A hit rate starts meaning something in the hundreds; the reliability "
-            "tables get there, this does not.")
+            f"{count}. At this size an honest forecast and a dishonest one land "
+            "in much the same place. A hit rate starts meaning something in the "
+            "hundreds; the reliability tables get there, this does not.")
     if abs(z) <= 2:
         return c.status_block("good", "Landing where it said it would", f"{count}.")
     if z > 0:
@@ -1325,8 +1262,8 @@ def _history_verdict(head):
             "but it is still a claim that is not the truth.")
     return c.status_block(
         "critical", "Landing less often than it said it would",
-        f"{count}. More than two standard errors short is something an honest "
-        "forecast does about one time in forty, and worth finding the cause of.")
+        f"{count}. Falling this far short is something an honest forecast does "
+        "about one time in forty, and worth finding the cause of.")
 
 
 # -- 4. reliability --------------------------------------------------------
