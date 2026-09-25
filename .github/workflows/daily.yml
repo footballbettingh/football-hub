@@ -90,10 +90,24 @@ jobs:
       # still published from what is on hand. A stage that failed on a bug
       # makes it exit 1, and the `verdict` job turns the run red for it once
       # everything else has gone out.
+      #
+      # The extra flags reach the shell through the environment, never through
+      # `${{ }}`: an expression is pasted into the script before bash reads
+      # it, so a value like `; curl … $ODDS_API_KEY` would have run as a
+      # command with the secrets in scope. From a variable it can only ever be
+      # arguments — and it has to look like flags to get that far.
       - name: Fetch, rebuild, re-price and notify
         id: run
         continue-on-error: true
-        run: python -u fb.py run --only-if-changed ${{ inputs.args }}
+        env:
+          EXTRA_ARGS: ${{ inputs.args }}
+        run: |
+          if [[ ! "$EXTRA_ARGS" =~ ^[-A-Za-z0-9_.,=\ ]*$ ]]; then
+            echo "::error::The extra flags may hold only letters, digits, spaces and - _ . , ="
+            exit 1
+          fi
+          set -f    # no globbing: the words are passed as they were typed
+          python -u fb.py run --only-if-changed $EXTRA_ARGS
 
       - name: Save the data folder
         if: always()
