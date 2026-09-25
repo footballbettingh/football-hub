@@ -654,6 +654,14 @@ The short version, with the measurements in
    Nor does Pinnacle's closing price beat the average of the books it would
    replace (RPS 0.20186 against 0.20187 over 34,050 matches), and football-data
    stopped publishing it in 2025.
+
+   The goals model starts a team new to its league at the league average, and
+   gets promoted sides wrong for it — 0.10 goals a match too many scored and
+   0.16 too few let in over their first five, still visible after twenty — and
+   relegated ones the other way. It is left that way, because the line at 90%
+   already knows who came up: correcting the fused numbers with factors fitted
+   on the very matches scored, a ceiling, gains 0.000017 Brier over the card.
+   Corners show no newcomer effect on the totals the card prices.
 4. **Shrink the corner strengths to 55%** before reading a corner line off
    them. Corners are the one market here with no closing line behind them, so
    nothing else holds the fitted strengths in and they came out about twice as
