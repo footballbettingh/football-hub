@@ -88,9 +88,22 @@ def _results(rows):
                          for comp, day in rows])
 
 
+def _listed(rows):
+    """rows: (competition, kick-off in UTC) — fixtures the price feed listed."""
+    return pd.DataFrame([{"competition": comp, "date": kickoff[:10],
+                          "commence_time": kickoff} for comp, kickoff in rows],
+                        columns=["competition", "date", "commence_time"])
+
+
+# Russia's results stopped after 2 August; the price feed went on listing it.
+RUSSIA_PLAYED = [("RUS-PREMIERL", "2026-08-08T16:30:00Z"),
+                 ("RUS-PREMIERL", "2026-08-15T16:30:00Z")]
+
+
 def test_a_league_still_publishing_results_is_not_quiet():
     frame = _results([("PL", "2026-09-06"), ("SA", "2026-08-31")])
-    assert leagues.quiet(frame, today="2026-09-10") == set()
+    listed = _listed([("PL", "2026-08-23T14:00:00Z"), ("SA", "2026-08-24T18:45:00Z")])
+    assert leagues.quiet(frame, today="2026-09-10", listed=listed) == set()
 
 
 def test_a_league_that_has_stopped_publishing_is():
@@ -98,27 +111,70 @@ def test_a_league_that_has_stopped_publishing_is():
     League as in season and still sold prices for it, five weeks after the
     results feed went silent."""
     frame = _results([("PL", "2026-09-06"), ("RUS-PREMIERL", "2026-08-02")])
-    assert leagues.quiet(frame, today="2026-09-10") == {"RUS-PREMIERL"}
+    listed = _listed(RUSSIA_PLAYED + [("PL", "2026-08-23T14:00:00Z")])
+    assert leagues.quiet(frame, today="2026-09-10", listed=listed) == {"RUS-PREMIERL"}
 
 
 def test_quiet_is_measured_against_the_clock_it_is_given():
     frame = _results([("RUS-PREMIERL", "2026-08-02")])
-    assert leagues.quiet(frame, today="2026-08-20") == set()
-    assert leagues.quiet(frame, today="2026-08-24") == {"RUS-PREMIERL"}
+    listed = _listed(RUSSIA_PLAYED)
+    assert leagues.quiet(frame, today="2026-08-20", listed=listed) == set()
+    assert leagues.quiet(frame, today="2026-08-24", listed=listed) == {"RUS-PREMIERL"}
 
 
 def test_an_empty_history_leaves_every_league_alone():
     """Never mistake having no data for having a broken feed — on a fresh
     install that would silently price nothing at all."""
-    assert leagues.quiet(pd.DataFrame(columns=["competition", "date"])) == set()
+    empty = pd.DataFrame(columns=["competition", "date"])
+    assert leagues.quiet(empty, listed=_listed(RUSSIA_PLAYED)) == set()
     assert leagues.quiet(None) == set()
+
+
+def test_a_league_nobody_has_seen_play_is_owed_nothing():
+    """No listed match, no evidence. Silence from the results file is only a
+    broken feed once the price feed shows there was something to report."""
+    frame = _results([("RUS-PREMIERL", "2026-08-02")])
+    assert leagues.quiet(frame, today="2026-09-10") == set()
+    assert leagues.quiet(frame, today="2026-09-10", listed=_listed([])) == set()
+
+
+def test_a_league_between_seasons_is_not_quiet():
+    """The mistake the old rule made every August. Measured as three weeks
+    since the newest result, every league read as dead in mid-August with its
+    last result in May, and the opening round of every season went unpriced.
+    Last season's final round is in the price files too — but it was played
+    and it has its result, so it is owed nothing."""
+    frame = _results([("PL", "2026-05-24")])
+    listed = _listed([("PL", "2026-05-24T15:00:00Z"), ("PL", "2026-08-15T14:00:00Z")])
+    assert leagues.quiet(frame, today="2026-08-14", listed=listed) == set()
+    assert leagues.quiet(frame, today="2026-08-20", listed=listed) == set()
+    # Two weeks after the opening round with still nothing, the feed has broken.
+    assert leagues.quiet(frame, today="2026-08-30", listed=listed) == {"PL"}
+
+
+def test_a_league_back_from_a_winter_break_is_not_quiet():
+    """Three weeks off over Christmas is a break, not a dead feed. The old rule
+    called it one the day after the first round back."""
+    frame = _results([("BL1", "2025-12-21")])
+    listed = _listed([("BL1", "2025-12-21T16:30:00Z"), ("BL1", "2026-01-10T14:30:00Z")])
+    assert leagues.quiet(frame, today="2026-01-12", listed=listed) == set()
+
+
+def test_a_late_kick_off_in_utc_is_not_read_as_a_missing_result():
+    """An evening match in Buenos Aires starts after midnight UTC, so the price
+    feed dates it a day later than the results file does. It has its result,
+    and the break that follows must not make it look owed one."""
+    frame = _results([("ARG-LIGAPROF", "2026-09-05")])
+    listed = _listed([("ARG-LIGAPROF", "2026-09-06T00:30:00Z")])
+    assert leagues.quiet(frame, today="2026-10-01", listed=listed) == set()
 
 
 def test_a_quiet_league_comes_back_the_day_results_resume():
     frame = _results([("RUS-PREMIERL", "2026-08-02")])
-    assert leagues.quiet(frame, today="2026-09-10") == {"RUS-PREMIERL"}
+    listed = _listed(RUSSIA_PLAYED)
+    assert leagues.quiet(frame, today="2026-09-10", listed=listed) == {"RUS-PREMIERL"}
     resumed = pd.concat([frame, _results([("RUS-PREMIERL", "2026-09-09")])])
-    assert leagues.quiet(resumed, today="2026-09-10") == set()
+    assert leagues.quiet(resumed, today="2026-09-10", listed=listed) == set()
 
 
 def _upcoming(rows):
@@ -134,11 +190,13 @@ def test_a_league_you_have_taken_on_yourself_stays_on_the_card(capsys, monkeypat
     monkeypatch.setattr(leagues, "GRADED_BY_HAND", {"RUS-PREMIERL"})
     history = _results([("PL", "2026-09-06"), ("RUS-PREMIERL", "2026-08-02")])
     fixtures = _upcoming([("PL", "a v b"), ("RUS-PREMIERL", "c v d")])
+    listed = _listed(RUSSIA_PLAYED)
 
-    assert leagues.quiet(history, today="2026-09-10") == {"RUS-PREMIERL"}
-    assert leagues.skipped(history, today="2026-09-10") == set()
+    assert leagues.quiet(history, today="2026-09-10", listed=listed) == {"RUS-PREMIERL"}
+    assert leagues.skipped(history, today="2026-09-10", listed=listed) == set()
 
-    kept = card.drop_quiet_leagues(fixtures, history, today="2026-09-10")
+    kept = card.drop_quiet_leagues(fixtures, history, today="2026-09-10",
+                                   listed=listed)
 
     assert list(kept["match"]) == ["a v b", "c v d"]
     # And it says so, because taking the bet is now a commitment to grade it.
@@ -152,7 +210,8 @@ def test_a_quiet_league_never_reaches_the_card(capsys):
     fixtures = _upcoming([("PL", "a v b"), ("RUS-PREMIERL", "c v d"),
                           ("RUS-PREMIERL", "e v f")])
 
-    kept = card.drop_quiet_leagues(fixtures, history, today="2026-09-10")
+    kept = card.drop_quiet_leagues(fixtures, history, today="2026-09-10",
+                                   listed=_listed(RUSSIA_PLAYED))
 
     assert list(kept["match"]) == ["a v b"]
     assert "Premier League (Russia)" in capsys.readouterr().out
@@ -164,14 +223,15 @@ def test_a_card_with_nothing_left_says_why():
     history = _results([("RUS-PREMIERL", "2026-08-02")])
     with pytest.raises(SystemExit, match="quiet"):
         card.drop_quiet_leagues(_upcoming([("RUS-PREMIERL", "c v d")]), history,
-                                today="2026-09-10")
+                                today="2026-09-10", listed=_listed(RUSSIA_PLAYED))
 
 
 def test_a_healthy_card_is_passed_through_untouched():
     history = _results([("PL", "2026-09-06")])
     fixtures = _upcoming([("PL", "a v b")])
-    assert card.drop_quiet_leagues(fixtures, history,
-                                   today="2026-09-10") is fixtures
+    listed = _listed([("PL", "2026-08-30T14:00:00Z")])
+    assert card.drop_quiet_leagues(fixtures, history, today="2026-09-10",
+                                   listed=listed) is fixtures
 
 
 def test_server_links_are_routes_and_static_links_are_files():
@@ -323,6 +383,60 @@ def test_a_corrupt_plan_does_not_stop_a_fetch(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, "LEAGUE_PLAN", plan)
     monkeypatch.setattr(pipeline, "sports_tracked", lambda: ["soccer_epl"])
     assert pipeline.league_plan() == ["soccer_epl"]
+
+
+def _no_prices(monkeypatch):
+    """Stand in for the paid call, and remember which leagues it was asked for."""
+    from valuebets.sources import odds_api
+    asked = []
+    monkeypatch.setattr(odds_api, "fetch_odds",
+                        lambda sport, *a, **k: asked.append(sport) or pd.DataFrame())
+    return asked
+
+
+def test_every_price_fetch_redraws_the_plan_first(tmp_path, monkeypatch):
+    """A plan drawn once goes stale: it used to be drawn only on a machine
+    that had none, so a league coming into season was never added, and one
+    whose results had stopped went on being bought. Drawing it is free."""
+    from hub import pipeline
+    plan = tmp_path / "leagues.json"
+    plan.write_text(json.dumps([{"sport": "soccer_russia_premier_league"}]))
+    monkeypatch.setattr(pipeline, "LEAGUE_PLAN", plan)
+    monkeypatch.setattr(pipeline, "discover_leagues", lambda progress=print: plan.write_text(
+        json.dumps([{"sport": "soccer_usa_mls"}])))
+    asked = _no_prices(monkeypatch)
+
+    pipeline.fetch_odds(progress=lambda *_: None)
+    assert asked == ["soccer_usa_mls"]
+
+
+def test_a_plan_that_cannot_be_redrawn_still_stands(tmp_path, monkeypatch):
+    import requests
+    from hub import pipeline
+    plan = tmp_path / "leagues.json"
+    plan.write_text(json.dumps([{"sport": "soccer_epl"}]))
+    monkeypatch.setattr(pipeline, "LEAGUE_PLAN", plan)
+
+    def down(progress=print):
+        raise requests.ConnectionError(
+            "Max retries exceeded with url: /v4/sports?apiKey=SECRET")
+    monkeypatch.setattr(pipeline, "discover_leagues", down)
+    asked, said = _no_prices(monkeypatch), []
+
+    pipeline.fetch_odds(progress=said.append)
+    assert asked == ["soccer_epl"]
+    # The failure is named without the URL, which carries the key.
+    assert any("ConnectionError" in line for line in said)
+    assert not any("SECRET" in line for line in said)
+
+
+def test_named_sports_are_fetched_without_redrawing_the_plan(monkeypatch):
+    from hub import pipeline
+    monkeypatch.setattr(pipeline, "discover_leagues",
+                        lambda progress=print: pytest.fail("the plan was redrawn"))
+    asked = _no_prices(monkeypatch)
+    pipeline.fetch_odds(progress=lambda *_: None, sports=["soccer_epl"])
+    assert asked == ["soccer_epl"]
 
 
 def test_payload_carries_readable_league_names():

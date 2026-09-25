@@ -164,7 +164,8 @@ def labels_for(codes):
             for code in codes}
 
 
-# How far behind a league's results may fall before it stops being priced.
+# How long a match that has been played may wait for its result before the
+# league stops being priced.
 #
 # Not a guess. Every league in season sits between two and ten days behind,
 # even through an international break, because the sources publish weekly.
@@ -174,7 +175,14 @@ def labels_for(codes):
 # never be graded, and unlike a fixture that was abandoned it cannot even be
 # recorded as having no result: a feed that says nothing is not evidence that
 # nothing happened. So the only fix is to stop taking the bet.
-RESULTS_STALE_DAYS = 21
+#
+# Measured from a match, not from the last result. It used to be three weeks
+# since the newest result, which cannot tell a dead feed from a league that is
+# not playing: every league reads as dead in mid-August, with its last result
+# in May, so the first round of every season went unpriced — and so did the
+# first round back from every winter break. 289 breaks of over three weeks in
+# five seasons of history.
+RESULTS_STALE_DAYS = 14
 
 # Leagues kept on the card anyway, because you have taken on grading them
 # yourself. A bet on one of these can only ever settle from a score typed into
@@ -188,21 +196,29 @@ RESULTS_STALE_DAYS = 21
 GRADED_BY_HAND = set()
 
 
-def quiet(history, today=None):
+def quiet(history, today=None, listed=None):
     """Competitions whose results have stopped arriving.
 
-    Expects played matches — `confidence.data.load_history` output, where rows
-    with no score are already gone, so the newest date is a match that happened
-    rather than one that is merely scheduled.
+    `history` is played matches — `confidence.data.load_history` output, where
+    rows with no score are already gone, so the newest date is a match that
+    happened rather than one that is merely scheduled. `listed` is every
+    fixture the price feed has listed, kicked off or not — see
+    `listed_fixtures`.
 
-    A league between rounds is not quiet: it is the gap since the last result
-    that counts, and three weeks of it means the feed has broken, not that
-    nobody played. The price of being wrong is one round of picks skipped after
-    a mid-season break longer than that, and the league comes back on its own
-    the day results resume — which is the right way round, because the other
-    kind of mistake does not heal.
+    A league is quiet when it has played and the results file has not heard:
+    a match the price feed listed kicked off more than `RESULTS_STALE_DAYS`
+    ago, and nothing in the results is from that day or later. Evidence, the
+    way `ledger._answer_is_in` is evidence, rather than a count of days since
+    the last result — a league between seasons, or in a winter break, has
+    played nothing and so is owed nothing. With no listed fixtures there is no
+    evidence either way, and nothing is quiet.
+
+    The price of being wrong is a round of picks skipped for a feed that was
+    merely very late, and the league comes back on its own the day results
+    resume — which is the right way round, because the other kind of mistake
+    does not heal.
     """
-    if history is None or len(history) == 0:
+    if history is None or len(history) == 0 or listed is None or len(listed) == 0:
         return set()
     # Feed rows only. A result typed in by hand is a fact about one match, not
     # evidence that the source has started publishing again — counting it would
@@ -211,16 +227,58 @@ def quiet(history, today=None):
     history = cf_data.from_feed(history)
     if len(history) == 0:
         return set()
-    now = pd.Timestamp(today) if today is not None else pd.Timestamp.today()
+    now = (pd.Timestamp(today) if today is not None
+           else pd.Timestamp.now(tz="UTC").tz_localize(None))
     latest = history.groupby("competition")["date"].max()
-    return set(latest.index[latest < now - pd.Timedelta(days=RESULTS_STALE_DAYS)])
+
+    kickoff = _kickoffs(listed)
+    played = listed.assign(kickoff=kickoff)[
+        kickoff < now - pd.Timedelta(days=RESULTS_STALE_DAYS)]
+    out = set()
+    for code, block in played.groupby("competition"):
+        last = latest.get(code)
+        if last is None:
+            continue                     # no history: never priced anyway
+        # A day of slack, because the price feed dates a kick-off in UTC and
+        # the results file in local time: an evening match in Buenos Aires is
+        # tomorrow in UTC, and its result would otherwise look a day short.
+        if (block["kickoff"].dt.normalize() - pd.Timedelta(days=1) > last).any():
+            out.add(code)
+    return out
 
 
-def skipped(history, today=None):
+def _kickoffs(listed):
+    """When each listed fixture kicked off, in UTC with the zone dropped.
+
+    The kick-off time where the feed gives one, the start of the day where it
+    does not — which errs a few hours early, and only on fixtures that are
+    already two weeks old.
+    """
+    day = pd.to_datetime(listed["date"], errors="coerce")
+    if "commence_time" not in listed:
+        return day
+    exact = pd.to_datetime(listed["commence_time"], errors="coerce", utc=True)
+    return exact.dt.tz_localize(None).fillna(day)
+
+
+def listed_fixtures(source_dir=None):
+    """Every fixture the price feed has listed, played ones included, or None.
+
+    The price files are appended to and never pruned, which is what makes them
+    evidence: a match they listed that has since kicked off is a match whose
+    result is owed. None where there are no price files at all.
+    """
+    try:
+        return cf_data.load_fixtures(source_dir, include_started=True)
+    except SystemExit:
+        return None
+
+
+def skipped(history, today=None, listed=None):
     """The quiet leagues the card should actually drop.
 
     `quiet` states a fact about the feed; this applies the decision. A league
     you have opted to grade by hand is still quiet — nothing has started
     publishing again — but it stays on the card, and the results are on you.
     """
-    return quiet(history, today) - GRADED_BY_HAND
+    return quiet(history, today, listed) - GRADED_BY_HAND

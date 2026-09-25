@@ -139,7 +139,7 @@ def discover_leagues(progress=print):
     # current.
     history = cf_data.load_history()
     have_history = set(history["competition"].unique())
-    silent = leagues.skipped(history)
+    silent = leagues.skipped(history, listed=leagues.listed_fixtures())
     tracked = set(sports_tracked())
 
     plan, missing, stopped = [], [], []
@@ -198,10 +198,27 @@ def league_plan():
 
 
 def fetch_odds(progress=print, sports=None, regions="eu,uk", markets="h2h,totals"):
-    """Current prices for upcoming fixtures. COSTS Odds API credits."""
+    """Current prices for upcoming fixtures. COSTS Odds API credits.
+
+    Without a list of sports it follows the league plan — redrawn first, every
+    time. Drawing it is free, and a plan drawn once goes stale both ways: it
+    used to be drawn only on a machine that had none, so a league coming into
+    season was never added, and a league whose results had stopped kept being
+    bought at four credits a fetch for a card that then threw its fixtures
+    away. If the redraw fails, the plan on file still stands.
+    """
     _ensure()
+    from requests import RequestException
     from valuebets.sources import odds_api
 
+    if not sports:
+        try:
+            discover_leagues(progress)
+        except (SystemExit, RequestException) as exc:
+            # The type and not the message: a failed request names its URL,
+            # and this one carries the API key.
+            progress(f"  could not redraw the league plan ({type(exc).__name__}); "
+                     "following the one on file")
     sports = list(sports or league_plan())
     if not sports:
         raise SystemExit("No leagues to fetch. Run “Check available leagues” first.")
