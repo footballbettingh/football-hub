@@ -50,6 +50,24 @@ REFIT_DAYS = 7
 MIN_TRAIN_MATCHES = 200
 
 HALF_LIFE_DAYS = 180
+
+# The ridge pulls every strength toward the league average, and a team new to
+# the league starts there — which the model's own numbers say is wrong. Over
+# the walk-forward, a side up from a lower division scored 0.10 goals fewer
+# than the model gave it in its first five matches and let in 0.16 more (4 to 6
+# standard errors), still -0.06/+0.09 after twenty; one down from a higher
+# division on file went the other way, +0.08/-0.05 by mid-season.
+#
+# Measured, and left alone, because none of it reaches a probability. The
+# closing line carries 0.9 of the goals forecast and already knows who came
+# up: the fused lambdas miss a promoted side's conceding by 0.07 in its first
+# five matches and nothing measurable after. Scaling those, per origin, by
+# factors fitted on the very matches scored — a ceiling no honest version
+# reaches — moved the Brier of their goals selections from 0.17588 to 0.17551,
+# on 4.5% of matches: -0.000017 over the card, half the gain the early prices
+# were turned down for. Corners, which have no line, show no newcomer effect
+# on the total the card prices (factors 0.996 to 1.009); a promoted side wins
+# fewer and concedes more, and the two cancel.
 RIDGE = 0.05
 
 # How much of a fitted corner strength to keep, as a fraction. Every other
