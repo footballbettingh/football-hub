@@ -305,6 +305,30 @@ def test_the_page_data_is_data_the_browser_never_runs():
     assert "window.__PAGE__ =" not in html
 
 
+def test_every_script_a_page_runs_is_the_sites_own():
+    """No third party: the Ko-fi widget was a script from their CDN on every
+    page, able to read and change anything the page could. It is a link now,
+    and the page's policy would refuse such a script if one came back."""
+    for mode in ("static", "server"):
+        html = c.layout(c.Links(mode), "t", "index", "<p>x</p>", page_data={"a": 1})
+        sources = re.findall(r'<script[^>]*\ssrc="([^"]+)"', html)
+        assert sources and all(not s.startswith(("http:", "https:", "//")) for s in sources)
+        inline = re.findall(r"<script(?![^>]*\ssrc=)(?![^>]*application/json)[^>]*>", html)
+        assert inline == []
+        assert c.KOFI_URL in html and "ko-fi.com/cdn" not in html
+
+
+def test_the_page_carries_a_policy_that_allows_only_its_own_scripts():
+    html = c.layout(c.Links("static"), "t", "index", "")
+    policy = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html).group(1)
+    directives = dict(part.strip().split(" ", 1) for part in policy.split(";"))
+    assert directives["script-src"] == "'self' file:"
+    assert "'unsafe-inline'" not in directives["script-src"]
+    assert directives["connect-src"] == "'none'"
+    # Early in <head>, before anything it governs is named.
+    assert html.index("Content-Security-Policy") < html.index("<link rel=\"stylesheet\"")
+
+
 def test_current_page_is_marked_for_screen_readers():
     html = c.layout(c.Links("server"), "Card", "fixtures", "")
     assert '<a href="/fixtures" aria-current="page">Fixtures</a>' in html

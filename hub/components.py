@@ -43,20 +43,32 @@ TELEGRAM_ICON = (
     '-.541-2.081-1.527-1.714l-21.29 8.151c-1.453.564-1.431 1.374-.247 1.741l5.443'
     ' 1.693 12.643-7.911c.595-.394 1.136-.176.691.218z"/></svg>')
 
-# Ko-fi's overlay widget, pasted from their dashboard as given. It stays a
-# plain string rather than going inline in the page shell below: that shell is
-# one long f-string, and every brace in the JS object literal would have to be
-# doubled to survive it — which is exactly the kind of edit that silently rots
-# the next time the snippet is re-pasted from Ko-fi.
-KOFI_WIDGET = """<script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
-<script>
-  kofiWidgetOverlay.draw('footballbettinghub', {
-    'type': 'floating-chat',
-    'floating-chat.donateButton.text': 'Support me',
-    'floating-chat.donateButton.background-color': '#f45d22',
-    'floating-chat.donateButton.text-color': '#fff'
-  });
-</script>"""
+# Where the project can be supported. A plain link: it was Ko-fi's overlay
+# widget, a script from their CDN on every page — the one piece of the site run
+# from somewhere else, able to read anything the page could and to change it,
+# and a floating button over the bottom of every table on a phone.
+KOFI_URL = "https://ko-fi.com/footballbettinghub"
+
+# Stroked like the status icons rather than filled like the Telegram mark: it
+# is a cup, not a brand, and at 14px an outline reads as one.
+KOFI_ICON = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/>'
+    '<path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3v2M12 3v2"/></svg>')
+
+# What a page may load, and from where: its own scripts, styles and fonts and
+# nothing else. Possible since the page data stopped being a script and the
+# Ko-fi widget became a link — there is no inline script left to allow and no
+# third party to trust. Styles keep 'unsafe-inline' for the style attributes
+# the tables colour their cells with. `file:` is for the export opened from
+# disk, where some browsers do not count a file as 'self'; a published page
+# can load nothing from a file: URL whatever this says.
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self' file:; script-src 'self' file:; "
+    "style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data:; "
+    "font-src 'self' file:; connect-src 'none'; object-src 'none'; "
+    "base-uri 'none'; form-action 'none'")
 
 # 512 square, so the share card is the small-summary kind. Claiming
 # `summary_large_image` with a square logo gets it letterboxed or cropped.
@@ -246,6 +258,7 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="{CONTENT_SECURITY_POLICY}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{full_title}</title>
 <meta name="description" content="{description}">
@@ -295,14 +308,15 @@ def layout(links, title, current, body_html, page_data=None, subtitle="",
     fool yourself.</p>
     <p>A research tool, not betting advice. A calibrated probability says how
     often something happens — not whether the price on offer is worth taking.</p>
-    <p class="tg"><a href="{TELEGRAM_URL}" rel="noopener">{TELEGRAM_ICON}<span>Telegram
+    <p class="ext"><a href="{TELEGRAM_URL}" rel="noopener">{TELEGRAM_ICON}<span>Telegram
     channel</span></a> — the daily pick, posted before kick-off.</p>
+    <p class="ext"><a href="{KOFI_URL}" rel="noopener">{KOFI_ICON}<span>Support it on
+    Ko-fi</span></a> — if the record is worth keeping.</p>
   </footer>
 </div>
 {data_script}
 <script src="{links.asset('charts.js')}"></script>
 <script src="{links.asset('hub.js')}"></script>
-{KOFI_WIDGET}
 </body></html>"""
 
 
