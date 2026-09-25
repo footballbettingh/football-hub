@@ -53,3 +53,15 @@ def test_the_cards_badge_says_its_zone():
     from hub import pages
     assert pages._built_badge("2026-08-12T10:00:00") == "built 12 Aug 10:00 UTC"
     assert pages._built_badge("2026-08-12T13:00:00+03:00") == "built 12 Aug 10:00 UTC"
+
+
+def test_a_fixture_filter_takes_the_clock_it_is_given_with_or_without_a_zone():
+    """clock.now() is aware; the filter used to raise on anything aware."""
+    from confidence import data as cf_data
+    fixtures = pd.DataFrame({
+        "date": pd.to_datetime(["2026-09-26", "2026-09-26"]),
+        "commence_time": ["2026-09-26T12:00:00Z", "2026-09-26T18:00:00Z"]})
+    for now in ("2026-09-26T15:00:00",
+                datetime(2026, 9, 26, 15, tzinfo=timezone.utc),
+                pd.Timestamp("2026-09-26T18:00:00+03:00")):
+        assert list(cf_data._not_started(fixtures, now)) == [False, True]
