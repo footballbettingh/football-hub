@@ -132,6 +132,12 @@ prints its traceback and makes the run exit 1 once it has finished; a provider's
 failure alone exits 0. Either way the run ends with a tally of what it skipped
 and what broke.
 
+The value-betting backtest behind the Evidence page runs last, and only once a
+week: it walks the whole history, about ten minutes a time, and a week of
+results is under one per cent of it. The artifact records the day it was built
+and the results it saw, so a run knows when it is due without trusting a file
+time that a cache restore has reset.
+
 | Flag | Effect |
 |---|---|
 | `--no-odds` | spend no Odds API credits this run |
@@ -141,6 +147,8 @@ and what broke.
 | `--sports a,b,c` | buy prices for these leagues now, instead of the ones that play soon |
 | `--no-notify` | rebuild only, send nothing |
 | `--only-if-changed` | stay quiet unless the pick itself changed |
+| `--no-evidence` | leave the backtest alone even when it is due |
+| `--force-evidence` | rebuild the backtest now, e.g. after changing it |
 
 ### API credit usage
 
