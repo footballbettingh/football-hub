@@ -8,6 +8,7 @@ missing dependency degrades to "still works" rather than "import error".
 """
 
 import os
+import re
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -76,3 +77,53 @@ def require(*names: str) -> None:
 def ensure_dirs() -> None:
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     SITE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# -- keeping them out of the logs --------------------------------------------
+
+# Two of the three credentials travel in the URL itself — the Odds API's as a
+# query parameter, Telegram's in the path — and requests quotes the URL in the
+# message of every error it raises. Printed, that message put the key into
+# logs\run-*.log in plain text, and into the Actions log wherever the value
+# did not happen to match a registered secret exactly.
+SECRET_NAMES = ("ODDS_API_KEY", "TELEGRAM_BOT_TOKEN", "FOOTBALL_DATA_KEY")
+
+# The shapes, for a key that is not the configured one: a Client handed its
+# own, or a token pasted in by hand.
+_SECRET_SHAPES = (
+    re.compile(r"(apiKey=)[^&\s'\"]+"),
+    re.compile(r"(/bot)\d+:[\w-]+"),
+)
+
+
+def redact(text, *also) -> str:
+    """`text` with every credential in it replaced by ***.
+
+    The configured values by value, anything shaped like one of them by shape,
+    and `also` — a key a caller holds that config does not — by value too.
+    """
+    text = str(text)
+    for value in [globals().get(name) for name in SECRET_NAMES] + list(also):
+        if value:
+            text = text.replace(str(value), "***")
+    for shape in _SECRET_SHAPES:
+        text = shape.sub(r"\1***", text)
+    return text
+
+
+def scrubbed(exc, *also):
+    """The same kind of error with the credentials taken out of its message.
+
+    Raise it `from None`: the original travels as the new one's context, and
+    a traceback prints the context in full — URL, key and all.
+    """
+    message = redact(exc, *also)
+    # The nearest class that can be built from a message alone, so a caller's
+    # `except RequestException` still catches it: requests' JSONDecodeError
+    # wants a document and a position as well, its parent does not.
+    for kind in type(exc).__mro__:
+        try:
+            return kind(message)
+        except TypeError:
+            continue
+    return RuntimeError(message)

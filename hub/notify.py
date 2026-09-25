@@ -53,23 +53,27 @@ def _api(method, token=None, payload=None):
     token = token or config.TELEGRAM_BOT_TOKEN
     if not token:
         raise NotifyError("No TELEGRAM_BOT_TOKEN set. Add it to .env.")
+    # The token is part of the path, and requests quotes the URL in every error
+    # it raises — so the message is scrubbed, and the original is dropped
+    # rather than chained, since a traceback prints a chained error in full.
     url = f"{config.TELEGRAM_API_BASE}/bot{token}/{method}"
     try:
         resp = requests.post(url, json=payload or {}, timeout=TIMEOUT,
                              headers={"User-Agent": USER_AGENT})
     except requests.RequestException as exc:            # DNS, TLS, timeout
-        raise NotifyError(f"Telegram unreachable: {exc}") from exc
+        raise NotifyError(
+            f"Telegram unreachable: {config.redact(exc, token)}") from None
 
     try:
         body = resp.json()
     except ValueError:
         raise NotifyError(f"Telegram returned HTTP {resp.status_code}: "
-                          f"{resp.text[:200]}") from None
+                          f"{config.redact(resp.text[:200], token)}") from None
     if not body.get("ok"):
         # 401 = bad token. 400 "chat not found" = nobody ever messaged the bot.
         # 403 "need administrator rights" = a channel the bot is only a member of.
         raise NotifyError(f"Telegram refused the request ({resp.status_code}): "
-                          f"{body.get('description', body)}")
+                          + config.redact(body.get("description", body), token))
     return body["result"]
 
 
