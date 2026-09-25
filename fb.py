@@ -75,7 +75,7 @@ def cmd_model(args):
     from hub import pipeline
     pipeline.rebuild_model(refit_days=args.refit_days,
                            competitions=args.competitions.split(",")
-                           if args.competitions else None)
+                           if args.competitions else None, full=args.full)
 
 
 def cmd_calibrate(args):
@@ -665,6 +665,8 @@ def main(argv=None):
     p = sub.add_parser("model", help="walk-forward over every finished match")
     p.add_argument("--refit-days", type=int, default=None)
     p.add_argument("--competitions", default=None, help="comma-separated subset")
+    p.add_argument("--full", action="store_true",
+                   help="walk the whole history, not only each league's last weeks")
     p.set_defaults(func=cmd_model)
 
     p = sub.add_parser("calibrate", help="fit calibrators and the reliability record")
