@@ -113,11 +113,17 @@ def test_an_unreachable_telegram_does_not_print_the_token(monkeypatch):
     assert TOKEN not in _printed(caught.value)
 
 
-def test_a_skipped_step_does_not_print_the_key(capsys):
-    """The line every failure of an unattended run is printed through."""
-    def fail():
+def test_a_failed_step_does_not_print_the_key(capsys):
+    """The lines every failure of an unattended run is printed through — the
+    one-line summary, and for a bug the whole traceback as well."""
+    def outage():
+        raise requests.ConnectionError(f"url: /v4/sports?apiKey={KEY}")
+
+    def bug():
         raise RuntimeError(f"something upstream quoted ?apiKey={KEY}")
 
-    assert fb._step("Fetching prices", fail, skipped=[]) is False
+    assert fb._step("Fetching prices", outage, skipped=[]) is False
+    assert fb._step("Fetching prices", bug, broken=[]) is False
     out = capsys.readouterr().out
-    assert "skipped - RuntimeError" in out and KEY not in out
+    assert "ConnectionError" in out and "RuntimeError" in out and "Traceback" in out
+    assert KEY not in out

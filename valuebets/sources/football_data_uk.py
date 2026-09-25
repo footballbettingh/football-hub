@@ -30,7 +30,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from .. import config
+from .. import config, files
 from ..teams import normalize
 
 BASE = "https://www.football-data.co.uk/mmz4281"
@@ -212,7 +212,7 @@ def fetch(divisions, seasons, use_cache=True, pause=0.5):
                 continue
 
             if source == "downloaded":
-                cache.write_text(text, encoding="utf-8")
+                files.write_text(cache, text)
 
             kinds.add(frame.price_kind.iloc[0] if len(frame) else "empty")
             frames.append(frame)

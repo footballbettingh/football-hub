@@ -38,6 +38,8 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    outputs:
+      run: ${{ steps.run.outcome }}
     env:
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
       FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
@@ -77,7 +79,20 @@ jobs:
           key: hub-data-${{ github.run_id }}
           restore-keys: hub-data-
 
+      # The cache is saved even after a failed run, so the ledger it brings
+      # back may be one that run cut short — and restoring it overwrites the
+      # committed one. A book that is not the committed one plus new rows and
+      # filled-in results is put back to the commit before anything reads it.
+      - name: Check the restored ledger
+        run: python fb.py check-ledger --restore
+
+      # Allowed to fail so that the ledger is still committed and the site
+      # still published from what is on hand. A stage that failed on a bug
+      # makes it exit 1, and the `verdict` job turns the run red for it once
+      # everything else has gone out.
       - name: Fetch, rebuild, re-price and notify
+        id: run
+        continue-on-error: true
         run: python -u fb.py run --only-if-changed ${{ inputs.args }}
 
       - name: Save the data folder
@@ -92,6 +107,8 @@ jobs:
       # only out-of-sample record the project has.
       - name: Commit the ledger
         run: |
+          # Refuses a book that is not the committed one plus new rows.
+          python fb.py check-ledger
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/best_picks.csv data/best_accas.csv
@@ -119,3 +136,15 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v5
+
+  # Last, so that a bug in one stage still leaves the ledger committed and the
+  # site published — and still turns the run red, which is the part somebody
+  # sees. A provider's bad afternoon exits 0 and never reaches here.
+  verdict:
+    needs: [refresh, deploy]
+    if: always() && needs.refresh.outputs.run == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::A stage of fb.py run failed on a bug. The ledger and the site went out on what was on hand; the refresh log names the stage."
+          exit 1

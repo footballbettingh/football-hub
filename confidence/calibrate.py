@@ -189,10 +189,13 @@ class Calibrators:
             out[:, columns] = block
         return out
 
+    def to_json(self):
+        return json.dumps({"meta": self.meta,
+                           "groups": {g: c.to_dict() for g, c in self.by_group.items()}},
+                          indent=1)
+
     def save(self, path):
-        blob = {"meta": self.meta,
-                "groups": {g: c.to_dict() for g, c in self.by_group.items()}}
-        path.write_text(json.dumps(blob, indent=1), encoding="utf-8")
+        path.write_text(self.to_json(), encoding="utf-8")
 
     @classmethod
     def load(cls, path):

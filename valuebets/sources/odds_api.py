@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from .. import config
+from .. import config, files
 from ..teams import normalize
 from .football_data_org import SPORT_TO_COMPETITION
 
@@ -205,8 +205,8 @@ def fetch_odds(sport_key, regions=REGIONS, markets=MARKETS, price_method="best",
     print(f"  cost {client.last_cost} credits, {client.report()}")
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    (config.RAW_DIR / f"odds_{sport_key}_{stamp}.json").write_text(
-        json.dumps(events), encoding="utf-8")
+    files.write_text(config.RAW_DIR / f"odds_{sport_key}_{stamp}.json",
+                     json.dumps(events))
 
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows = []
