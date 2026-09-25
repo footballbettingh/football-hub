@@ -512,16 +512,7 @@ def recalibrate(progress=print, weight=None, folds=5):
 
 def write_reliability(keys, calibrated, results, scored):
     """One table: all markets pooled, then each market group on its own."""
-    frames = []
-    overall = evaluate.reliability(keys, calibrated, results, scored)
-    overall.insert(0, "scope", "all")
-    frames.append(overall)
-    for group in sorted({evaluate.group_of(k) for k in keys}):
-        block = evaluate.reliability(keys, calibrated, results, scored, [group])
-        if not block.empty:
-            block.insert(0, "scope", group)
-            frames.append(block)
-    table = pd.concat(frames, ignore_index=True)
+    table = evaluate.reliability_by_scope(keys, calibrated, results, scored)
     files.write_csv(table, cf_config.RELIABILITY_CSV, index=False, float_format="%.5f")
     return table
 

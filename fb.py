@@ -223,6 +223,69 @@ def cmd_evaluate(args):
     _show(tables["coherence"], floats=5)
 
 
+def cmd_backtest_slate(args):
+    """Choose the slate again over the whole history, out of sample, and grade it.
+
+    The measurement every change to the model or the picker should be judged
+    on: not Brier over every selection, but what the slate actually publishes
+    — does a band that claims 62% land 62% when the picker chooses it. See
+    `confidence.slate_backtest` for how it keeps to time.
+    """
+    from confidence import config as cf_config, slate_backtest
+    from hub import leagues
+    from valuebets import files
+
+    if not cf_config.PREDICTIONS_CSV.exists():
+        raise SystemExit("No predictions yet — run `python fb.py model` first.")
+    predictions = pd.read_csv(cf_config.PREDICTIONS_CSV, parse_dates=["date"])
+    # The leagues a price feed quotes are the only ones the live card can
+    # choose from; the calibration behind them is built on all of them.
+    competitions = None if args.all_competitions else set(leagues.SPORT_KEYS)
+
+    def run(tiebreak):
+        print(f"\nReplaying the slate {'with' if tiebreak else 'without'} the tie-break "
+              f"({predictions['date'].min():%b %Y} to {predictions['date'].max():%b %Y})")
+        return slate_backtest.replay(predictions, weight=args.weight, tiebreak=tiebreak,
+                                     competitions=competitions,
+                                     progress=print if args.verbose else None)
+
+    chosen = run(tiebreak=not args.no_tiebreak)
+    if chosen.empty:
+        raise SystemExit("Not enough history to choose anything out of sample.")
+    print(f"\n== {len(chosen):,} picks on {chosen['date'].nunique():,} match days, "
+          f"{chosen['date'].min()} to {chosen['date'].max()}\n")
+    _show(slate_backtest.summary(chosen, "band"))
+    print("\n== By market\n")
+    _show(slate_backtest.summary(chosen, "group"))
+    print("\n== By year\n")
+    _show(slate_backtest.summary(chosen.assign(year=chosen["date"].str[:4]), "year"))
+
+    if args.compare_tiebreak and not args.no_tiebreak:
+        plain = run(tiebreak=False)
+        with_it = slate_backtest.summary(chosen, "band").set_index("band")
+        without = slate_backtest.summary(plain, "band").set_index("band")
+        # Which days it chose a different bet on, the rest being the same pick.
+        both = chosen.merge(plain, on=["date", "band"], how="outer",
+                            suffixes=("", "_plain"))
+        differs = both[(both["match"] != both["match_plain"])
+                       | (both["key"] != both["key_plain"])]
+        changed = differs.groupby("band").size()
+        changed["all"] = len(differs)
+        print("\n== What the tie-break is worth, band by band (points)\n")
+        _show(pd.DataFrame({
+            "picks": with_it["picks"],
+            "changed": changed.reindex(with_it.index).fillna(0).astype(int),
+            "landed_with": with_it["landed"] * 100,
+            "landed_without": without["landed"] * 100,
+            "hit_rate_gain": (with_it["landed"] - without["landed"]) * 100,
+            "gap_with": with_it["gap_pp"], "gap_without": without["gap_pp"],
+        }).reset_index(), floats=2)
+
+    out = cf_config.REPORT_DIR / "slate_backtest.csv"
+    files.write_csv(chosen, out, index=False, float_format="%.5f")
+    print(f"\nEvery pick -> {out}")
+
+
 def cmd_sweep(args):
     from hub import pipeline
     print("Fusion weight on the market-implied matrix "
@@ -612,6 +675,19 @@ def main(argv=None):
     p.add_argument("--weight", type=float, default=None)
     p.add_argument("--folds", type=int, default=5)
     p.set_defaults(func=cmd_evaluate)
+
+    p = sub.add_parser("backtest-slate",
+                       help="choose the slate again over the history, out of sample")
+    p.add_argument("--weight", type=float, default=None,
+                   help="market fusion weight (default: the configured one)")
+    p.add_argument("--no-tiebreak", action="store_true",
+                   help="choose without the per-selection price record")
+    p.add_argument("--compare-tiebreak", action="store_true",
+                   help="replay twice, and print what the tie-break changes")
+    p.add_argument("--all-competitions", action="store_true",
+                   help="let every league be chosen from, not only the priced ones")
+    p.add_argument("--verbose", action="store_true", help="a line per month")
+    p.set_defaults(func=cmd_backtest_slate)
 
     p = sub.add_parser("sweep", help="sweep the market fusion weight")
     p.add_argument("--folds", type=int, default=5)

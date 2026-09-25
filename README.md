@@ -66,6 +66,22 @@ These compute nothing and write nothing. They print to the terminal.
 | `python fb.py evaluate` | the reliability tables, per market and against the closing line |
 | `python fb.py sweep` | the market-fusion weight, 0 (model alone) to 1 (line alone) |
 
+### Measuring a change
+
+```bash
+python fb.py backtest-slate --compare-tiebreak
+```
+
+Chooses the slate again over the whole history, out of sample — a month at a
+time, with the calibrators, band records, ceilings and tie-break factors rebuilt
+from the months before it only, and the day's picks made by the same code the
+card uses — then grades it by band, market and year: what was claimed, what
+landed, the z-score between them. About three minutes a replay; every pick goes
+to `reports/slate_backtest.csv`. It is the number to judge a change to the model
+or the picker on, because it is the thing the site publishes. What it cannot
+replay is the earlier price the card is really bought at: the history only has
+the closing one.
+
 ### Looking at it
 
 | Command | Does |
