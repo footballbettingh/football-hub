@@ -31,6 +31,23 @@ WOFF2 = "font/woff2"
 ROUTES = {components.Links("server").href(page): page
           for page, _, _ in components.PAGES}
 
+# On every response. The browser is told not to guess a file's type from its
+# contents, not to show these pages inside anyone else's, and to send no
+# address of them onward when a link leaves the site.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "Referrer-Policy": "same-origin",
+}
+
+# The names a request may call this server by. Binding to 127.0.0.1 keeps other
+# machines out but not other websites: a page anywhere can point a name of its
+# own at 127.0.0.1 and read this server as though it were on its own origin
+# (DNS rebinding). Such a request still says its own name in Host, and is
+# turned away.
+LOCAL_NAMES = ("127.0.0.1", "localhost")
+
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "FootballHub"
@@ -60,6 +77,8 @@ class Handler(BaseHTTPRequestHandler):
             body = gzip.compress(body, compresslevel=6)
 
         self.send_response(status)
+        for name, value in SECURITY_HEADERS.items():
+            self.send_header(name, value)
         if gzipped:
             self.send_header("Content-Encoding", "gzip")
             self.send_header("Vary", "Accept-Encoding")
@@ -75,7 +94,16 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- routing ----------------------------------------------------------
 
+    def _called_by_a_local_name(self):
+        # IPv4 only, like the socket: "[::1]" is not a name this server has.
+        name, colon, port = (self.headers.get("Host") or "").strip().lower().partition(":")
+        return name in LOCAL_NAMES and (
+            not colon or port == str(self.server.server_address[1]))
+
     def do_GET(self):
+        if not self._called_by_a_local_name():
+            return self._send("This server answers to 127.0.0.1 and localhost only.",
+                              "text/plain; charset=utf-8", HTTPStatus.MISDIRECTED_REQUEST)
         path = urlparse(self.path).path
 
         if path in ROUTES:
