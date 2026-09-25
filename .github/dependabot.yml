@@ -1,0 +1,13 @@
+# Every version here is pinned — the actions to a commit, the Python packages
+# to a release — so nothing changes under the daily run unless it arrives as a
+# pull request the tests have passed.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
