@@ -79,8 +79,14 @@ def _market_view(row, method):
 
 def run(history, refit_days=None, min_train=None, devig_method=None,
         half_life_days=None, ridge=None, signal_weight=0.5,
-        competitions=None, progress=print):
-    """Price every match in `history` out of sample. Returns a DataFrame."""
+        competitions=None, progress=print, since=None):
+    """Price every match in `history` out of sample. Returns a DataFrame.
+
+    `since`, {competition: date}, prices only the matches from that date on in
+    those competitions — and exactly as a full run would have, because the
+    refit schedule is walked from the start either way. Competitions it does
+    not name are priced in full.
+    """
     refit_days = config.REFIT_DAYS if refit_days is None else refit_days
     min_train = config.MIN_TRAIN_MATCHES if min_train is None else min_train
     devig_method = devig_method or config.DEVIG
@@ -96,7 +102,8 @@ def run(history, refit_days=None, min_train=None, devig_method=None,
     for position, competition in enumerate(names, start=1):
         sub = history[history["competition"] == competition].sort_values("date")
         rows.extend(_run_competition(sub, refit_days, min_train, devig_method,
-                                     half_life_days, ridge, signal_weight))
+                                     half_life_days, ridge, signal_weight,
+                                     (since or {}).get(competition)))
         if progress:
             progress(f"  [{position:>2}/{len(names)}] {competition:<14} "
                      f"{len(sub):>5} matches   {len(rows):>6} priced   "
@@ -107,7 +114,7 @@ def run(history, refit_days=None, min_train=None, devig_method=None,
 
 
 def _run_competition(sub, refit_days, min_train, devig_method, half_life_days,
-                     ridge, signal_weight):
+                     ridge, signal_weight, since=None):
     model = BlendedGoalsModel(weight=signal_weight, half_life_days=half_life_days,
                               ridge=ridge, max_goals=12)
     corners = PoissonModel(("home_corners", "away_corners"), dixon_coles=False,
@@ -115,20 +122,30 @@ def _run_competition(sub, refit_days, min_train, devig_method, half_life_days,
                            max_goals=CORNER_MAX, shrink=config.CORNER_SHRINK)
     corners_fitted = False
 
-    last_fit = None
+    # `due` is when the full run's schedule says the current fit was made;
+    # `fitted` is when this run actually made it. Before `since` the schedule
+    # still moves and nothing is fitted, so the first match priced gets the
+    # fit the full run would have had — made as of the same date, on the same
+    # matches — rather than a fresh one as of its own day.
+    due = fitted = None
     out = []
     for date, round_matches in sub.groupby("date", sort=True):
         train = sub[sub["date"] < date]
         if len(train) < min_train:
             continue
 
-        if last_fit is None or (date - last_fit).days >= refit_days:
-            model.fit(train, as_of=date)
-            corner_train = train.dropna(subset=["home_corners", "away_corners"])
+        if due is None or (date - due).days >= refit_days:
+            due = date
+        if since is not None and date < since:
+            continue
+        if fitted != due:
+            fit_on = sub[sub["date"] < due]
+            model.fit(fit_on, as_of=due)
+            corner_train = fit_on.dropna(subset=["home_corners", "away_corners"])
             if len(corner_train) >= min_train:
-                corners.fit(corner_train, as_of=date)
+                corners.fit(corner_train, as_of=due)
                 corners_fitted = True
-            last_fit = date
+            fitted = due
 
         for row in round_matches.itertuples():
             out.append(_price_match(row, model, corners if corners_fitted else None,

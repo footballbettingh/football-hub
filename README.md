@@ -35,13 +35,23 @@ safe to re-run, and every one prints what it did.
 | `python fb.py fetch results` | match history and closing odds | 1–3 min | free, no API key |
 | `python fb.py fetch leagues` | the league plan | ~5 s | **free** — it only asks what is in season |
 | `python fb.py fetch odds` | fixture prices | ~10 s per league | **Odds API credits, 2 per league** |
-| `python fb.py model` | walk-forward predictions | 6–8 min | — |
+| `python fb.py model` | walk-forward predictions | ~25 s; 5–8 min in full | — |
 | `python fb.py calibrate` | calibrators, the reliability record, the pick factors | ~2 min | — |
 | `python fb.py card` | the card, the slate and the two headline picks | ~20 s | — |
 | `python fb.py evidence` | the value-betting backtest and its insights | 5–15 min | — |
 
 `fetch odds` is the only one that spends anything. Everything else reads what is
 already on disk, so the worst a mistaken re-run costs you is the time.
+
+`model` prices again only what new results can have changed: each league's last
+five weeks, and any match that turned up late, keeping the rest of
+`data/predictions.csv` as it was. The refit schedule is walked from the start
+either way, so the tail comes out as a full walk would price it, to the fourth
+decimal of a lambda. It walks the whole history instead when there is no
+earlier run on file, when the model's code or settings have changed since (a
+hash of both is kept in `data/predictions_meta.json`), once a week — for a score
+corrected or a closing price revised weeks back — and with `--full`,
+`--competitions` or `--refit-days`.
 
 They depend on each other in that order. New results are worth nothing until the
 model has walked forward over them, the model is worth nothing until the
@@ -126,7 +136,7 @@ and what broke.
 |---|---|
 | `--no-odds` | spend no Odds API credits this run |
 | `--odds-every N` | buy the whole plan at once if the newest price is older than N days (`0` forces it) |
-| `--skip-model` | no walk-forward rebuild or recalibration (~1 min instead of ~12) |
+| `--skip-model` | no walk-forward rebuild or recalibration (~1 min instead of 3–4, or ~10 on the weekly full walk) |
 | `--skip-fetch` | re-price and notify from what is already on disk |
 | `--sports a,b,c` | buy prices for these leagues now, instead of the ones that play soon |
 | `--no-notify` | rebuild only, send nothing |

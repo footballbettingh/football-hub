@@ -9,6 +9,7 @@ what ends up in status.json.
 import json
 import time
 
+import numpy as np
 import pandas as pd
 
 from confidence import config as cf_config, data as cf_data, evaluate, predict
@@ -453,8 +454,99 @@ def _days_until(today, day):
 
 # -- the confidence model --------------------------------------------------
 
-def rebuild_model(progress=print, refit_days=None, competitions=None):
-    """Walk-forward over every finished match. The slow one."""
+PREDICTIONS_META = cf_config.PREDICTIONS_CSV.with_name("predictions_meta.json")
+
+# How much of each league the daily run prices again: the last five refit
+# periods. New results only change what comes after them, and a league's
+# results arrive within about ten days.
+TAIL_DAYS = 35
+
+# And the whole history, from scratch, this often — for what the tail cannot
+# see: a score corrected, or a closing price revised, weeks back.
+FULL_EVERY_DAYS = 7
+
+# What the stored predictions are a function of. A change to any of these and
+# the tail is not enough: every row was priced by something that no longer
+# exists.
+_MODEL_SETTINGS = ("REFIT_DAYS", "MIN_TRAIN_MATCHES", "HALF_LIFE_DAYS", "RIDGE",
+                   "CORNER_SHRINK", "DEVIG")
+
+_KEY = ["competition", "date", "home", "away"]
+_RESULTS = ["home_goals", "away_goals", "total_corners"]
+
+
+def _model_fingerprint():
+    """A hash of the code and the settings the walk-forward's output depends on."""
+    import hashlib
+    from pathlib import Path
+
+    from confidence import data, implied, poisson, teams, walkforward
+
+    digest = hashlib.sha256()
+    for module in (poisson, walkforward, implied, data, teams):
+        digest.update(Path(module.__file__).read_bytes())
+    for name in _MODEL_SETTINGS:
+        digest.update(f"{name}={getattr(cf_config, name)!r};".encode())
+    return digest.hexdigest()[:16]
+
+
+def _incremental_plan(history, today=None):
+    """(since, kept, why) — or (None, None, why) where the run must be full.
+
+    `since` is, per league, the first date to price again: the tail, or
+    earlier if a match turned up that the stored run never priced. `kept` is
+    every stored row before it whose match is still in the history, with its
+    result refreshed from there.
+    """
+    today = pd.Timestamp(today or pd.Timestamp.today()).normalize()
+    try:
+        meta = json.loads(PREDICTIONS_META.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None, None, "no earlier run on file"
+    if meta.get("fingerprint") != _model_fingerprint():
+        return None, None, "the model's code or settings changed"
+    full_at = pd.to_datetime(meta.get("full_at"), errors="coerce")
+    if pd.isna(full_at) or (today - full_at).days >= FULL_EVERY_DAYS:
+        return None, None, f"the weekly rebuild (last full {meta.get('full_at')})"
+    if not cf_config.PREDICTIONS_CSV.exists():
+        return None, None, "no earlier predictions on file"
+
+    stored = pd.read_csv(cf_config.PREDICTIONS_CSV, parse_dates=["date"])
+    current = history[_KEY + _RESULTS]
+    stored = (stored.drop(columns=_RESULTS)
+                    .merge(current, on=_KEY, how="inner")[stored.columns])
+
+    since = {}
+    for competition, sub in history.groupby("competition"):
+        mine = stored[stored["competition"] == competition]
+        if mine.empty:
+            continue                          # never priced: this league runs in full
+        start = sub["date"].max() - pd.Timedelta(days=TAIL_DAYS)
+        priced = set(zip(mine["date"], mine["home"], mine["away"]))
+        unpriced = np.array([(d, h, a) not in priced
+                             for d, h, a in zip(sub["date"], sub["home"], sub["away"])],
+                            dtype=bool)
+        late = sub[(sub["date"] >= mine["date"].min()).to_numpy() & unpriced]
+        if len(late):
+            start = min(start, late["date"].min())
+        since[competition] = start
+
+    keep = stored[[date < since.get(comp, pd.Timestamp.min)
+                   for comp, date in zip(stored["competition"], stored["date"])]]
+    return since, keep, f"the last {TAIL_DAYS} days of each league"
+
+
+def rebuild_model(progress=print, refit_days=None, competitions=None, full=False):
+    """Walk-forward over every finished match, or over what has changed.
+
+    A full walk takes six to eight minutes, and new results only change what
+    comes after them, so a daily run prices again only each league's last
+    five weeks — and any match that arrived late — and keeps the rest. It is
+    the same computation: the refit schedule is walked from the start either
+    way, so the tail comes out as a full run would price it, to the fourth
+    decimal of a lambda. Full when asked, weekly, whenever the model's code or
+    settings change, and for a subset or a non-default refit.
+    """
     _ensure()
     history = cf_data.load_history()
     progress(f"History: {len(history):,} matches, "
@@ -462,10 +554,35 @@ def rebuild_model(progress=print, refit_days=None, competitions=None):
              f"{history['date'].min():%Y-%m-%d} to {history['date'].max():%Y-%m-%d}")
 
     started = time.time()
-    predictions = walk_forward_run(history, refit_days=refit_days,
-                                   competitions=competitions, progress=progress)
+    if full or competitions or refit_days is not None:
+        since, kept, why = None, None, "asked for"
+    else:
+        since, kept, why = _incremental_plan(history)
+
+    if since is None:
+        progress(f"Walking the whole history ({why})")
+        predictions = walk_forward_run(history, refit_days=refit_days,
+                                       competitions=competitions, progress=progress)
+    else:
+        progress(f"Pricing again {why}; keeping {len(kept):,} matches as they were")
+        fresh = walk_forward_run(history, progress=progress, since=since)
+        predictions = (pd.concat([kept, fresh], ignore_index=True)
+                       .sort_values(["date", "competition", "home"])
+                       .reset_index(drop=True))
     files.write_csv(predictions, cf_config.PREDICTIONS_CSV, index=False,
                     float_format="%.6f")
+    if competitions:
+        # A file with some leagues in it is no base for the next run's tail.
+        PREDICTIONS_META.unlink(missing_ok=True)
+    else:
+        previous = {}
+        if since is not None:
+            previous = json.loads(PREDICTIONS_META.read_text(encoding="utf-8"))
+        files.write_text(PREDICTIONS_META, json.dumps({
+            "fingerprint": _model_fingerprint(),
+            "full_at": (previous.get("full_at") if since is not None
+                        else pd.Timestamp.today().strftime("%Y-%m-%d")),
+            "built": time.strftime("%Y-%m-%d %H:%M")}))
     progress(f"Priced {len(predictions):,} matches out of sample in "
              f"{time.time() - started:.0f}s")
     return {"matches": int(len(predictions)),
