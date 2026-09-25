@@ -5,6 +5,6 @@
 # the tests decide it.
 numpy==2.2.6
 pandas==2.3.3
-scipy==1.15.3
+scipy==1.18.1
 requests==2.34.2
 python-dotenv==1.2.2
