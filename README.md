@@ -387,15 +387,18 @@ magnitude apart and neither labelled. The money went; the record stayed.
 That also matches what the project claims. Nothing here says it beats the
 closing line — the Evidence page says the opposite at length. What it claims is
 that a probability means what it says, and testing that needs a result, not a
-price. So the page leads with the record and the claim beside it, and reads
-the gap in standard errors: the wins to expect are the sum of the claims, the
-spread around them the sum of p(1 − p), and `z` is how many spreads apart the
-two are. The question is not whether the record is ahead but whether it sits
-within two of its claim — which at this sample size it comfortably does. (It
+price. So the page leads with the record and the claim beside it. Underneath,
+the gap is read in standard errors: the wins to expect are the sum of the
+claims, the spread around them the sum of p(1 − p), and `z` is how many spreads
+apart the two are. The question is not whether the record is ahead but whether
+it sits within two of its claim — which at this sample size it comfortably
+does. `z` decides the page's verdict; the number itself is printed by
+`fb.py history` and kept off the page, where it meant nothing to a reader. (It
 was a Wilson interval on the pooled hit rate once, which treats picks claiming
 45% and 77% as one coin and comes out wider than the truth.)
 
-And beside the record, the same claims **asked again at the close**. Every
+And for whoever works on the model, the same claims **asked again at the
+close** — printed by `fb.py history`, not shown on the page. Every
 settled match is in the walk-forward priced at its closing line, so each pick's
 selection can be priced there through the same fusion and calibration, and set
 against the number it was written down at — `data/ledger_close.csv`, rebuilt by
@@ -416,11 +419,10 @@ flattering history and mean nothing. Settlement only ever fills in the empty
 columns. The History page splits the record by band, because a forecast can be
 honest at 77% and overconfident at 45%, and pooling hides exactly that — and by
 market, because the calibrators are fitted a market at a time and one can go
-wrong on its own. A market's z is left blank until it expects five wins and five
-losses; before that one miss swings it past any threshold. Above both tables,
-the record is drawn pick by pick: wins less the running sum of the claims,
-inside two standard errors of it, so the page shows whether the count has ever
-left the range an honest forecast stays in, not only where it ended.
+wrong on its own. Above both tables, the record is drawn pick by pick: wins
+less the running sum of the claims, inside the band an honest forecast stays in
+95 times in 100, so the page shows whether the count has ever left it, not only
+where it ended.
 
 Two things it refuses to fudge:
 

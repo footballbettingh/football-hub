@@ -674,14 +674,6 @@ def drift_by_band(closing):
             for band in ("safe", "main", "value") if (bands == band).any()}
 
 
-def drift_by_market(closing):
-    """`drift`, one market at a time. Corners never reach the close: nothing
-    quotes them, so they have no line to ask again."""
-    if len(closing) == 0:
-        return {}
-    groups = _market_of(closing["key"])
-    return {group: drift(closing[groups == group]) for group in groups.dropna().unique()}
-
 
 # -- the accumulator, kept in its own book ---------------------------------
 
