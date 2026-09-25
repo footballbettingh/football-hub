@@ -32,12 +32,15 @@ ROUTES = {components.Links("server").href(page): page
           for page, _, _ in components.PAGES}
 
 # On every response. The browser is told not to guess a file's type from its
-# contents, not to show these pages inside anyone else's, and to send no
-# address of them onward when a link leaves the site.
+# contents, to load nothing the page's own policy does not name, not to show
+# these pages inside anyone else's, and to send no address of them onward when
+# a link leaves the site. `frame-ancestors` is here and not in the page's
+# <meta>, because a policy delivered in a meta tag ignores it.
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Content-Security-Policy": "frame-ancestors 'none'",
+    "Content-Security-Policy": (components.CONTENT_SECURITY_POLICY
+                                + "; frame-ancestors 'none'"),
     "Referrer-Policy": "same-origin",
 }
 
