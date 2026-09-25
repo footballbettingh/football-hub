@@ -4,7 +4,7 @@
 # Dependabot (.github/dependabot.yml) proposes each bump as a pull request, and
 # the tests decide it.
 numpy==2.2.6
-pandas==2.3.3
+pandas==3.0.6
 scipy==1.15.3
 requests==2.34.2
 python-dotenv==1.2.2
