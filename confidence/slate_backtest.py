@@ -38,17 +38,19 @@ WARMUP = 0.2
 MIN_SCORED = 5000
 
 
-def replay(predictions, weight=None, tiebreak=True, competitions=None,
+def replay(predictions, weight=None, tiebreak=None, competitions=None,
            warmup=WARMUP, min_scored=MIN_SCORED, progress=print):
     """Every day's slate, chosen out of sample. One row per pick.
 
-    `predictions` is predictions.csv. `tiebreak=False` chooses without the
+    `predictions` is predictions.csv. `tiebreak` defaults to what the live
+    card does (`config.PICK_TIEBREAK`); set, it chooses with or without the
     per-selection price record, so the two can be compared on the same days.
     `competitions` limits which leagues' matches are candidates — the live
     card can only price the ones a feed quotes — while the calibration and
     the records behind it are built on every league, as they are live.
     """
     weight = config.MARKET_WEIGHT if weight is None else weight
+    tiebreak = config.PICK_TIEBREAK if tiebreak is None else tiebreak
     predictions = predictions.reset_index(drop=True)
     keys, probs, results = predict.build_arrays(predictions, weight)
     dates = pd.to_datetime(predictions["date"])

@@ -249,7 +249,9 @@ def cmd_backtest_slate(args):
                                      competitions=competitions,
                                      progress=print if args.verbose else None)
 
-    chosen = run(tiebreak=not args.no_tiebreak)
+    # What the card does, unless told otherwise.
+    tiebreak = cf_config.PICK_TIEBREAK or args.tiebreak
+    chosen = run(tiebreak=tiebreak)
     if chosen.empty:
         raise SystemExit("Not enough history to choose anything out of sample.")
     print(f"\n== {len(chosen):,} picks on {chosen['date'].nunique():,} match days, "
@@ -260,13 +262,13 @@ def cmd_backtest_slate(args):
     print("\n== By year\n")
     _show(slate_backtest.summary(chosen.assign(year=chosen["date"].str[:4]), "year"))
 
-    if args.compare_tiebreak and not args.no_tiebreak:
-        plain = run(tiebreak=False)
-        with_it = slate_backtest.summary(chosen, "band").set_index("band")
-        without = slate_backtest.summary(plain, "band").set_index("band")
+    if args.compare_tiebreak:
+        other = run(tiebreak=not tiebreak)
+        on, off = (chosen, other) if tiebreak else (other, chosen)
+        with_it = slate_backtest.summary(on, "band").set_index("band")
+        without = slate_backtest.summary(off, "band").set_index("band")
         # Which days it chose a different bet on, the rest being the same pick.
-        both = chosen.merge(plain, on=["date", "band"], how="outer",
-                            suffixes=("", "_plain"))
+        both = on.merge(off, on=["date", "band"], how="outer", suffixes=("", "_plain"))
         differs = both[(both["match"] != both["match_plain"])
                        | (both["key"] != both["key_plain"])]
         changed = differs.groupby("band").size()
@@ -680,8 +682,9 @@ def main(argv=None):
                        help="choose the slate again over the history, out of sample")
     p.add_argument("--weight", type=float, default=None,
                    help="market fusion weight (default: the configured one)")
-    p.add_argument("--no-tiebreak", action="store_true",
-                   help="choose without the per-selection price record")
+    p.add_argument("--tiebreak", action="store_true",
+                   help="choose with the per-selection price record, which the "
+                        "card has off (PICK_TIEBREAK)")
     p.add_argument("--compare-tiebreak", action="store_true",
                    help="replay twice, and print what the tie-break changes")
     p.add_argument("--all-competitions", action="store_true",

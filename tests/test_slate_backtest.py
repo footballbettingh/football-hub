@@ -92,9 +92,11 @@ def test_every_pick_sits_in_its_band_and_one_bet_to_a_match(chosen):
     assert set(chosen["result"]) <= {-1, 0, 1}
 
 
-def test_the_replay_without_the_tiebreak_chooses_the_same_days(history, chosen):
-    plain = _replay(history, tiebreak=False)
-    assert set(zip(plain["date"], plain["band"])) == set(zip(chosen["date"], chosen["band"]))
+def test_the_tiebreak_changes_which_bet_but_not_which_days_have_one(history):
+    """The comparison `--compare-tiebreak` prints is day for day, so both
+    replays have to fill the same days and bands."""
+    on, off = _replay(history, tiebreak=True), _replay(history, tiebreak=False)
+    assert set(zip(on["date"], on["band"])) == set(zip(off["date"], off["band"]))
 
 
 def test_the_summary_grades_claims_against_what_landed():

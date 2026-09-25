@@ -295,34 +295,23 @@ ordering within the band survives, and a band that beat its claim gets no bonus.
 Bands with fewer than 200 historical bets are left alone rather than adjusted by
 noise.
 
-**And then a tie-break, because the price band does not actually choose a
-price.** Ranking on probability inside a range always returns the shortest
-price in it: `safe` spans 1.30 to 1.60, and all 27 safe picks in the ledger
-sit between 1.3000 and 1.3142 — the band is thirty odds-points wide and the
-picks occupy one and a half of them. So the band names a target
-price, and dozens of selections arrive at it together. What separates them used
-to be `hit_rate_n`, the number of rows the market has in the reliability
-table — a fact about the dataset rather than about the bet, which simply handed
-the pick to whichever market had the most history.
+**There is a tie-break, and it is switched off.** The price band does not
+actually choose a price: ranking on probability inside a range always returns
+the shortest price in it — all 27 safe picks in the early ledger sat between
+1.3000 and 1.3142 of a band thirty odds-points wide — so dozens of selections
+arrive at the target together. The tie-break gave those to whichever selection
+had done best **at that exact price**, from a record in `data/pick_factors.csv`
+on a grid of 2.5%-wide price cells, among scores within 5% of the best.
 
-It now goes to what that exact selection has done **at that exact price**,
-recorded in `data/pick_factors.csv` on a grid of 2.5%-wide price cells. Scores
-within 5% of the best available are treated as a tie and the record breaks it;
-anything further apart is still decided by the score, so a band that came up
-fifteen points short still loses to an honest one a few points longer. A cell
-with fewer than 300 graded bets says nothing and the pick is left alone.
-
-The gap this closes is real and the gain from closing it is small. Inside a
-single confidence band the corner lines alone spanned 15.8 points between the
-best- and worst-behaved selection, in both directions at once — which one
-calibrator per market group cannot repair, because isotonic regression is
-monotone and cannot pull one up while pushing the other down. Backtested over
-2,445 historical picks the tie-break is worth **+1.27 points pooled** — +3.07
-in the safe band, +1.60 in main, −0.86 in value, against a standard error of
-about 1.4 a band. Run against the model as it was before the corner shrink the
-same test gave +0.84 pooled and a different split across the bands, so read the
-pooled figure and not the ranking: at eight hundred picks a band, that spread
-is what one standard error looks like. The price it buys does not move.
+It was measured at +1.27 points pooled over 2,445 historical picks — but on
+factors drawn from the same history it then chose picks on, so every pick was
+ranked partly on its own result. Replayed strictly out of sample with
+`python fb.py backtest-slate --compare-tiebreak`, factors built from earlier
+months only, it changed 1,203 of 3,127 picks and landed **1.02 points fewer**
+than ranking on the score alone: −2.0 in the safe band, 0.0 in main, −1.2 in
+value. That is about a standard error, so it is not shown to do harm; it is
+shown not to earn its complexity. `PICK_TIEBREAK` in `confidence/config.py`
+turns it back on, and `fb.py calibrate` still writes the factors it would use.
 
 **The next three match days** — the strongest selection in each of three price
 bands, for each of the next three days that have fixtures. Match days rather

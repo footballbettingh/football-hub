@@ -433,6 +433,11 @@ def _rank(picks):
     A key with no measured record at this price is read as 1.0 rather than
     sent to the back: absent evidence is not evidence of a bad selection, and
     the alternative penalises the rarer markets for being rare.
+
+    The live card passes no factors — `config.PICK_TIEBREAK` is off, because
+    replayed out of sample the tie-break did not earn its place — and then
+    every key reads as 1.0, the tiers never decide anything, and this orders
+    on `score` alone.
     """
     out = _with_score(picks)
     step = 1.0 + config.PICK_PRICE_TOLERANCE
