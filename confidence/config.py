@@ -77,10 +77,25 @@ CORNER_SHRINK = 0.55
 
 # Weight on the market-implied score matrix when fusing it with the model's.
 # 1.0 = trust the closing line completely. Measured, not guessed: see
-# `python cf.py sweep`, and the table in the README.
+# `python fb.py sweep`, and the table in the README.
+#
+# The card is priced a day or two before kick-off, on prices that know less
+# than the closing line, and a less informed price might deserve less weight.
+# Measured on the early (Friday-afternoon) prices football-data keeps beside the
+# closing ones, 35,163 matches out of sample: 0.9 still wins — Brier 0.18462
+# against 0.18470 at 0.75 and 0.18486 at 0.6. Calibrating on those early
+# prices instead of the closing ones bought nothing either (0.18462 against
+# 0.18459): the two lean the same way and differ only in how much they know,
+# which no calibration can add. What the early price costs — 0.18398 on the
+# closing line against 0.18459 — is bought back by buying it later, not here.
 MARKET_WEIGHT = 0.9
 
 # De-vig method for turning prices into probabilities: "power" or "proportional".
+#
+# De-vigged from the average of the books, not from Pinnacle's price alone,
+# sharp as it is: over 34,050 matches Pinnacle's closing line scored RPS
+# 0.20186 against the average's 0.20187, and football-data stopped publishing
+# it in 2025, so there would be nothing to calibrate the current season on.
 DEVIG = "power"
 
 # Only bets at or above this calibrated probability reach the shortlist.
