@@ -164,6 +164,42 @@ def reliability(keys, probs, results, rows=None, groups=None, bands=BANDS):
     return pd.DataFrame(out)
 
 
+def reliability_by_scope(keys, probs, results, rows=None):
+    """`reliability` for all markets pooled, then for each market group alone.
+
+    One table, told apart by `scope` — "all", or a group key — which is the
+    shape the ceilings and the band records are read from.
+    """
+    frames = []
+    overall = reliability(keys, probs, results, rows)
+    overall.insert(0, "scope", "all")
+    frames.append(overall)
+    for group in sorted({group_of(k) for k in keys}):
+        block = reliability(keys, probs, results, rows, [group])
+        if not block.empty:
+            block.insert(0, "scope", group)
+            frames.append(block)
+    return pd.concat(frames, ignore_index=True)
+
+
+def calibration_z(probs, outcomes):
+    """How many standard errors the wins sit from what the claims added up to.
+
+    The right yardstick for a set of bets that each claimed something
+    different. A Wilson interval on the pooled hit rate treats them as one
+    coin tossed n times; their sum of claims is the expected number of wins,
+    and the variance around it is the sum of p(1 - p) — smaller than a single
+    coin's whenever the claims are spread. Negative means fewer landed than
+    were claimed.
+    """
+    p = np.asarray(probs, dtype=float)
+    y = np.asarray(outcomes, dtype=float)
+    variance = float(np.sum(p * (1.0 - p)))
+    if variance <= 0:
+        return float("nan")
+    return float((y.sum() - p.sum()) / np.sqrt(variance))
+
+
 def price_bin(probs, step):
     """Which log-price cell each probability falls in.
 
