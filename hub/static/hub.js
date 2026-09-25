@@ -218,6 +218,7 @@
         // of scrolling sideways; they must match the <th> classes in pages.py.
         return '<tr class="' + (r.validated ? '' : 'unvalidated') + '">'
           + '<td class="pickbox"><input type="checkbox" data-key="' + esc(key) + '"'
+            + ' aria-label="' + esc('Add to the slip: ' + r.match + ', ' + r.selection) + '"'
             + (chosen[key] ? ' checked' : '') + '></td>'
           + '<td class="nowrap' + stack('s-meta') + '>' + esc(localWhen(r.kickoff) || r.date) + '</td>'
           + '<td class="col-league' + stack('s-meta') + '>'
@@ -389,12 +390,16 @@
       count.textContent = shown + ' of ' + rows.length + ' fixtures';
     }
 
-    rows.forEach(function (tr) {
+    rows.forEach(function (tr, index) {
       tr.style.cursor = 'pointer';
+      // The match name is a <button>: Enter or Space on it arrives here as a
+      // click, and it says whether the row is open.
+      var opener = tr.querySelector('button.fx-open');
       tr.addEventListener('click', function () {
         var next = tr.nextElementSibling;
         if (next && next.classList.contains('detail')) {
           next.parentNode.removeChild(next);
+          if (opener) opener.setAttribute('aria-expanded', 'false');
           return;
         }
         var match = tr.getAttribute('data-match');
@@ -402,6 +407,11 @@
           .sort(function (a, b) { return b.prob - a.prob; });
         var detail = document.createElement('tr');
         detail.className = 'detail';
+        detail.id = 'fx-detail-' + index;
+        if (opener) {
+          opener.setAttribute('aria-expanded', 'true');
+          opener.setAttribute('aria-controls', detail.id);
+        }
         detail.innerHTML = '<td colspan="10"><div class="tablewrap"><table>'
           + '<thead><tr><th>Selection</th><th class="num">Confidence</th>'
           + '<th class="num">Fair odds</th><th>Market</th></tr></thead><tbody>'
@@ -432,13 +442,18 @@
         .toLocaleString() + ' graded selections';
       body.innerHTML = list.map(function (r) {
         var gap = r.actual - r.predicted;
-        // Overstating is the failure that matters; understating is modesty.
-        var colour = gap < -0.02 ? 'var(--critical)'
-          : (Math.abs(gap) > 0.02 ? 'var(--warning)' : 'var(--text-secondary)');
+        // As `_band_gap` in pages.py: the colour, and past two points a word,
+        // for a reader who cannot tell the colours apart. Overstating is the
+        // failure that matters; understating is modesty.
+        var state = gap < -0.02 ? 'critical' : (gap > 0.02 ? 'warning' : null);
+        var text = (gap >= 0 ? '+' : '') + (gap * 100).toFixed(2) + 'pp';
+        var cell = state
+          ? '<span style="color:var(--' + state + ')">' + text + '</span><span class="tag '
+            + state + '">' + (state === 'critical' ? 'overstated' : 'understated') + '</span>'
+          : '<span style="color:var(--text-secondary)">' + text + '</span>';
         return '<tr><td>' + esc(r.band) + '</td><td class="num">' + r.n.toLocaleString()
           + '</td><td class="num">' + pct(r.predicted) + '</td><td class="num">'
-          + pct(r.actual) + '</td><td class="num" style="color:' + colour + '">'
-          + (gap >= 0 ? '+' : '') + (gap * 100).toFixed(2) + 'pp</td><td>'
+          + pct(r.actual) + '</td><td class="num">' + cell + '</td><td>'
           + pct(r.ci_low) + ' – ' + pct(r.ci_high) + '</td></tr>';
       }).join('');
     }

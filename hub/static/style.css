@@ -377,8 +377,10 @@ td.conf { font-variant-numeric: tabular-nums; font-weight: 600; }
 tr.unvalidated td { color: var(--muted); }
 .tag { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; margin-left: 6px;
   border: 1px solid var(--border); color: var(--text-secondary); }
-.tag.warn { border-color: color-mix(in srgb, var(--warning) 55%, var(--border));
+.tag.warn, .tag.warning { border-color: color-mix(in srgb, var(--warning) 55%, var(--border));
   color: var(--warning); }
+.tag.critical { border-color: color-mix(in srgb, var(--critical) 55%, var(--border));
+  color: var(--critical); }
 td.pickbox { width: 30px; padding-right: 0; }
 
 /* Accumulator tray: only appears once something is ticked. */
@@ -775,11 +777,19 @@ table.slips th:nth-child(2), table.slips td:nth-child(2) { width: 60%; }
    to nothing. `:focus-visible` rather than `:focus`, so a mouse click does not
    leave a ring behind it. */
 a:focus-visible, button:focus-visible, select:focus-visible,
-input:focus-visible, th.sortable:focus-visible {
+input:focus-visible, th.sortable:focus-visible, svg[tabindex]:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
   border-radius: 4px;
 }
+/* A fixture's name opens its row, and is a button so a keyboard can open it:
+   one that looks like the name it always was. */
+button.fx-open { font: inherit; color: inherit; background: none; border: 0;
+  padding: 0; margin: 0; text-align: left; cursor: pointer; }
+button.fx-open:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* A chart with its points under the finger: a sideways drag walks along the
+   curve, and an upward one still scrolls the page. */
+.chart svg[tabindex] { touch-action: pan-y; }
 /* Skipping straight to the content, for anyone who does not want to tab
    through the whole nav on every page. */
 .skip { position: absolute; left: -9999px; top: 0; z-index: 60;

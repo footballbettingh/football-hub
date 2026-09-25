@@ -73,6 +73,66 @@
   }
   function hideTip() { tip.style.opacity = '0'; }
 
+  // ---- a chart's points, without a mouse --------------------------------
+  // The tooltips used to answer to a hovering mouse and nothing else: a
+  // finger got nothing, a keyboard could not reach the chart at all. Pointer
+  // events answer to both mouse and touch; a tap shows the point under it and
+  // it stays until the next tap elsewhere, since a finger has no "leave". The
+  // chart also takes the focus, the arrow keys step through its points with
+  // the tooltip following, and a live region reads each one out.
+  //
+  // `noun` names the points, for the chart's label; `point(i)` is where point
+  // i sits in the chart's own units, `html(i)` its tooltip; `mark(i)` and
+  // `unmark()`, if given, draw and clear a highlight.
+  var live = document.createElement('div');
+  live.className = 'visually-hidden';
+  live.setAttribute('aria-live', 'polite');
+  document.body.appendChild(live);
+  var shown = null;                  // the chart whose tooltip is up
+  document.addEventListener('pointerdown', function (ev) {
+    if (shown && !shown.svg.contains(ev.target)) shown.leave();
+  });
+
+  function explorable(svg, W, count, noun, point, html, mark, unmark) {
+    var at = -1;
+    var self = { svg: svg };
+    self.show = function (i, x, y) {
+      if (shown && shown !== self) shown.leave();
+      at = i;
+      shown = self;
+      if (mark) mark(i);
+      showTip(html(i), x, y);
+    };
+    self.leave = function () {
+      at = -1;
+      if (shown === self) shown = null;
+      hideTip();
+      if (unmark) unmark();
+    };
+    self.pointer = function (ev, i) { self.show(i, ev.clientX, ev.clientY); };
+    self.out = function (ev) { if (ev.pointerType === 'mouse') self.leave(); };
+
+    svg.setAttribute('tabindex', '0');
+    svg.setAttribute('aria-label', svg.getAttribute('aria-label').replace(/\.$/, '')
+      + '. The arrow keys step through its ' + count + ' ' + noun + '.');
+    svg.addEventListener('keydown', function (ev) {
+      var step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
+      var i = ev.key === 'Home' ? 0 : ev.key === 'End' ? count - 1
+        : step ? (at < 0 ? (step > 0 ? 0 : count - 1)
+                         : Math.max(0, Math.min(count - 1, at + step)))
+        : null;
+      if (i === null) { if (ev.key === 'Escape') self.leave(); return; }
+      ev.preventDefault();
+      var r = svg.getBoundingClientRect(), s = r.width / W, p = point(i);
+      self.show(i, r.left + p.x * s, r.top + p.y * s);
+      live.textContent = [].map.call(tip.children, function (line) {
+        return line.textContent;
+      }).join('. ');
+    });
+    svg.addEventListener('blur', self.leave);
+    return self;
+  }
+
   var NS = 'http://www.w3.org/2000/svg';
   function el(n, a) {
     var e = document.createElementNS(NS, n);
@@ -147,22 +207,30 @@
 
     var hit = el('rect', { x: M.l, y: M.t, width: iw, height: ih, fill: 'transparent' });
     svg.appendChild(hit);
-    hit.addEventListener('mousemove', function (ev) {
+    var points = explorable(svg, W, pts.length, 'bets',
+      function (i) { return { x: X(i), y: Y(pts[i].cum) }; },
+      function (i) {
+        var p = pts[i];
+        return '<div class="tt-h">' + esc(p.match) + '</div>' +
+          '<div class="tt-r">' + esc(p.date) + ' &middot; bet ' + (i + 1) + ' of ' + pts.length + '</div>' +
+          '<div class="tt-r">' + esc(p.outcome) + ' @ ' + p.odds.toFixed(2) + ' &middot; ' +
+          (p.won ? 'won' : 'lost') + '</div>' +
+          '<div class="tt-r">running P&amp;L ' + fmtMoney(p.cum) + '</div>';
+      },
+      function (i) {
+        cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.setAttribute('opacity', 1);
+        dot.setAttribute('cx', X(i)); dot.setAttribute('cy', Y(pts[i].cum)); dot.setAttribute('opacity', 1);
+      },
+      function () { cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); });
+    function nearest(ev) {
       var r = svg.getBoundingClientRect();
       var sx = (ev.clientX - r.left) * (W / r.width);
-      var i = Math.max(0, Math.min(pts.length - 1, Math.round((sx - M.l) / iw * (pts.length - 1))));
-      var p = pts[i];
-      cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.setAttribute('opacity', 1);
-      dot.setAttribute('cx', X(i)); dot.setAttribute('cy', Y(p.cum)); dot.setAttribute('opacity', 1);
-      showTip('<div class="tt-h">' + esc(p.match) + '</div>' +
-        '<div class="tt-r">' + esc(p.date) + ' &middot; bet ' + (i + 1) + ' of ' + pts.length + '</div>' +
-        '<div class="tt-r">' + esc(p.outcome) + ' @ ' + p.odds.toFixed(2) + ' &middot; ' +
-        (p.won ? 'won' : 'lost') + '</div>' +
-        '<div class="tt-r">running P&amp;L ' + fmtMoney(p.cum) + '</div>', ev.clientX, ev.clientY);
-    });
-    hit.addEventListener('mouseleave', function () {
-      hideTip(); cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0);
-    });
+      points.pointer(ev, Math.max(0, Math.min(pts.length - 1,
+        Math.round((sx - M.l) / iw * (pts.length - 1)))));
+    }
+    hit.addEventListener('pointermove', nearest);
+    hit.addEventListener('pointerdown', nearest);
+    hit.addEventListener('pointerleave', points.out);
     host.appendChild(svg);
   }
 
@@ -199,6 +267,16 @@
       svg.appendChild(t);
     }
 
+    var bars = explorable(svg, W, rows.length, 'periods',
+      function (i) { return { x: X(rows[i].roi), y: M.t + i * rowH + rowH / 2 }; },
+      function (i) {
+        var r = rows[i];
+        return '<div class="tt-h">' + esc(r.label) + '</div>' +
+          '<div class="tt-r">' + esc(r.span) + '</div>' +
+          '<div class="tt-r">' + r.n + ' bets &middot; ROI ' + fmtPct(r.roi) + '</div>' +
+          '<div class="tt-r">P&amp;L ' + fmtMoney(r.pnl) + '</div>';
+      });
+
     rows.forEach(function (r, i) {
       var y = M.t + i * rowH + 7, h = rowH - 16;       // 2px+ surface gap between bars
       var x0 = X(0), w = Math.max(Math.abs(X(r.roi) - x0), 2), neg = r.roi < 0;
@@ -219,13 +297,10 @@
 
       var hit = el('rect', { x: M.l, y: M.t + i * rowH, width: iw, height: rowH, fill: 'transparent' });
       svg.appendChild(hit);
-      hit.addEventListener('mousemove', function (ev) {
-        showTip('<div class="tt-h">' + esc(r.label) + '</div>' +
-          '<div class="tt-r">' + esc(r.span) + '</div>' +
-          '<div class="tt-r">' + r.n + ' bets &middot; ROI ' + fmtPct(r.roi) + '</div>' +
-          '<div class="tt-r">P&amp;L ' + fmtMoney(r.pnl) + '</div>', ev.clientX, ev.clientY);
-      });
-      hit.addEventListener('mouseleave', hideTip);
+      var here = function (ev) { bars.pointer(ev, i); };
+      hit.addEventListener('pointermove', here);
+      hit.addEventListener('pointerdown', here);
+      hit.addEventListener('pointerleave', bars.out);
     });
     host.appendChild(svg);
   }
@@ -364,10 +439,16 @@
     var lo = Math.max(0, Math.floor(Math.min.apply(null, vals) * 10) / 10);
     var hi = Math.min(1, Math.ceil(Math.max.apply(null, vals) * 10) / 10);
 
+    // Worked out from the points, not written down once: this used to say
+    // every band was within a point of the diagonal, whatever the data said.
+    var furthest = Math.max.apply(null, pts.map(function (p) {
+      return Math.abs(p.actual - p.predicted);
+    }));
     var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H,
       role: 'img', 'aria-label':
         'Predicted probability against observed frequency for ' + pts.length +
-        ' confidence bands. Every band lands within one percentage point of the diagonal.' });
+        ' confidence bands. The furthest band is ' + (furthest * 100).toFixed(2) +
+        ' percentage points from the diagonal.' });
 
     var X = function (v) { return M.l + (v - lo) / (hi - lo) * iw; };
     var Y = function (v) { return M.t + ih - (v - lo) / (hi - lo) * ih; };
@@ -405,7 +486,18 @@
     // should look ten times as heavy, not a hundred.
     var R = function (n) { return 3 + 6 * Math.sqrt(n / maxN); };
 
-    pts.forEach(function (p) {
+    var bands = explorable(svg, W, pts.length, 'bands',
+      function (i) { return { x: X(pts[i].predicted), y: Y(pts[i].actual) }; },
+      function (i) {
+        var p = pts[i], gap = (p.actual - p.predicted) * 100;
+        return '<div class="tt-h">' + esc(p.band) + ' band</div>' +
+          '<div class="tt-r">' + p.n.toLocaleString() + ' graded selections</div>' +
+          '<div class="tt-r">said ' + (p.predicted * 100).toFixed(2) + '%</div>' +
+          '<div class="tt-r">happened ' + (p.actual * 100).toFixed(2) + '%</div>' +
+          '<div class="tt-r">off by ' + (gap >= 0 ? '+' : '') + gap.toFixed(2) + 'pp</div>';
+      });
+
+    pts.forEach(function (p, i) {
       if (p.ci_low !== null && p.ci_high !== null) {
         svg.appendChild(el('line', { x1: X(p.predicted), x2: X(p.predicted),
           y1: Y(p.ci_low), y2: Y(p.ci_high),
@@ -417,16 +509,10 @@
 
       var hit = el('circle', { cx: X(p.predicted), cy: Y(p.actual),
         r: Math.max(R(p.n), 12), fill: 'transparent' });
-      hit.addEventListener('mousemove', function (ev) {
-        var gap = (p.actual - p.predicted) * 100;
-        showTip('<div class="tt-h">' + esc(p.band) + ' band</div>' +
-          '<div class="tt-r">' + p.n.toLocaleString() + ' graded selections</div>' +
-          '<div class="tt-r">said ' + (p.predicted * 100).toFixed(2) + '%</div>' +
-          '<div class="tt-r">happened ' + (p.actual * 100).toFixed(2) + '%</div>' +
-          '<div class="tt-r">off by ' + (gap >= 0 ? '+' : '') + gap.toFixed(2) + 'pp</div>',
-          ev.clientX, ev.clientY);
-      });
-      hit.addEventListener('mouseleave', hideTip);
+      var here = function (ev) { bands.pointer(ev, i); };
+      hit.addEventListener('pointermove', here);
+      hit.addEventListener('pointerdown', here);
+      hit.addEventListener('pointerleave', bands.out);
       svg.appendChild(hit);
     });
 

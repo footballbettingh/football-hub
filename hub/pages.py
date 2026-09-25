@@ -655,7 +655,8 @@ def page_card(links, ctx):
 
   <div class="tablewrap tall"><table class="sticky cardtable stack" id="cardtable">
     <thead><tr>
-      <th></th><th class="nowrap">Date</th><th class="col-league">League</th>
+      <th><span class="visually-hidden">On the slip</span></th>
+      <th class="nowrap">Date</th><th class="col-league">League</th>
       <th>Match</th><th>Selection</th>
       <th class="num">Confidence</th><th class="num">Fair</th>
       <th class="num col-offered">Offered</th><th class="num col-edge">Edge</th>
@@ -761,12 +762,17 @@ def page_fixtures(links, ctx):
             for key, label, css in HEADLINE)
         flag = ' <span class="tag warn">new team</span>' if entry["new_team"] else ""
         page = page_of[entry["date"]]
+        # The name is a button so the row opens from the keyboard too: a click
+        # anywhere on the row still does it, and Enter or Space on the name
+        # arrives as that same click.
         rows.append(
             f'<tr data-match="{c.e(entry["match"])}" data-page="{page}"'
             f'{" hidden" if page else ""}>'
             f'<td class="nowrap fx-date">{_kickoff(entry["kickoff"], entry["date"])}</td>'
             f'<td class="col-league fx-league">{c.e(entry["competition_name"])}</td>'
-            f'<td class="fx-match">{c.e(entry["match"])}{flag}</td>{cells}</tr>')
+            f'<td class="fx-match"><button type="button" class="fx-open" '
+            f'aria-expanded="false">{c.e(entry["match"])}</button>{flag}</td>'
+            f'{cells}</tr>')
 
     headers = "".join(f'<th class="num {css}">{c.e(label)}</th>'
                       for _, label, css in HEADLINE)
@@ -783,8 +789,8 @@ def page_fixtures(links, ctx):
 <section class="card">
   <h2>{len(rows)} fixtures</h2>
   <p class="note">The headline markets for every match on the card, one match day
-  at a time; the search looks across all of them. Click a row to see every
-  selection for that fixture, ranked. “New team” means one side has no history in
+  at a time; the search looks across all of them. Click a match, or tab to it and
+  press Enter, to see every selection for that fixture, ranked. “New team” means one side has no history in
   this competition — a promoted club or a cup tie — so the price is carrying
   almost the whole forecast.</p>
   <div class="filters">
@@ -1263,6 +1269,19 @@ def _overstated_note(names):
     return f"Right now the first applies to {c.e(listed)}."
 
 
+def _band_gap(gap):
+    """A band's miss in points, and past two of them a word for which way —
+    the colour alone said it, to anyone who could tell the colours apart.
+    Overstating is the failure that matters; understating is modesty. hub.js
+    draws the per-market table the same way."""
+    text = f"{gap * 100:+.2f}pp"
+    if abs(gap) <= 0.02:
+        return f'<span style="color:var(--text-secondary)">{text}</span>'
+    state, word = ("critical", "overstated") if gap < 0 else ("warning", "understated")
+    return (f'<span style="color:var(--{state})">{text}</span>'
+            f'<span class="tag {state}">{word}</span>')
+
+
 def page_reliability(links, ctx):
     table = ctx["reliability"]
     if table is None or table.empty:
@@ -1275,10 +1294,8 @@ def page_reliability(links, ctx):
     overall = table[table["scope"] == "all"]
     rows = []
     for row in overall.itertuples():
-        gap = row.actual - row.predicted
-        colour = "var(--warning)" if abs(gap) > 0.02 else "var(--text-secondary)"
         rows.append([row.band, f"{int(row.n):,}", _pct(row.predicted), _pct(row.actual),
-                     f'<span style="color:{colour}">{gap * 100:+.2f}pp</span>',
+                     _band_gap(row.actual - row.predicted),
                      f"{_pct(row.ci_low)} – {_pct(row.ci_high)}"])
 
     worst = overall.assign(gap=(overall["actual"] - overall["predicted"]).abs())
