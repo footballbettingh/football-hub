@@ -8,6 +8,7 @@ pointed at a file instead of at HTML.
 """
 
 import json
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -27,6 +28,12 @@ VALIDATED_LABEL = "exclude FL1 + cap edge at 8%"
 BANDS = [(1.70, 2.00), (1.60, 2.50), (1.50, 3.00), (1.01, 99.0)]
 
 EQUITY_POINTS = 400        # enough to draw a curve, small enough to embed
+
+# How often the backtest is run again once new results are in. It walks the
+# whole history, about ten minutes a time, and a week of results is well under
+# one per cent of the matches behind it: nothing it says moves in a day, and
+# the daily run was spending most of its time saying it again.
+EVERY_DAYS = 7
 
 
 def _plain(value):
@@ -103,6 +110,9 @@ def build(progress=print, data=None):
         # The count differs from n_matches above, which is after the loader
         # drops rows it cannot price.
         "source_rows": _history_rows(),
+        # The day it was worked out, in UTC, so the next run can tell how old
+        # it is without trusting a file time a cache restore has reset.
+        "built_on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "n_competitions": int(dataset.competition.nunique()),
         "config": {"odds_min": cfg.odds_min, "odds_max": cfg.odds_max,
                    "min_edge": cfg.min_edge, "markets": list(cfg.markets),

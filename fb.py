@@ -412,30 +412,40 @@ def _odds_age_days():
     return (datetime.now(timezone.utc) - newest.to_pydatetime()).total_seconds() / 86400
 
 
-def _evidence_is_stale():
-    """Whether the value-betting evidence is behind the results behind it.
+def _evidence_is_stale(today=None):
+    """Whether the value-betting evidence is due to be worked out again.
 
-    Judged on the number of rows in history.csv, which the artifact records
-    when it is built -- not on either file's modification time. A runner
-    restores both from a cache, so their timestamps say when a tarball was
-    unpacked rather than when the numbers were worked out, and an evidence
-    page that never rebuilds looks exactly like one that is up to date.
+    Due when there are results it has not seen and it is `evidence.EVERY_DAYS`
+    old or more. Both are read out of the artifact, which records the rows of
+    history.csv it was built from and the day it was built -- not from either
+    file's modification time. A runner restores both from a cache, so their
+    timestamps say when a tarball was unpacked rather than when the numbers
+    were worked out, and an evidence page that never rebuilds looks exactly
+    like one that is up to date.
 
-    An artifact written before this was recorded has no `source_rows`, and is
-    treated as stale so it is brought forward once.
+    An artifact written before either was recorded is treated as due, so it is
+    brought forward once.
     """
     import json
+    from datetime import datetime, timezone
 
     from hub.artifacts import EVIDENCE_JSON
-    from hub.evidence import _history_rows
+    from hub.evidence import EVERY_DAYS, _history_rows
 
     if not EVIDENCE_JSON.exists():
         return True
     try:
-        built_from = json.loads(EVIDENCE_JSON.read_text(encoding="utf-8")).get("source_rows")
+        head = json.loads(EVIDENCE_JSON.read_text(encoding="utf-8"))
     except (ValueError, OSError):
         return True
-    return built_from is None or int(built_from) != _history_rows()
+    built_from = head.get("source_rows")
+    if built_from is None:
+        return True
+    if int(built_from) == _history_rows():
+        return False
+    built_on = pd.to_datetime(head.get("built_on"), errors="coerce")
+    today = pd.Timestamp(today or datetime.now(timezone.utc).date())
+    return pd.isna(built_on) or (today - built_on).days >= EVERY_DAYS
 
 
 def cmd_run(args):
@@ -504,7 +514,8 @@ def cmd_run(args):
         step("Rebuilding the value-betting evidence (no credits, ~10 min)",
              lambda: evidence.build())
     else:
-        print("\nEvidence is current with the results on file; not rebuilding.")
+        print(f"\nEvidence is current, or less than {evidence.EVERY_DAYS} days old; "
+              f"not rebuilding. Force with --force-evidence.")
 
     # A provider's bad afternoon still exits 0: the card was rebuilt, which is
     # what the run is for. A bug does not — the card went out on yesterday's
@@ -731,9 +742,9 @@ def main(argv=None):
                    help="skip the walk-forward rebuild and recalibration")
     p.add_argument("--no-notify", action="store_true")
     p.add_argument("--no-evidence", action="store_true",
-                   help="skip the value-betting backtest even if it is behind")
+                   help="skip the value-betting backtest even if it is due")
     p.add_argument("--force-evidence", action="store_true",
-                   help="rebuild the backtest even if it is already current")
+                   help="rebuild the backtest now, not only once a week")
     p.add_argument("--only-if-changed", action="store_true",
                    help="stay quiet when the pick is the same as last time")
     p.set_defaults(func=cmd_run)

@@ -43,8 +43,27 @@ def test_evidence_built_from_the_same_rows_is_current(tmp_path, monkeypatch):
     assert fb._evidence_is_stale() is False
 
 
-def test_more_results_than_it_was_built_from_makes_it_stale(tmp_path, monkeypatch):
-    """Results arrive daily; the backtest is only worth re-running when they do."""
+def test_new_results_wait_for_the_week_to_be_up(tmp_path, monkeypatch):
+    """Results arrive daily, and a day of them is a sliver of the history the
+    backtest walks — ten minutes a run to say the same thing again. So it waits
+    until the artifact is a week old."""
+    path = _point_at(tmp_path, monkeypatch, rows=42)
+    path.write_text(json.dumps({"source_rows": 10, "built_on": "2026-09-20"}),
+                    encoding="utf-8")
+    assert fb._evidence_is_stale(today="2026-09-26") is False
+    assert fb._evidence_is_stale(today="2026-09-27") is True
+
+
+def test_a_week_with_no_new_results_changes_nothing(tmp_path, monkeypatch):
+    path = _point_at(tmp_path, monkeypatch, rows=10)
+    path.write_text(json.dumps({"source_rows": 10, "built_on": "2026-08-01"}),
+                    encoding="utf-8")
+    assert fb._evidence_is_stale(today="2026-09-26") is False
+
+
+def test_new_results_and_no_build_date_rebuild_once(tmp_path, monkeypatch):
+    """An artifact from before the date was recorded, behind the results, is
+    brought forward once; the rebuild writes the date."""
     path = _point_at(tmp_path, monkeypatch, rows=42)
     path.write_text(json.dumps({"source_rows": 10}), encoding="utf-8")
     assert fb._evidence_is_stale() is True
