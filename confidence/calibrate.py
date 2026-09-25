@@ -116,12 +116,34 @@ class Isotonic:
             return probs
         out = np.interp(probs, self.x, self.y)
         # np.interp clamps outside the fitted range, which would flatten the
-        # very top of the card — exactly where the picks live. Extend the last
-        # segment's behaviour instead by keeping the raw value's excess.
-        below = probs < self.x[0]
-        above = probs > self.x[-1]
-        out = np.where(below, np.minimum(probs, self.y[0]), out)
-        out = np.where(above, np.maximum(probs, self.y[-1]), out)
+        # very top of the card — exactly where the picks live. Past the last
+        # knot there is no evidence, so the rule is the one-sided one the
+        # ceilings use: the curve may go on pulling an overstated claim in,
+        # but never pushes a claim further out than both the raw value and the
+        # last fitted level.
+        #
+        # Pulling in, it runs in a straight line from the last knot to (1, 1).
+        # It used to hand the raw value straight back, which was a step: the
+        # BTTS top knot takes 0.709 down to 0.644, so a raw 0.70 read as 64%
+        # and a raw 0.72 as 72% — the correction switched off for exactly the
+        # most extreme claims of the market that overstates itself most. Out
+        # of sample, past the end knots, BTTS said 73.7% and landed 62.9%;
+        # the line says 66.5%. Corners went from 88.5% said, 82.6% landed, to
+        # 86.5%.
+        #
+        # Pushing out, it keeps what it did: the last level, then the raw
+        # value once that is higher. The same line there would add a point and
+        # a half the 1X2 favourites past the knot never earned — they landed
+        # 89.8% against 89.8% claimed as it was. Mirrored below the first knot.
+        x0, y0, x1, y1 = self.x[0], self.y[0], self.x[-1], self.y[-1]
+        if x1 < 1.0:
+            to_one = y1 + (probs - x1) * (1.0 - y1) / (1.0 - x1)
+            out = np.where(probs > x1,
+                           np.minimum(to_one, np.maximum(probs, y1)), out)
+        if x0 > 0.0:
+            to_zero = probs * y0 / x0
+            out = np.where(probs < x0,
+                           np.maximum(to_zero, np.minimum(probs, y0)), out)
         return np.clip(out, EPS, 1 - EPS)
 
     def to_dict(self):

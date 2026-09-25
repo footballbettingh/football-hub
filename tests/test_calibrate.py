@@ -38,6 +38,50 @@ def test_isotonic_is_monotone():
     assert np.all(np.diff(mapped) >= -1e-12)
 
 
+def test_isotonic_keeps_its_correction_past_the_last_knot():
+    """Past the fitted range the map is extrapolated, and that is where it
+    broke: the raw value was handed back whenever it was the larger one, so a
+    top knot that pulled the claim DOWN stopped pulling one step later.
+
+    These are the BTTS calibrator's own end knots from a real build — 0.709
+    fitted to 0.644 at the top, 0.291 to 0.357 at the bottom. A raw 70% read
+    as 64% and a raw 72% as 72%: the market that overstates itself most at
+    the top had its correction switched off for exactly its most extreme
+    claims, with a six-point step in between.
+    """
+    calibrator = Isotonic([0.2911, 0.5, 0.7089], [0.3565, 0.5, 0.6435], n=116450)
+    grid = np.linspace(0.0, 1.0, 1001)
+    mapped = calibrator(grid)
+    assert np.all(np.diff(mapped) >= -1e-12)
+    assert np.abs(np.diff(mapped)).max() < 0.005
+    assert calibrator([0.72])[0] < 0.66
+    assert calibrator([0.28])[0] > 0.34
+
+
+def test_isotonic_never_extrapolates_a_claim_outward():
+    """Where the end knot pushed the claim out, past it there is no evidence
+    for pushing further. The 1X2 calibrator's real end knots: 0.848 up to
+    0.872 at the top, 0.047 down to 0.028 at the bottom. Beyond them a claim
+    holds the knot's level until the raw value passes it, and no further."""
+    calibrator = Isotonic([0.0466, 0.5, 0.8484], [0.0283, 0.5, 0.8721], n=174675)
+    assert calibrator([0.86, 0.95]) == pytest.approx([0.8721, 0.95])
+    assert calibrator([0.04, 0.02]) == pytest.approx([0.0283, 0.02])
+    grid = np.linspace(0.0, 1.0, 1001)
+    assert np.all(np.diff(calibrator(grid)) >= -1e-12)
+
+
+def test_isotonic_extrapolation_is_continuous_and_bounded():
+    """No step at either end knot, and nothing past 0 or 1."""
+    stated, outcomes = miscalibrated(power=0.6)       # overconfident, like BTTS
+    calibrator = Isotonic.fit(np.clip(stated, 0.25, 0.75), outcomes)
+    for knot, fitted in ((calibrator.x[0], calibrator.y[0]),
+                         (calibrator.x[-1], calibrator.y[-1])):
+        either_side = calibrator([knot - 1e-6, knot + 1e-6])
+        assert either_side == pytest.approx([fitted, fitted], abs=1e-4)
+    ends = calibrator([0.0, 1.0])
+    assert 0.0 < ends[0] < 0.01 and 0.99 < ends[1] < 1.0
+
+
 def test_isotonic_stays_the_identity_on_thin_data():
     calibrator = Isotonic.fit([0.4, 0.6, 0.8], [0, 1, 1])
     assert calibrator.is_identity
