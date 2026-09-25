@@ -659,10 +659,16 @@ The short version, with the measurements in
 ## Tests
 
 ```bash
+pip install -r requirements-dev.txt
 python -m pytest tests/ -q
 ```
 
-306 tests, aimed at the quiet failures: a fixture that has already been played
+The versions in both requirements files are pinned to the ones the suite
+passes on, and the workflow's actions to commits; Dependabot proposes every
+bump as a pull request, so nothing changes under the daily run that the tests
+have not seen.
+
+Over four hundred tests, aimed at the quiet failures: a fixture that has already been played
 still being offered, a static export whose links point at server routes and 404
 once published, a page in the nav that the server has no route for, a job that
 dies without saying so, a `</script>` inside a team name that ends the data
