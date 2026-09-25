@@ -162,6 +162,15 @@
     if (!body || !D.card) return;
     var rows = D.card.rows || [];
     var chosen = {};
+    // A card at the height of the season runs to thousands of rows, and every
+    // step of a slider rebuilt all of them and hung a listener on each of
+    // their checkboxes. Now a slider redraws at most once a frame, a page of
+    // rows at a time with a button under them for the next, and one listener
+    // on the table answers every checkbox in it.
+    var PAGE = 200, limit = PAGE, pending = false;
+    var more = $('card-more');
+    var index = {};
+    rows.forEach(function (r) { index[r.match + '|' + r.key] = r; });
 
     var controls = {
       q: $('f-q'), comp: $('f-comp'), group: $('f-group'), min: $('f-min'),
@@ -198,14 +207,20 @@
       $('f-odds-v').textContent = (parseInt(controls.odds.value, 10) / 100).toFixed(2);
 
       var list = visible();
-      $('f-count').textContent = list.length + ' of ' + rows.length + ' selections';
+      var showing = Math.min(list.length, limit);
+      $('f-count').textContent = list.length + ' of ' + rows.length + ' selections'
+        + (showing < list.length ? ', the first ' + showing + ' showing' : '');
+      if (more) {
+        more.hidden = showing >= list.length;
+        more.textContent = 'Show ' + Math.min(PAGE, list.length - showing) + ' more';
+      }
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="10"><div class="empty">Nothing at this '
           + 'confidence. Lower the slider.</div></td></tr>';
         acca();
         return;
       }
-      body.innerHTML = list.map(function (r) {
+      body.innerHTML = list.slice(0, showing).map(function (r) {
         var key = r.match + '|' + r.key;
         var edge = r.edge === null ? '–'
           : '<span style="color:' + (r.edge > 0 ? 'var(--pos)' : 'var(--neg)') + '">'
@@ -235,27 +250,37 @@
           + '<td class="col-band' + stack('s-meta s-label', 'Band record', r.hit_rate) + '>'
             + band + '</td></tr>';
       }).join('');
-
-      [].slice.call(body.querySelectorAll('input[type=checkbox]')).forEach(function (box) {
-        box.addEventListener('change', function () {
-          var key = box.getAttribute('data-key');
-          if (box.checked) {
-            chosen[key] = byKey(key);
-          } else {
-            delete chosen[key];
-          }
-          acca();
-        });
-      });
       acca();
     }
 
-    function byKey(key) {
-      for (var i = 0; i < rows.length; i++) {
-        if (rows[i].match + '|' + rows[i].key === key) return rows[i];
-      }
-      return null;
+    // A filter that changes starts the list from the top again; however many
+    // times it fires before the next frame, the table is drawn once.
+    function schedule() {
+      limit = PAGE;
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; render(); });
     }
+
+    body.addEventListener('change', function (event) {
+      var box = event.target;
+      if (!box.matches('input[type=checkbox]')) return;
+      var key = box.getAttribute('data-key');
+      if (box.checked) chosen[key] = index[key];
+      else delete chosen[key];
+      acca();
+    });
+    if (more) more.addEventListener('click', function () {
+      var from = limit;
+      limit += PAGE;
+      render();
+      // The last page hides the button, and a hidden button drops the focus
+      // onto the page itself; it goes to the first of the rows just added.
+      if (more.hidden) {
+        var first = body.querySelectorAll('input[type=checkbox]')[from];
+        if (first) first.focus();
+      }
+    });
 
     function acca() {
       var tray = $('acca');
@@ -287,7 +312,7 @@
     }
 
     Object.keys(controls).forEach(function (name) {
-      if (controls[name]) controls[name].addEventListener('input', render);
+      if (controls[name]) controls[name].addEventListener('input', schedule);
     });
     var clear = $('acca-clear');
     if (clear) clear.addEventListener('click', function () { chosen = {}; render(); });
