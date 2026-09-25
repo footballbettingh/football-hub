@@ -220,7 +220,10 @@ def load_fixtures(source_dir=None, include_started=False, now=None) -> pd.DataFr
 
 def _not_started(df, now=None):
     """Mask of fixtures that have not kicked off yet."""
-    moment = pd.Timestamp.now(tz="UTC") if now is None else pd.Timestamp(now, tz="UTC")
+    # `now` with a zone or without: a bare one is UTC, one with a zone is
+    # converted. Passing an aware one to Timestamp(..., tz=) raises instead.
+    moment = pd.Timestamp.now(tz="UTC") if now is None else pd.Timestamp(now)
+    moment = moment.tz_localize("UTC") if moment.tz is None else moment.tz_convert("UTC")
     if "commence_time" in df.columns:
         kickoff = pd.to_datetime(df["commence_time"], errors="coerce", utc=True)
     else:
