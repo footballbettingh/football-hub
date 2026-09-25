@@ -3,7 +3,7 @@
 # first time it was released — and a change nobody made could break the card.
 # Dependabot (.github/dependabot.yml) proposes each bump as a pull request, and
 # the tests decide it.
-numpy==2.2.6
+numpy==2.5.3
 pandas==2.3.3
 scipy==1.15.3
 requests==2.34.2
