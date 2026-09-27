@@ -120,3 +120,5 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-09-28,safe,2026-09-25T22:46:57+00:00,MEX-LIGAMX,Liga MX,necaxa,america,Necaxa v América,tt2.5_away_under,tt,Away team under 2.5 goals,0.76578,1.30585,,0.77493,33181,,,,pending,,,
 2026-09-28,main,2026-09-25T22:46:57+00:00,SD,Segunda División,leganes,castellon,Leganés v CD Castellón,corners10.5_under,corners,Under 10.5 corners,0.62322,1.60457,,0.65082,48056,,,,pending,,,
 2026-09-28,value,2026-09-25T22:46:57+00:00,MEX-LIGAMX,Liga MX,leon,juarez,León v FC Juárez,btts_no,btts,Not both teams to score,0.41240,2.42482,,0.42094,13762,,,,pending,,,
+2026-10-02,safe,2026-09-27T14:31:44+00:00,USA-MLS,MLS,seattle sounders,sporting kansas city,Seattle Sounders FC v Sporting Kansas City,tt1.5_home_over,tt,Home team over 1.5 goals,0.74888,1.33533,,0.72717,35825,,,,pending,,,
+2026-10-02,value,2026-09-27T14:31:44+00:00,ARG-LIGAPROF,Liga Profesional,independiente,instituto,Independiente v Instituto de Córdoba,dnb_away,dnb,Away draw-no-bet,0.43959,2.27487,,0.42940,4667,,,,pending,,,
