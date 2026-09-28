@@ -6,10 +6,17 @@ name: Daily refresh
 
 on:
   schedule:
-    # 09:00 UTC = 12:00 in Sofia while summer time is in force, 11:00 after the
+    # 08:17 UTC = 11:17 in Sofia while summer time is in force, 10:17 after the
     # clocks go back. GitHub cron only speaks UTC, so the local hour drifts by
-    # one in winter; change this to "0 10 * * *" if that matters.
-    - cron: "0 9 * * *"
+    # one in winter; change this to "17 9 * * *" if that matters.
+    #
+    # Not on the hour, and not at noon. GitHub starts a scheduled run when it
+    # gets round to it, and is slowest at the top of the hour when everyone's
+    # cron fires: at "0 9" the runs started within half an hour until 20
+    # September 2026, then four and a half to six and a half hours late every
+    # day after. An odd minute stays out of that queue, and an hour's start
+    # before noon leaves room for the delay that remains.
+    - cron: "17 8 * * *"
   workflow_dispatch:          # the Run workflow button
     inputs:
       args:
