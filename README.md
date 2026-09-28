@@ -530,8 +530,11 @@ apart — the only difference is that one serves `/card` and the other
 `card.html`.
 
 `.github/workflows/daily.yml` runs that, and everything before it, on GitHub
-Actions at **09:00 UTC** daily — the same `fb.py run` a laptop would call — then
-publishes `site/` to GitHub Pages. Nothing of yours has to be switched on.
+Actions at **08:17 UTC** daily — the same `fb.py run` a laptop would call — then
+publishes `site/` to GitHub Pages. Nothing of yours has to be switched on. The
+odd minute is on purpose: GitHub starts scheduled runs late when it is busy,
+and the top of the hour is when it is busiest — at 09:00 the run was starting
+five hours late (see the comment in the workflow).
 
 Three things about it are worth knowing, because each one is a way the cycle
 could quietly stop being true:
