@@ -422,3 +422,39 @@ def test_every_selection_carries_its_kickoff_and_when_its_price_was_bought():
     assert {row["kickoff"] for row in rows} == {"2026-09-27T14:00:00Z"}
     assert {row["priced_at"] for row in rows} == {"2026-09-25T09:12:44Z"}
 
+
+
+# -- equal candidates ---------------------------------------------------------
+
+def _ties():
+    """Three days of selections, most of them tied with another on every number
+    the ranking reads: isotonic calibration hands out equal probabilities as a
+    matter of course."""
+    rows = []
+    for day in ("2026-08-14", "2026-08-15", "2026-08-16"):
+        for prob in (0.80, 0.66, 0.55, 0.45):
+            for name in ("zeta", "alpha", "mu"):
+                rows.append({"date": day, "match": f"{name} {day} v x", "prob": prob,
+                             "key": "1x2_home" if prob > 0.6 else "ou2.5_over"})
+    return card(rows)
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_equal_candidates_are_chosen_the_same_whatever_the_order(seed):
+    """A pick has to be a function of the numbers, not of the order the rows
+    arrived in — pandas 2.3 and 3.0 left ties in different orders and chose a
+    different second leg for the same slip."""
+    table = _ties()
+    shuffled = table.sample(frac=1, random_state=seed).reset_index(drop=True)
+    for build in (lambda t: picks_mod.daily_slate(t),
+                  lambda t: picks_mod.best_accumulator(t, legs=3, target_odds=3.0),
+                  lambda t: picks_mod.best_of_day(t, odds_min=1.1, odds_max=3.0)):
+        assert build(shuffled) == build(table)
+
+
+def test_a_tie_goes_to_the_sooner_match_then_the_name():
+    table = _ties()
+    ranked = picks_mod._rank(table[table["date"] == "2026-08-15"])
+    tied = ranked[ranked["prob"] == 0.80]
+    assert list(tied["match"]) == ["alpha 2026-08-15 v x", "mu 2026-08-15 v x",
+                                   "zeta 2026-08-15 v x"]

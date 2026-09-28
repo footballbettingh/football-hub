@@ -100,6 +100,25 @@ def _fixture_market(row, method):
     return devig(prices, method), q_over
 
 
+# What decides between two candidates the ranking cannot tell apart: the
+# sooner match, then the match, then the market, alphabetically. Isotonic
+# calibration is a step function, so equal probabilities are the rule rather
+# than the exception, and without this the order among them was whatever an
+# unstable sort left — which changed with the input's order and with the pandas
+# version (2.3 and 3.0 chose a different second leg for the same 2-leg slip).
+# A pick has to be a function of the numbers, not of how they happened to be
+# shuffled.
+TIE_BREAK = ["date", "match", "key"]
+
+
+def _by(frame, columns, descending):
+    """`frame` sorted on `columns` (all one way), ties broken by TIE_BREAK."""
+    extra = [c for c in TIE_BREAK if c in frame.columns and c not in columns]
+    return frame.sort_values(list(columns) + extra,
+                             ascending=[not descending] * len(columns) + [True] * len(extra),
+                             kind="stable")
+
+
 def price_fixtures(history, fixtures, calibrators=None, weight=None,
                    devig_method=None, half_life_days=None, ridge=None,
                    signal_weight=0.5, min_train=None):
@@ -159,7 +178,7 @@ def price_fixtures(history, fixtures, calibrators=None, weight=None,
     frame["fair_odds"] = 1.0 / frame["prob"].clip(lower=1e-6)
     frame["edge"] = np.where(frame["odds"].notna(),
                              frame["prob"] * frame["odds"] - 1.0, np.nan)
-    return frame.sort_values("prob", ascending=False).reset_index(drop=True)
+    return _by(frame, ["prob"], descending=True).reset_index(drop=True)
 
 
 def _calibrate_column(frame, calibrators):
@@ -413,10 +432,10 @@ def shortlist(picks, min_confidence=None, per_match=1, groups=None, limit=None,
     if min_odds:
         out = out[out["fair_odds"] >= float(min_odds)]
     if per_match:
-        out = (out.sort_values("prob", ascending=False)
-                  .groupby("match", sort=False)
-                  .head(per_match))
-    out = out.sort_values("prob", ascending=False)
+        out = (_by(out, ["prob"], descending=True)
+               .groupby("match", sort=False)
+               .head(per_match))
+    out = _by(out, ["prob"], descending=True)
     return out.head(limit) if limit else out
 
 
@@ -505,7 +524,7 @@ def _rank(picks):
                       if "key_factor" in out.columns else 1.0)
     columns = ["score_tier", "_factor", "score"]
     columns += [c for c in ("hit_rate_n", "prob") if c in out.columns]
-    return out.sort_values(columns, ascending=False)
+    return _by(out, columns, descending=True)
 
 
 def best_of_day(picks, odds_min=None, odds_max=None, day=None,
