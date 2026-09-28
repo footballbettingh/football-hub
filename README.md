@@ -9,11 +9,17 @@ a terminal.
   beat the closing line, which is precisely why the card uses the line instead
   of fighting it.
 
-```bash
+It runs on **Python 3.14**, the version CI runs on. From the project folder,
+once, in PowerShell:
+
+```powershell
+py -3.14 -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Then double-click **`start.bat`**, or:
+Then double-click **`start.bat`** — it uses `.venv` when there is one — or,
+with the environment activated:
 
 ```bash
 python fb.py serve

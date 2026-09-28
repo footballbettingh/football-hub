@@ -146,3 +146,13 @@ def test_two_runs_a_day_apart_end_where_one_full_run_would(history, tmp_path,
     assert np.allclose(daily["lam_model"], full["lam_model"], rtol=1e-4, atol=1e-5)
     assert np.allclose(daily["corner_lam"], full["corner_lam"], rtol=1e-4, atol=1e-5,
                        equal_nan=True)
+
+
+def test_a_library_upgrade_walks_the_whole_history_again(monkeypatch):
+    """The kept rows were priced by the libraries of their day: a numpy or scipy
+    that moved a fit would leave them on the old numbers and the tail on the
+    new, so a different version is a different model."""
+    import numpy
+    before = pipeline._model_fingerprint()
+    monkeypatch.setattr(numpy, "__version__", "0.0.0-elsewhere")
+    assert pipeline._model_fingerprint() != before

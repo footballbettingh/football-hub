@@ -3,8 +3,13 @@
 # first time it was released — and a change nobody made could break the card.
 # Dependabot (.github/dependabot.yml) proposes each bump as a pull request, and
 # the tests decide it.
-numpy==2.2.6
-pandas==2.3.3
-scipy==1.15.3
+#
+# Python 3.14, locally and in CI. numpy 2.2 and scipy 1.15 had no build for it,
+# so they and pandas moved together: on the real data the whole chain comes
+# out the same under these as under the old three, bar one backtest sum in
+# the twelfth digit.
+numpy==2.5.3
+pandas==3.0.6
+scipy==1.18.1
 requests==2.34.2
 python-dotenv==1.2.3

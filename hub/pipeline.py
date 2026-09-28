@@ -474,9 +474,15 @@ _RESULTS = ["home_goals", "away_goals", "total_corners"]
 
 
 def _model_fingerprint():
-    """A hash of the code and the settings the walk-forward's output depends on."""
+    """A hash of what the walk-forward's output depends on: its code, its
+    settings, and the numerical libraries under them — an upgrade that moved a
+    fit in the fifth decimal would otherwise leave the kept rows on the old
+    numbers and the tail on the new."""
     import hashlib
     from pathlib import Path
+
+    import numpy
+    import scipy
 
     from confidence import data, implied, poisson, teams, walkforward
 
@@ -485,6 +491,8 @@ def _model_fingerprint():
         digest.update(Path(module.__file__).read_bytes())
     for name in _MODEL_SETTINGS:
         digest.update(f"{name}={getattr(cf_config, name)!r};".encode())
+    for library in (numpy, scipy, pd):
+        digest.update(f"{library.__name__}={library.__version__};".encode())
     return digest.hexdigest()[:16]
 
 

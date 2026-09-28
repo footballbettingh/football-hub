@@ -7,7 +7,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py314"
 extend-exclude = ["site", "data", ".agents"]
 
 [tool.ruff.lint]
@@ -23,7 +23,7 @@ ignore = ["B905"]
 "hub/components.py" = ["E501"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.14"
 files = ["hub", "confidence", "valuebets", "fb.py"]
 # numpy and pandas are typed; scipy and requests stubs are not installed. The
 # default mode: module-level code and whatever is annotated is checked, the
