@@ -228,7 +228,8 @@ def recorded_slate(days, path=LEDGER_CSV):
         if day not in wanted:
             continue
         band = _text(row["band"], DEFAULT_BAND)
-        low, high = cf_config.PICK_BANDS.get(band, (None, None))
+        # The edges it was chosen inside, not today's.
+        low, high = cf_config.pick_bands(day).get(band, (None, None))
         prob, odds = _number(row["prob"]), _number(row["odds"])
         out[(day, band)] = {
             "band": band, "band_low": low, "band_high": high,

@@ -241,7 +241,19 @@ def _apply_ledger(payload, table=None, path=None):
     payload["slate"] = _plain(merged)
     payload["best_pick"] = next(
         (pick for pick in payload["slate"] if pick["band"] == "main"), None)
+    payload["best_band"] = _best_band(payload["best_pick"])
     return changed
+
+
+def _best_band(best):
+    """The range the flagship was chosen in: its own, where there is a pick.
+
+    A pick recorded before the edges moved keeps the range it was chosen
+    inside, and the sentence beside it has to name that range, not today's.
+    """
+    if best and best.get("band_low") is not None:
+        return [best["band_low"], best["band_high"]]
+    return list(cf_config.PICK_BANDS["main"])
 
 
 def _acca_legs(acca):
@@ -349,7 +361,7 @@ def to_payload(table, fixtures=None, reliability=None, calibrators=None):
         "accumulators": _plain({k: v for k, v in accas.items() if v}),
         "acca_default": str(cf_config.ACCA_LEGS),
         "acca_target": cf_config.ACCA_TARGET_ODDS,
-        "best_band": [cf_config.BEST_ODDS_MIN, cf_config.BEST_ODDS_MAX],
+        "best_band": _best_band(best),
         "n_fixtures": int(table["match"].nunique()),
         "n_selections": len(rows),
         "first_date": min((r["date"] for r in rows), default=None),

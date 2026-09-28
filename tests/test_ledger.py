@@ -10,6 +10,7 @@ there was a price to take.
 import pandas as pd
 import pytest
 
+from confidence import config as cf_config
 from hub import ledger
 
 
@@ -561,6 +562,20 @@ def test_a_recorded_day_comes_back_in_the_shape_the_card_uses(path):
     assert (entry["band_low"], entry["band_high"]) == (1.60, 2.20)
     # Both halves of the edge are stored, so it is recomputed rather than kept.
     assert entry["edge"] == pytest.approx(0.624 * 1.75 - 1.0)
+
+
+def test_a_recorded_day_keeps_the_range_it_was_chosen_in(path):
+    """The edges moved after the last day the ledger held. A pick written down
+    before then is shown in the range it was chosen inside, not today's."""
+    last, before = cf_config.PICK_BANDS_BEFORE[-1]
+    after = str((pd.Timestamp(last) + pd.Timedelta(days=1)).date())
+    ledger.record(pick(day=last, band="value", fair_odds=2.21), path, today=last)
+    ledger.record(pick(day=after, band="value", fair_odds=2.01), path, today=last)
+    slate = ledger.recorded_slate([last, after], path)
+
+    then, now = slate[(last, "value")], slate[(after, "value")]
+    assert (then["band_low"], then["band_high"]) == before["value"]
+    assert (now["band_low"], now["band_high"]) == cf_config.PICK_BANDS["value"]
 
 
 def test_a_day_that_was_not_asked_for_is_not_returned(path):

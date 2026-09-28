@@ -120,28 +120,57 @@ DEVIG = "power"
 MIN_CONFIDENCE = 0.75
 
 # Best pick of the day: the price range worth singling one out in. Below 1.60
-# the card is a wall of near-certainties that pay nothing; above 2.20 a single
-# pick is a coin flip whichever way you dress it up. The sibling project
+# the card is a wall of near-certainties that pay nothing. The sibling project
 # measured 1.70-2.00 as the only odds band whose value-betting ROI came out
 # positive. On the 66,000 matches here it is not — -2.5% on 5,440 bets — but
 # it is still the band that loses least (1.60-2.50 -4.6%, 1.50-3.00 -5.0%,
 # every price -6.8%): weak evidence, pointing the same way.
+#
+# The top used to be 2.20, and no pick ever went near it: the picker takes the
+# shortest price in a band (see below), and over 1,118 replayed match days the
+# flagship's ninetieth percentile was 1.64. 1.85 is where it actually lives,
+# with room for a thin day — the same replay left it empty on one day in 1,118.
 BEST_ODDS_MIN = 1.60
-BEST_ODDS_MAX = 2.20
+BEST_ODDS_MAX = 1.85
 
 # The slate: one pick per price band per match day. Three bands rather than one
 # because they test the forecast at three different confidence levels — around
-# 70%, around 55% and around 40% — and because a single pick a day needs ten
+# 77%, around 62% and around 50% — and because a single pick a day needs ten
 # months to reach a sample worth reading. Three bands over three days is nine
 # measurements a day instead of one.
 #
 # `main` is the flagship, and is the same band as BEST_ODDS_MIN/MAX above.
+#
+# The edges were narrowed from 1.30-1.60 / 1.60-2.20 / 2.20-3.00 to where the
+# picks actually sit, which changed three of the 2,134 `safe` and `main` picks
+# over 1,118 replayed match days. `value` moved down as well, from a 45% shot
+# to a coin flip: a product decision, not a correction — at 2.00-2.40 it
+# claimed 49.7% over 976 replayed picks and landed 50.1%.
 PICK_BANDS = {
-    "safe": (1.30, 1.60),
+    "safe": (1.30, 1.45),
     "main": (BEST_ODDS_MIN, BEST_ODDS_MAX),
-    "value": (2.20, 3.00),
+    "value": (2.00, 2.40),
 }
 BAND_ORDER = ("safe", "main", "value")
+
+# The bands earlier match days were chosen in, each with the last match day it
+# applied to, oldest first. A pick in the ledger was chosen inside a range and
+# is shown with that range for good; a day not yet in the ledger when the edges
+# moved is chosen with the new ones. The date is the last day the ledger held
+# when they did — every band had been written down to it.
+PICK_BANDS_BEFORE = (
+    ("2026-10-03", {"safe": (1.30, 1.60), "main": (1.60, 2.20), "value": (2.20, 3.00)}),
+)
+
+
+def pick_bands(day=None):
+    """The price bands in force on match day `day`; today's if it has none."""
+    if day is not None:
+        day = str(day)[:10]
+        for last, bands in PICK_BANDS_BEFORE:
+            if day <= last:
+                return bands
+    return PICK_BANDS
 
 # How many match days ahead the card looks. Match days, not calendar days: an
 # international break should push the horizon out rather than show two empty
@@ -156,7 +185,7 @@ ACCA_MAX_LEGS = 6
 
 # Choosing between selections that are all on the same price.
 #
-# A price band is 30 to 80 odds-points wide and the picks occupy one and a
+# A price band is 15 to 40 odds-points wide and the picks occupy one and a
 # half of them: ranking on probability inside a band always returns the
 # shortest price in it, so the band names a target price rather than a range.
 # What actually decides the pick is the tie-break between the dozens of

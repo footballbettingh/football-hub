@@ -138,7 +138,7 @@ def test_a_thin_band_record_does_not_override_the_model():
 
 def test_only_the_first_day_is_considered():
     table = card([
-        {"date": "2026-08-14", "match": "today v now", "prob": 0.50},
+        {"date": "2026-08-14", "match": "today v now", "prob": 0.55},
         {"date": "2026-08-20", "match": "later v then", "prob": 0.62},
     ])
     best = picks_mod.best_of_day(table)
@@ -148,7 +148,7 @@ def test_only_the_first_day_is_considered():
 
 def test_a_named_day_overrides_the_default():
     table = card([
-        {"date": "2026-08-14", "match": "today v now", "prob": 0.50},
+        {"date": "2026-08-14", "match": "today v now", "prob": 0.55},
         {"date": "2026-08-20", "match": "later v then", "prob": 0.62},
     ])
     assert picks_mod.best_of_day(table, day="2026-08-20")["match"] == "later v then"
@@ -225,6 +225,24 @@ def test_the_slate_still_lists_the_bands_in_their_own_order():
     page reads."""
     slate = picks_mod.daily_slate(_three_days())
     assert [pick["band"] for pick in slate[:3]] == ["safe", "main", "value"]
+
+
+def test_a_day_is_chosen_in_the_bands_in_force_on_it():
+    """The edges moved after the last day the ledger held. A day on or before
+    it is chosen in the old ones — a band it left empty is still filled by the
+    rule its other picks were made under — and every day after it in today's."""
+    last, before = config.PICK_BANDS_BEFORE[-1]
+    after = str((pd.Timestamp(last) + pd.Timedelta(days=1)).date())
+    # Fair 2.13: the old flagship's range, and the new Longer's.
+    table = card([{"date": last, "match": "a v b", "prob": 0.47},
+                  {"date": after, "match": "c v d", "prob": 0.47}])
+    slate = {pick["day"]: pick for pick in picks_mod.daily_slate(table)}
+
+    assert slate[last]["band"] == "main"
+    assert (slate[last]["band_low"], slate[last]["band_high"]) == before["main"]
+    assert slate[after]["band"] == "value"
+    assert (slate[after]["band_low"], slate[after]["band_high"]) == config.PICK_BANDS["value"]
+    assert config.pick_bands() is config.PICK_BANDS
 
 
 def test_a_band_with_nothing_in_it_is_absent_rather_than_filled():

@@ -139,7 +139,9 @@ def _choose(predictions, keys, calibrated, results, rows, reliability, factors):
     out = []
     for _, day in frame.groupby("date", sort=True):
         result_of = {(m, k): r for m, k, r in zip(day["match"], day["key"], day["result"])}
-        for pick in picks.daily_slate(day, days=1):
+        # Today's bands on every day: the replay measures the rule the card runs
+        # now, not the ones earlier ledger days were chosen under.
+        for pick in picks.daily_slate(day, days=1, bands=config.PICK_BANDS):
             out.append({
                 "date": pd.Timestamp(pick["date"]).strftime("%Y-%m-%d"),
                 "band": pick["band"], "competition": pick["competition"],

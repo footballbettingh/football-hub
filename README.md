@@ -314,7 +314,7 @@ At the top of the card, chosen in Python so the static export shows the same two
 bets the server does:
 
 **Best pick of the day** — the most reliable selection priced between **1.60 and
-2.20** on the next match day. The range is the point: without it the answer is
+1.85** on the next match day. The range is the point: without it the answer is
 always a 99% handicap paying 1.01, which is true, useless, and not what anyone
 means by a best pick. (It is also where the value-betting backtest loses least:
 -2.5% at 1.70–2.00 against -6.8% over every price — weak evidence, pointing
@@ -355,15 +355,23 @@ showing two empty panels.
 
 | band | price | that is roughly |
 |---|---|---|
-| Safe | 1.30–1.60 | a 77% shot |
-| Best | 1.60–2.20 | a 62% shot |
-| Longer | 2.20–3.00 | a 45% shot |
+| Safe | 1.30–1.45 | a 77% shot |
+| Best | 1.60–1.85 | a 62% shot |
+| Longer | 2.00–2.40 | a 50% shot |
 
 Every one of them goes into the record the moment it appears, so Saturday's pick
 is logged on Thursday at Thursday's price and never revised. Three bands rather
 than one because one pick a day needs ten months to reach a sample worth
-reading — and because they test whether the forecast is as honest at 45% as it
+reading — and because they test whether the forecast is as honest at 50% as it
 is at 77%, which pooling would hide.
+
+The price is effectively the bottom of each band: the picker takes the most
+likely selection, which is the shortest price it is allowed. For match days up
+to 3 October 2026 the bands were 1.30–1.60, 1.60–2.20 and 2.20–3.00; no Safe or Best
+pick ever came near the top of its range, so the edges were moved to where the
+picks actually sit. Longer came down to 2.00 by choice, making it a coin flip
+rather than a 45% shot. The days already in the record keep the ranges they
+were chosen in (`PICK_BANDS_BEFORE` in `confidence/config.py`).
 
 The three are always on three different matches. Two selections on one fixture
 are one bet on its scoreline rather than two measurements — on 26 August all

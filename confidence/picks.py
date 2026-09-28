@@ -479,8 +479,8 @@ def _rank(picks):
 
     Whole blocks of the card share a score to within a fraction of a point.
     Ranking on probability inside a price band always returns the band's
-    shortest price — `safe` spans 1.30 to 1.60, and all 27 safe picks in the
-    ledger sit between 1.3000 and 1.3142 — so dozens of selections arrive at
+    shortest price — `safe` spanned 1.30 to 1.60, and all 27 safe picks in the
+    ledger sat between 1.3000 and 1.3142 — so dozens of selections arrive at
     essentially the same number, and the accumulator's legs sit exactly on
     the qualifying threshold by construction. Treating the fourth decimal of a
     calibrated probability as an ordering is false precision.
@@ -605,18 +605,21 @@ def daily_slate(picks, days=None, bands=None, validated_only=True):
     over 7.5 corners, which land and miss together. The flagship chooses first
     and the others take what it leaves, so on a thin day a band goes without
     rather than doubling up on a match already bet.
-    """
-    bands = bands or config.PICK_BANDS
-    order = [b for b in config.BAND_ORDER if b in bands] + \
-            [b for b in bands if b not in config.BAND_ORDER]
-    # sorted is stable: `main` first, the rest keep their display order.
-    priority = sorted(order, key=lambda band: band != "main")
 
+    Without `bands`, each day is chosen in the bands in force on it
+    (`config.pick_bands`): a day the ledger already holds keeps the edges it
+    was written down under, so a band it left empty is filled by the same rule.
+    """
     slate = []
     for day in match_days(picks, days, validated_only):
+        in_force = bands or config.pick_bands(day)
+        order = [b for b in config.BAND_ORDER if b in in_force] + \
+                [b for b in in_force if b not in config.BAND_ORDER]
+        # sorted is stable: `main` first, the rest keep their display order.
+        priority = sorted(order, key=lambda band: band != "main")
         taken, chosen = set(), {}
         for band in priority:
-            low, high = bands[band]
+            low, high = in_force[band]
             pool = picks[~picks["match"].isin(taken)] if taken else picks
             best = best_of_day(pool, odds_min=low, odds_max=high, day=day,
                                validated_only=validated_only)
