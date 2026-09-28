@@ -15,8 +15,8 @@
     powershell -ExecutionPolicy Bypass -File scripts\run_daily.ps1 -VbArgs '--no-odds'
 #>
 param(
-    # Interpreter to use. Defaults to whatever `python` resolves to, which is
-    # the one that installed requirements.txt if you used a plain install.
+    # Interpreter to use. Defaults to the project's .venv when there is one,
+    # and otherwise to whatever `python` resolves to.
     [string]$Python = "",
 
     # Extra arguments passed straight through to `fb.py run`.
@@ -35,6 +35,10 @@ if (-not (Test-Path $logDir)) {
 }
 $log = Join-Path $logDir ("run-{0:yyyy-MM-dd}.log" -f (Get-Date))
 
+$venv = Join-Path $root ".venv\Scripts\python.exe"
+if (-not $Python -and (Test-Path $venv)) {
+    $Python = $venv
+}
 if (-not $Python) {
     $found = Get-Command python -ErrorAction SilentlyContinue
     if (-not $found) {
