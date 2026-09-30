@@ -492,8 +492,10 @@ table.slips th:nth-child(2), table.slips td:nth-child(2) { width: 60%; }
     font-size: 14px; font-weight: 600; color: var(--text-primary); }
   table.stack > tbody > tr > td.s-sub { order: 30; flex: 1 1 0; min-width: 0;
     margin-top: 2px; font-size: 13px; color: var(--text-primary); }
+  /* margin-left keeps it on the right in a row with no subtitle to fill the
+     line before it; with one, the subtitle has taken that space already. */
   table.stack > tbody > tr > td.s-end2 { order: 40; flex: none; text-align: right;
-    margin-top: 2px; font-size: 12.5px; }
+    margin-top: 2px; margin-left: auto; font-size: 12.5px; }
   table.stack > tbody > tr > td.s-meta { order: 50; flex: none; margin-top: 5px; }
   table.stack > tbody > tr > td.s-block { order: 60; flex: 1 1 100%; margin-top: 10px;
     font-size: 13px; }
@@ -593,7 +595,13 @@ table.slips th:nth-child(2), table.slips td:nth-child(2) { width: 60%; }
 .lhero .lead { font-size: clamp(15px, 1.5vw, 18px); line-height: 1.6; margin: 0;
   color: oklch(0.85 0.02 120); max-width: 58ch; }
 
-.lactions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+/* A pair of buttons, always the same width: each column is as wide as the
+   longer label needs, so the two read as one choice rather than a big button
+   beside a small one. Where the pair drops under its text it takes the whole
+   row instead — see the narrow-screen rules below. */
+.lactions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  width: fit-content; margin-top: 30px; }
+.lactions .btn { justify-content: center; text-align: center; }
 .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
   font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 10px;
   border: 1px solid transparent; transition: transform .12s ease, opacity .12s ease; }
@@ -726,10 +734,14 @@ table.slips th:nth-child(2), table.slips td:nth-child(2) { width: 60%; }
 .llimits li:last-child { margin-bottom: 0; }
 .llimits li strong { color: var(--text-primary); font-weight: 600; }
 
+/* The text takes whatever the buttons leave. It used to wrap the buttons
+   under it as soon as the two no longer fit side by side at full measure,
+   well before the 900px switch below, and they sat there at the left. */
 .lcta { margin-top: 56px; border: 1px solid var(--border); border-radius: 16px;
   padding: 34px 36px; background: var(--surface-1);
-  display: flex; gap: 26px; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; }
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 26px;
+  align-items: center; }
+.lcta .lactions { margin-top: 0; }
 .lcta h2 { font-size: 21px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.02em; }
 .lcta p { font-size: 13.5px; color: var(--text-secondary); margin: 0; max-width: 52ch; }
 .lcta .btn.primary { background: var(--brand); color: var(--surface-1); }
@@ -739,6 +751,12 @@ table.slips th:nth-child(2), table.slips td:nth-child(2) { width: 60%; }
   .lstats { grid-template-columns: 1fr 1fr; }
   .lstat.lead { grid-column: 1 / -1; }
   .lcal-body { grid-template-columns: 1fr; gap: 20px; }
+}
+
+/* The call to action's buttons go under its text, and fill the row there. */
+@media (max-width: 900px) {
+  .lcta { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .lcta .lactions { width: auto; }
 }
 
 @media (max-width: 760px) {
@@ -757,6 +775,14 @@ table.slips th:nth-child(2), table.slips td:nth-child(2) { width: 60%; }
 @media (max-width: 640px) {
   .lstats { grid-template-columns: 1fr; }
   .lcal-body { padding: 18px; }
+  /* On a phone the hero's pair fills its row too, like the one at the foot. */
+  .lactions { width: auto; }
+}
+
+/* Two abreast the longer label no longer fits its half: one above the other,
+   both the full width. */
+@media (max-width: 480px) {
+  .lactions { grid-template-columns: 1fr; }
 }
 
 /* Someone who asked for less motion gets none of the lift on hover, and none

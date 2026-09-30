@@ -414,6 +414,25 @@ ROLES = {"title": "s-title", "end": "s-end", "sub": "s-sub", "end2": "s-end2",
          "meta": "s-meta", "block": "s-block", "label": "s-label"}
 
 
+def figure_roles(columns):
+    """Roles for a table of figures whose columns are not known in advance.
+
+    The first column names the row and the last is its headline figure, with
+    everything between in small print; every figure keeps its column's name.
+    A trailing interval is the exception: it bounds the figure before it, so
+    that one is the headline and the interval sits under it.
+    """
+    roles = ["title"] + ["meta label"] * (len(columns) - 2) + ["end label"]
+    if len(columns) > 2 and "CI" in columns[-1].split():
+        roles[-2:] = ["end label", "end2 label"]
+    return roles
+
+
+# A findings table this many columns wide no longer fits a phone, so it
+# stacks there. Narrower ones still do, and read better as a grid.
+STACK_FROM_COLUMNS = 5
+
+
 def pager(pages, label="Pages", collapse=False):
     """One button per page of a table whose rows carry `data-page`.
 
@@ -446,7 +465,10 @@ def insight_card(insight, heading_level="h3"):
     evidence = insight.get("evidence") or {}
     evidence_html = ""
     if evidence.get("type") == "table":
-        evidence_html = table(evidence["columns"], evidence["rows"], numeric_from=1)
+        columns = evidence["columns"]
+        roles = figure_roles(columns) if len(columns) >= STACK_FROM_COLUMNS else None
+        evidence_html = table(columns, evidence["rows"], numeric_from=1,
+                              roles=roles, blank="")
     return f"""
 <section class="card insight" style="--state: var(--{insight['state']})" id="{e(insight['id'])}">
   <div class="top">

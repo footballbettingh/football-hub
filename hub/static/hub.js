@@ -649,10 +649,14 @@
           ? '<span style="color:var(--' + state + ')">' + text + '</span><span class="tag '
             + state + '">' + (state === 'critical' ? 'overstated' : 'understated') + '</span>'
           : '<span style="color:var(--text-secondary)">' + text + '</span>';
-        return '<tr><td>' + esc(r.band) + '</td><td class="num">' + r.n.toLocaleString()
-          + '</td><td class="num">' + pct(r.predicted) + '</td><td class="num">'
-          + pct(r.actual) + '</td><td class="num">' + cell + '</td><td>'
-          + pct(r.ci_low) + ' – ' + pct(r.ci_high) + '</td></tr>';
+        // Laid out on a phone as RELIABILITY_ROLES in pages.py.
+        return '<tr><td class="' + stack('s-title') + '>' + esc(r.band) + '</td>'
+          + '<td class="num' + stack('s-meta s-label', 'Bets') + '>' + r.n.toLocaleString() + '</td>'
+          + '<td class="num' + stack('s-end2 s-label', 'Said') + '>' + pct(r.predicted) + '</td>'
+          + '<td class="num' + stack('s-end s-label', 'Did') + '>' + pct(r.actual) + '</td>'
+          + '<td class="num' + stack('s-sub') + '>' + cell + '</td>'
+          + '<td class="' + stack('s-meta s-label', '95% interval') + '>'
+            + pct(r.ci_low) + ' – ' + pct(r.ci_high) + '</td></tr>';
       }).join('');
     }
 

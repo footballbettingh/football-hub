@@ -578,7 +578,7 @@ def page_landing(links, ctx):
     <p>Results, model, calibration and prices refresh on a schedule, and the
     day's pick goes out before the first kick-off.</p>
   </div>
-  <div class="lactions" style="margin-top:0">
+  <div class="lactions">
     <a class="btn primary" href="{links.href('card')}">Open the card</a>
     <a class="btn ghost" href="{links.href('method')}">Read the method</a>
   </div>
@@ -1284,6 +1284,16 @@ def _history_verdict(head):
 
 # -- 4. reliability --------------------------------------------------------
 
+# On a phone: the band and what it did, how far that was from what it said,
+# then the count and the interval in small print. The per-market table hub.js
+# draws is laid out the same way.
+RELIABILITY_ROLES = ["title", "meta label", "end2 label", "end label", "sub",
+                     "meta label"]
+
+# The market and how far up it is checked, with the reason it stops under it.
+CEILING_ROLES = ["title", "end", "sub"]
+
+
 def _overstated_note(names):
     """Which markets stop because they overstated themselves, from the record."""
     if not names:
@@ -1361,7 +1371,7 @@ def page_reliability(links, ctx):
   matter most sit near 95% where a normal interval runs past 1.0 and stops meaning
   anything.</p>
   {c.table(["Band", "Bets", "Said", "Did", "Gap", "95% interval"], rows,
-           numeric_from=1, raw=True)}
+           numeric_from=1, raw=True, roles=RELIABILITY_ROLES)}
 </section>
 
 <section class="card">
@@ -1371,7 +1381,8 @@ def page_reliability(links, ctx):
   <em>overstated itself</em>, or too few bets that high have been graded to say.
   {_overstated_note(overstated)} Picks above the ceiling are dropped from the
   card.</p>
-  {c.table(["Market", "Checked up to", "Why it stops here"], ceiling_rows, numeric_from=1)
+  {c.table(["Market", "Checked up to", "Why it stops here"], ceiling_rows, numeric_from=1,
+           roles=CEILING_ROLES)
    if ceiling_rows else '<div class="empty">No ceilings computed yet.</div>'}
 </section>
 
@@ -1383,7 +1394,7 @@ def page_reliability(links, ctx):
     <select id="rel-scope">{options}</select>
     <span class="count" id="rel-count"></span>
   </div>
-  <div class="tablewrap"><table>
+  <div class="tablewrap"><table class="stack">
     <thead><tr><th>Band</th><th class="num">Bets</th><th class="num">Said</th>
     <th class="num">Did</th><th class="num">Gap</th><th>95% interval</th></tr></thead>
     <tbody id="rel-body"></tbody>
@@ -1457,10 +1468,12 @@ def page_evidence(links, ctx):
     state, title, detail = VERDICT_TEXT.get(head["verdict"], VERDICT_TEXT["none"])
     low, high = head["ci"]
 
+    market_columns = ["Market", "Bets", "Win rate", "Avg odds", "ROI", "95% CI"]
     market_rows = [[row["market"], f"{row['n']:,}", _pct(row["win_rate"]),
                     _num(row["avg_odds"]), f"{row['roi']:+.2f}%",
                     f"[{row['ci'][0]:+.1f}%, {row['ci'][1]:+.1f}%]"]
                    for row in evidence["by_market"]]
+    sweep_columns = ["Band", "Bets", "Win rate", "ROI", "95% CI"]
     sweep_rows = [[row["band"], f"{row['n']:,}", _pct(row["win_rate"]),
                    f"{row['roi']:+.2f}%",
                    f"[{row['ci'][0]:+.1f}%, {row['ci'][1]:+.1f}%]"]
@@ -1507,8 +1520,8 @@ def page_evidence(links, ctx):
 
 <section class="card">
   <h2>By market</h2>
-  {c.table(["Market", "Bets", "Win rate", "Avg odds", "ROI", "95% CI"],
-           market_rows, numeric_from=1)}
+  {c.table(market_columns, market_rows, numeric_from=1,
+           roles=c.figure_roles(market_columns))}
 </section>
 
 <section class="card">
@@ -1516,7 +1529,8 @@ def page_evidence(links, ctx):
   <p class="note">Widening the band buys sample size and costs accuracy, monotonically.
   It is a diagnostic, not a dial: picking the best-scoring row would be fitting a
   parameter to the test set.</p>
-  {c.table(["Band", "Bets", "Win rate", "ROI", "95% CI"], sweep_rows, numeric_from=1)}
+  {c.table(sweep_columns, sweep_rows, numeric_from=1,
+           roles=c.figure_roles(sweep_columns))}
 </section>
 """
     return c.layout(links, "Evidence", "evidence", body,

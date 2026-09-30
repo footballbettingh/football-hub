@@ -813,6 +813,25 @@ def test_a_stacked_table_marks_each_cell_for_the_phone_layout():
     assert '<td class="s-meta s-label s-hide" data-label="Offered">–</td>' in html
 
 
+def test_a_table_of_figures_leads_with_its_last_figure_on_a_phone():
+    assert c.figure_roles(["Half", "Bets", "Gain"]) == ["title", "meta label", "end label"]
+    # Unless the last is an interval: the figure it bounds leads, with it under.
+    assert c.figure_roles(["Band", "Bets", "ROI", "95% CI"]) == [
+        "title", "meta label", "end label", "end2 label"]
+
+
+def test_only_a_findings_table_too_wide_for_a_phone_stacks_there():
+    def card(columns):
+        return c.insight_card({
+            "id": "x", "state": "neutral", "title": "t", "headline": "h",
+            "stat": "s", "detail": "d",
+            "evidence": {"type": "table", "columns": columns,
+                         "rows": [[str(n) for n in range(len(columns))]]}})
+
+    assert '<table class="stack">' in card(["Market", "Bets", "Win rate", "ROI", "95% CI"])
+    assert '<table class="">' in card(["League", "Bets", "Win rate", "ROI"])
+
+
 def test_a_table_without_roles_is_left_as_it_was():
     html = c.table(["a", "b"], [["1", "2"]], numeric_from=1)
     assert html.endswith('<table class=""><thead><tr><th>a</th><th class="num">b</th>'
