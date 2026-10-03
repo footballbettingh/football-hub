@@ -126,3 +126,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-04,safe,2026-10-01T15:30:30+00:00,ARG-LIGAPROF,Liga Profesional,sarmiento junin,river plate,Sarmiento de Junin v River Plate,ou3.5_under,ou,Under 3.5 goals,0.76784,1.30235,,0.77103,27104,,,,pending,,,
 2026-10-04,main,2026-10-01T15:30:30+00:00,ARG-LIGAPROF,Liga Profesional,argentinos juniors,tigre,Argentinos Juniors v CA Tigre BA,ou2.5_under,ou,Under 2.5 goals,0.61118,1.63617,1.52000,0.65073,37043,,,,pending,,,
 2026-10-04,value,2026-10-01T15:30:30+00:00,SD,Segunda División,sociedad b,granada,Real Sociedad B v Granada CF,ou2.5_over,ou,Over 2.5 goals,0.49417,2.02357,1.98000,0.47945,17345,,,,pending,,,
+2026-10-05,safe,2026-10-03T13:27:59+00:00,ARG-LIGAPROF,Liga Profesional,estudiantes la plata,gimnasia mendoza,Estudiantes v Gimnasia Mendoza,ou3.5_under,ou,Under 3.5 goals,0.76563,1.30611,,0.77112,27106,,,,pending,,,
+2026-10-05,main,2026-10-03T13:27:59+00:00,ARG-LIGAPROF,Liga Profesional,estudiantes rio cuarto,racing,Estudiantes de Río Cuarto v Racing Club,ou2.5_under,ou,Under 2.5 goals,0.62379,1.60310,1.44000,0.65072,37039,,,,pending,,,
+2026-10-05,value,2026-10-03T13:27:59+00:00,ARG-LIGAPROF,Liga Profesional,velez sarsfield,platense,Velez Sarsfield BA v Platense,tt0.5_away_under,tt,Away team under 0.5 goals,0.48807,2.04887,,0.47772,20263,,,,pending,,,
