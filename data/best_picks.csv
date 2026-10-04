@@ -129,3 +129,4 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-05,safe,2026-10-03T13:27:59+00:00,ARG-LIGAPROF,Liga Profesional,estudiantes la plata,gimnasia mendoza,Estudiantes v Gimnasia Mendoza,ou3.5_under,ou,Under 3.5 goals,0.76563,1.30611,,0.77112,27106,,,,pending,,,
 2026-10-05,main,2026-10-03T13:27:59+00:00,ARG-LIGAPROF,Liga Profesional,estudiantes rio cuarto,racing,Estudiantes de Río Cuarto v Racing Club,ou2.5_under,ou,Under 2.5 goals,0.62379,1.60310,1.44000,0.65072,37039,,,,pending,,,
 2026-10-05,value,2026-10-03T13:27:59+00:00,ARG-LIGAPROF,Liga Profesional,velez sarsfield,platense,Velez Sarsfield BA v Platense,tt0.5_away_under,tt,Away team under 0.5 goals,0.48807,2.04887,,0.47772,20263,,,,pending,,,
+2026-10-06,main,2026-10-04T14:07:35+00:00,ARG-LIGAPROF,Liga Profesional,banfield,rosario central,Banfield v Rosario Central,tt0.5_home_over,tt,Home team over 0.5 goals,0.60167,1.66204,,0.65386,64391,,,,pending,,,
