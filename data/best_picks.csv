@@ -139,3 +139,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-09,safe,2026-10-06T15:16:35+00:00,BRA-SERIEA,Série A,fluminense,coritiba,Fluminense v Coritiba,ou1.5_over,ou,Over 1.5 goals,0.75888,1.31773,,0.77207,26127,,,,pending,,,
 2026-10-09,main,2026-10-06T15:16:35+00:00,BRA-SERIEA,Série A,palmeiras,bahia,Palmeiras v Bahia,tt1.5_home_over,tt,Home team over 1.5 goals,0.62489,1.60027,,0.65418,64912,,,,pending,,,
 2026-10-09,value,2026-10-06T15:16:35+00:00,ARG-LIGAPROF,Liga Profesional,aldosivi,sarmiento junin,Aldosivi Mar del Plata v Sarmiento de Junin,dnb_away,dnb,Away draw-no-bet,0.49963,2.00147,,0.47485,6223,,,,pending,,,
+2026-10-10,safe,2026-10-08T12:53:05+00:00,PL,Premier League,aston villa,brentford,Aston Villa v Brentford,corners7.5_over,corners,Over 7.5 corners,0.76746,1.30301,,0.77205,17219,,,,pending,,,
+2026-10-10,main,2026-10-08T12:53:05+00:00,USA-MLS,MLS,new england revolution,seattle sounders,New England Revolution v Seattle Sounders FC,tt1.5_away_under,tt,Away team under 1.5 goals,0.62355,1.60373,,0.65418,64912,,,,pending,,,
+2026-10-10,value,2026-10-08T12:53:05+00:00,GSL,Super League (Greece),paok,kalamata,PAOK Thessaloniki v Kalamata FC,corners9.5_under,corners,Under 9.5 corners,0.49870,2.00521,,0.47337,23487,,,,pending,,,
