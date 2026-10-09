@@ -1,5 +1,5 @@
 # What the tests and the checks need on top of what the site and the run need.
 -r requirements.txt
 pytest==9.1.1
-ruff==0.16.9
+ruff==0.16.10
 mypy==2.3.1
