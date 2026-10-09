@@ -12,6 +12,7 @@ so cost is tracked exactly rather than estimated.
 import gzip
 import json
 import re
+import time
 from datetime import datetime, timezone
 
 import numpy as np
@@ -22,6 +23,14 @@ from .. import config, files
 from confidence.teams import normalize
 
 USER_AGENT = "value-bets-mvp/0.3"
+
+# The API turns a burst away with 429 Too Many Requests and serves the same
+# request a moment later. The paced fetch asks for thirty-odd fixture lists
+# back to back, in under two seconds: from late September a handful were
+# refused, and so was the /sports call in front of a purchase, which skipped
+# every price left to buy that day — on six days out of ten. A refused request
+# is asked again after these pauses, or after Retry-After when it says.
+RATE_LIMIT_PAUSES = (1, 2, 4, 8)
 
 
 class Client:
@@ -58,11 +67,16 @@ class Client:
         # it is raised, and `from None`, because the original would otherwise
         # print in full as the context of the clean one.
         params = dict(params or {}, apiKey=self.key)
-        try:
-            resp = self.session.get(f"{config.ODDS_API_BASE}{path}", params=params,
-                                    timeout=30)
-        except requests.RequestException as exc:
-            raise config.scrubbed(exc, self.key) from None
+        for pause in (*RATE_LIMIT_PAUSES, None):
+            try:
+                resp = self.session.get(f"{config.ODDS_API_BASE}{path}", params=params,
+                                        timeout=30)
+            except requests.RequestException as exc:
+                raise config.scrubbed(exc, self.key) from None
+            if resp.status_code != 429 or pause is None:
+                break
+            asked = resp.headers.get("Retry-After", "")
+            time.sleep(min(int(asked), 60) if asked.isdigit() else pause)
 
         for attr, header in (("remaining", "x-requests-remaining"), ("used", "x-requests-used")):
             value = resp.headers.get(header)

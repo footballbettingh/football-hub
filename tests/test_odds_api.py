@@ -7,6 +7,7 @@ off the wrong line, would price every card from then on and say nothing.
 
 import pandas as pd
 import pytest
+import requests
 
 from valuebets import config
 from valuebets.sources import odds_api
@@ -117,3 +118,58 @@ def test_an_unknown_sport_spends_nothing(tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="Unknown sport"):
         odds_api.fetch_odds("soccer_nowhere", client=Recording())
     assert asked == ["/sports"]
+
+
+# -- when the API asks to slow down --------------------------------------------
+
+class _Session:
+    """A requests.Session that answers from a script, one status per call."""
+
+    def __init__(self, *statuses, headers=None):
+        self.headers, self.statuses, self.asked = {}, list(statuses), 0
+        self.extra = headers or {}
+
+    def get(self, url, params=None, timeout=None):
+        self.asked += 1
+        resp = requests.Response()
+        resp.status_code, resp.url, resp.reason = self.statuses.pop(0), url, "Too Many"
+        resp.headers.update({"x-requests-remaining": "490", **self.extra})
+        resp._content = b"[]"
+        return resp
+
+
+@pytest.fixture
+def pauses(monkeypatch):
+    slept = []
+    monkeypatch.setattr(odds_api.time, "sleep", slept.append)
+    return slept
+
+
+def test_a_request_turned_away_for_its_pace_is_asked_again(pauses):
+    """Thirty-odd fixture lists in two seconds drew a 429 on six days out of
+    ten, and the one in front of a purchase skipped every price that day."""
+    session = _Session(429, 429, 200)
+    client = odds_api.Client(key="k", session=session)
+    assert client.get("/sports") == []
+    assert session.asked == 3 and pauses == [1, 2]
+    assert client.remaining == 490
+
+
+def test_the_pause_the_api_asks_for_is_the_one_taken(pauses):
+    client = odds_api.Client(key="k", session=_Session(429, 200, headers={"Retry-After": "5"}))
+    client.get("/sports/soccer_epl/events")
+    assert pauses == [5]
+
+
+def test_a_rate_limit_that_does_not_lift_is_still_an_error(pauses):
+    session = _Session(*[429] * (len(odds_api.RATE_LIMIT_PAUSES) + 1))
+    with pytest.raises(requests.HTTPError, match="429"):
+        odds_api.Client(key="k", session=session).get("/sports")
+    assert pauses == list(odds_api.RATE_LIMIT_PAUSES)
+
+
+def test_other_errors_are_not_asked_again(pauses):
+    session = _Session(500)
+    with pytest.raises(requests.HTTPError, match="500"):
+        odds_api.Client(key="k", session=session).get("/sports")
+    assert session.asked == 1 and pauses == []
