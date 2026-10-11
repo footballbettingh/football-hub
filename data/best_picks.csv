@@ -148,3 +148,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-12,safe,2026-10-10T14:31:50+00:00,SD,Segunda División,burgos,granada,Burgos CF v Granada CF,ou3.5_under,ou,Under 3.5 goals,0.76565,1.30608,,0.77167,26072,,,,pending,,,
 2026-10-12,main,2026-10-10T14:31:50+00:00,PL,Premier League,coventry,newcastle,Coventry City v Newcastle United,tt1.5_home_under,tt,Home team under 1.5 goals,0.62339,1.60414,,0.65375,64644,,,,pending,,,
 2026-10-12,value,2026-10-10T14:31:50+00:00,NOR-ELITESER,Eliteserien,kfum oslo,valerenga,KFUM v Vålerenga,tt1.5_away_over,tt,Away team over 1.5 goals,0.49915,2.00339,,0.47738,20600,,,,pending,,,
+2026-10-13,safe,2026-10-11T14:57:43+00:00,ELC,Championship,stoke,middlesbrough,Stoke City v Middlesbrough,tt2.5_away_under,tt,Away team under 2.5 goals,0.76548,1.30637,,0.77530,33079,,,,pending,,,
+2026-10-13,main,2026-10-11T14:57:43+00:00,ELC,Championship,wrexham,west bromwich albion,Wrexham AFC v West Bromwich Albion,corners8.5_over,corners,Over 8.5 corners,0.61835,1.61719,,0.65088,48069,,,,pending,,,
+2026-10-13,value,2026-10-11T14:57:43+00:00,ELC,Championship,wolverhampton wanderers,bolton,Wolverhampton Wanderers v Bolton Wanderers,corners10.5_over,corners,Over 10.5 corners,0.49230,2.03127,,0.47368,23364,,,,pending,,,
