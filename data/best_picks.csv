@@ -151,3 +151,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-13,safe,2026-10-11T14:57:43+00:00,ELC,Championship,stoke,middlesbrough,Stoke City v Middlesbrough,tt2.5_away_under,tt,Away team under 2.5 goals,0.76548,1.30637,,0.77530,33079,,,,pending,,,
 2026-10-13,main,2026-10-11T14:57:43+00:00,ELC,Championship,wrexham,west bromwich albion,Wrexham AFC v West Bromwich Albion,corners8.5_over,corners,Over 8.5 corners,0.61835,1.61719,,0.65088,48069,,,,pending,,,
 2026-10-13,value,2026-10-11T14:57:43+00:00,ELC,Championship,wolverhampton wanderers,bolton,Wolverhampton Wanderers v Bolton Wanderers,corners10.5_over,corners,Over 10.5 corners,0.49230,2.03127,,0.47368,23364,,,,pending,,,
+2026-10-14,safe,2026-10-12T18:03:47+00:00,ELC,Championship,queens park rangers,derby,Queens Park Rangers v Derby County,ou1.5_over,ou,Over 1.5 goals,0.76375,1.30933,,0.77167,26072,,,,pending,,,
+2026-10-14,main,2026-10-12T18:03:47+00:00,USA-MLS,MLS,montreal,atlanta united,CF Montreal v Atlanta United FC,ou2.5_over,ou,Over 2.5 goals,0.61760,1.61918,1.57000,0.65013,36596,,,,pending,,,
+2026-10-14,value,2026-10-12T18:03:47+00:00,USA-MLS,MLS,toronto,orlando city,Toronto FC v Orlando City SC,tt1.5_away_over,tt,Away team over 1.5 goals,0.49915,2.00339,,0.47738,20600,,,,pending,,,
