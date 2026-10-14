@@ -157,3 +157,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-15,safe,2026-10-13T16:03:25+00:00,USA-MLS,MLS,dallas,seattle sounders,FC Dallas v Seattle Sounders FC,dc_12,dc,Home or away (12),0.76862,1.30104,,0.76297,20217,,,,pending,,,
 2026-10-15,main,2026-10-13T16:03:25+00:00,ARG-LIGAPROF,Liga Profesional,huracan,gimnasia la plata,Atlético Huracán v Gimnasia La Plata,tt0.5_away_over,tt,Away team over 0.5 goals,0.62334,1.60425,,0.65379,65004,,,,pending,,,
 2026-10-15,value,2026-10-13T16:03:25+00:00,USA-MLS,MLS,real salt lake,san jose earthquakes,Real Salt Lake v San Jose Earthquakes,dc_x2,dc,Draw or away (X2),0.49156,2.03436,,0.48579,6050,,,,pending,,,
+2026-10-16,safe,2026-10-14T13:47:38+00:00,IRL-PREMIERD,Premier Division,galway,shamrock rovers,Galway United v Shamrock Rovers,ou1.5_over,ou,Over 1.5 goals,0.76623,1.30509,,0.77112,26625,,,,pending,,,
+2026-10-16,main,2026-10-14T13:47:38+00:00,FL2,Ligue 2,annecy,nancy,Annecy FC v Nancy,tt1.5_home_under,tt,Home team under 1.5 goals,0.62390,1.60283,,0.65379,65004,,,,pending,,,
+2026-10-16,value,2026-10-14T13:47:38+00:00,SA,Serie A,frosinone,sassuolo,Frosinone v Sassuolo,corners10.5_over,corners,Over 10.5 corners,0.49865,2.00543,,0.47324,24400,,,,pending,,,
