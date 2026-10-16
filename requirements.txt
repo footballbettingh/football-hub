@@ -8,7 +8,7 @@
 # so they and pandas moved together: on the real data the whole chain comes
 # out the same under these as under the old three, bar one backtest sum in
 # the twelfth digit.
-numpy==2.5.3
+numpy==2.5.4
 pandas==3.0.6
 scipy==1.18.1
 requests==2.34.2
