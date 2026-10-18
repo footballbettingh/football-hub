@@ -169,3 +169,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-19,safe,2026-10-17T12:15:42+00:00,PPL,Primeira Liga,sp braga,gil vicente,Braga v Gil Vicente,ou3.5_under,ou,Under 3.5 goals,0.76569,1.30601,,0.77129,26628,,,,pending,,,
 2026-10-19,main,2026-10-17T12:15:42+00:00,SWE-ALLSVENS,Allsvenskan,degerfors,kalmar,Degerfors IF v Kalmar FF,tt1.5_away_under,tt,Away team under 1.5 goals,0.62409,1.60232,,0.65321,64618,,,,pending,,,
 2026-10-19,value,2026-10-17T12:15:42+00:00,POL-EKSTRAKL,Ekstraklasa,wisla plock,radomiak radom,Wisła Płock v Radomiak Radom,dc_x2,dc,Draw or away (X2),0.49587,2.01665,,0.48586,6047,,,,pending,,,
+2026-10-20,safe,2026-10-18T12:40:18+00:00,EL2,League Two,bristol rovers,salford,Bristol Rovers v Salford City,tt0.5_away_over,tt,Away team over 0.5 goals,0.76583,1.30578,,0.77473,34541,,,,pending,,,
+2026-10-20,main,2026-10-18T12:40:18+00:00,EL2,League Two,gillingham,port vale,Gillingham v Port Vale,tt1.5_away_under,tt,Away team under 1.5 goals,0.62461,1.60101,,0.65321,64618,,,,pending,,,
+2026-10-20,value,2026-10-18T12:40:18+00:00,EL2,League Two,exeter,crewe,Exeter City v Crewe Alexandra,corners9.5_over,corners,Over 9.5 corners,0.50000,2.00000,,0.54986,47401,,,,pending,,,
