@@ -156,7 +156,13 @@ jobs:
             git push
           fi
 
+      # The address the canonical links, share cards and sitemap are written
+      # with. Spelled out rather than read from a repository variable: an unset
+      # `vars.` is an empty string, which os.environ.get takes over the default
+      # and every canonical link would come out as "/".
       - name: Export the site
+        env:
+          SITE_URL: https://footballbettinghub.eu
         run: python fb.py export
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0

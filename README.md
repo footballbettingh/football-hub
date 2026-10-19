@@ -610,6 +610,33 @@ workflow's token can push only from the step that commits the ledger. A
 `FOOTBALL_DATA_KEY` secret left over from earlier setups is no longer read by
 anything and can be deleted.
 
+### The domain
+
+The site is published at **footballbettinghub.eu**. The domain only points at
+Pages; nothing is hosted anywhere else. It takes three settings and one line:
+
+1. **Verify it** — account **Settings → Pages → Add a domain** gives a TXT
+   record, `_github-pages-challenge-footballbettingh.footballbettinghub.eu`.
+   A verified domain cannot be claimed by somebody else's Pages site.
+2. **DNS at the registrar** — four `A` records for `@` to `185.199.108.153`,
+   `185.199.109.153`, `185.199.110.153` and `185.199.111.153`; four `AAAA` to
+   `2606:50c0:8000::153` through `2606:50c0:8003::153`; and a `CNAME` for
+   `www` to `footballbettingh.github.io`. Any `A` record the registrar put
+   there for its own hosting has to go, or part of the traffic lands on it.
+3. **Repo → Settings → Pages → Custom domain** — the domain, then
+   **Enforce HTTPS** once the certificate is issued.
+
+No `CNAME` file is needed in `site/`: when Pages is published by Actions, the
+custom domain lives in the repository settings and such a file is ignored.
+The old `footballbettingh.github.io/football-hub/` address redirects to the
+domain for as long as it is set there.
+
+The one line is `SITE_URL` on the export step in `daily.yml`. Canonical links,
+share cards, the sitemap and robots.txt are absolute and are written with it;
+without it they would still name the `github.io` address. A local
+`python fb.py export` uses the `github.io` default unless `SITE_URL` is set in
+the environment.
+
 ## Layout
 
 ```
