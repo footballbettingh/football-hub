@@ -178,3 +178,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-22,safe,2026-10-20T13:36:27+00:00,MEX-LIGAMX,Liga MX,puebla,monterrey,Puebla v Monterrey,tt2.5_away_under,tt,Away team under 2.5 goals,0.76901,1.30037,,0.77415,34634,,,,pending,,,
 2026-10-22,main,2026-10-20T13:36:27+00:00,MEX-LIGAMX,Liga MX,pachuca,cruz azul,Pachuca v Cruz Azul,btts_yes,btts,Both teams to score,0.61396,1.62878,,0.63520,5943,,,,pending,,,
 2026-10-22,value,2026-10-20T13:36:27+00:00,MEX-LIGAMX,Liga MX,toluca,tijuana,Toluca v Tijuana,hcp_home-1.5,hcp,Home -1.5,0.48847,2.04719,,0.48866,1543,,,,pending,,,
+2026-10-23,safe,2026-10-21T13:52:44+00:00,BL1,Bundesliga (Germany),stuttgart,borussia monchengladbach,VfB Stuttgart v Borussia Monchengladbach,ou2.5_over,ou,Over 2.5 goals,0.76685,1.30403,1.28000,0.77089,26394,,,,pending,,,
+2026-10-23,main,2026-10-21T13:52:44+00:00,FL2,Ligue 2,pau,grenoble,Pau FC v Grenoble,tt0.5_away_over,tt,Away team over 0.5 goals,0.62381,1.60306,,0.65384,65264,,,,pending,,,
+2026-10-23,value,2026-10-21T13:52:44+00:00,IRL-PREMIERD,Premier Division,shamrock rovers,sligo rovers,Shamrock Rovers v Sligo Rovers,tt0.5_away_under,tt,Away team under 0.5 goals,0.49874,2.00503,,0.47694,20732,,,,pending,,,
