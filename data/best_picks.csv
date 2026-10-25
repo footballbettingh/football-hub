@@ -190,3 +190,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-26,safe,2026-10-24T12:44:15+00:00,FL2,Ligue 2,boulogne,reims,Boulogne v Stade de Reims,ou3.5_under,ou,Under 3.5 goals,0.76513,1.30697,,0.77114,26366,,,,pending,,,
 2026-10-26,main,2026-10-24T12:44:15+00:00,PD,La Liga,sevilla,osasuna,Sevilla v CA Osasuna,tt0.5_away_over,tt,Away team over 0.5 goals,0.62469,1.60080,,0.65405,65587,,,,pending,,,
 2026-10-26,value,2026-10-24T12:44:15+00:00,TSL,Süper Lig,besiktas,buyuksehyr,Besiktas JK v Basaksehir,tt2.5_home_over,tt,Home team over 2.5 goals,0.49876,2.00495,,0.47675,21246,,,,pending,,,
+2026-10-27,safe,2026-10-25T13:14:35+00:00,SB,Serie B,padova,sudtirol,Padova v Südtirol,ou3.5_under,ou,Under 3.5 goals,0.76513,1.30697,,0.77114,26366,,,,pending,,,
+2026-10-27,main,2026-10-25T13:14:35+00:00,ARG-LIGAPROF,Liga Profesional,argentinos juniors,independiente rivadavia,Argentinos Juniors v Independiente Rivadavia,tt0.5_away_over,tt,Away team over 0.5 goals,0.62475,1.60064,,0.65405,65587,,,,pending,,,
+2026-10-27,value,2026-10-25T13:14:35+00:00,SB,Serie B,cesena,empoli,Cesena FC v Empoli,corners9.5_over,corners,Over 9.5 corners,0.49910,2.00360,,0.47213,23966,,,,pending,,,
