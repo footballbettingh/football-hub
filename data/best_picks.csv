@@ -193,3 +193,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-27,safe,2026-10-25T13:14:35+00:00,SB,Serie B,padova,sudtirol,Padova v Südtirol,ou3.5_under,ou,Under 3.5 goals,0.76513,1.30697,,0.77114,26366,,,,pending,,,
 2026-10-27,main,2026-10-25T13:14:35+00:00,ARG-LIGAPROF,Liga Profesional,argentinos juniors,independiente rivadavia,Argentinos Juniors v Independiente Rivadavia,tt0.5_away_over,tt,Away team over 0.5 goals,0.62475,1.60064,,0.65405,65587,,,,pending,,,
 2026-10-27,value,2026-10-25T13:14:35+00:00,SB,Serie B,cesena,empoli,Cesena FC v Empoli,corners9.5_over,corners,Over 9.5 corners,0.49910,2.00360,,0.47213,23966,,,,pending,,,
+2026-10-28,safe,2026-10-26T15:18:14+00:00,SPL,Premiership,celtic,dundee united,Celtic v Dundee United,tt1.5_away_under,tt,Away team under 1.5 goals,0.76732,1.30324,,0.77413,35091,,,,pending,,,
+2026-10-28,main,2026-10-26T15:18:14+00:00,SPL,Premiership,dundee,kilmarnock,Dundee FC v Kilmarnock,ou3.5_under,ou,Under 3.5 goals,0.62465,1.60089,1.55000,0.65067,36653,,,,pending,,,
+2026-10-28,value,2026-10-26T15:18:14+00:00,SB,Serie B,carrarese,arezzo,Carrarese v Arezzo,corners9.5_over,corners,Over 9.5 corners,0.49933,2.00270,,0.47213,23966,,,,pending,,,
