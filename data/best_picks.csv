@@ -199,3 +199,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-10-29,safe,2026-10-27T14:34:59+00:00,BRA-SERIEA,Série A,bahia,sao paulo,Bahia v Sao Paulo,ou1.5_over,ou,Over 1.5 goals,0.76489,1.30737,,0.77173,26990,,,,pending,,,
 2026-10-29,main,2026-10-27T14:34:59+00:00,USA-MLS,MLS,san jose earthquakes,colorado rapids,San Jose Earthquakes v Colorado Rapids,ou2.5_over,ou,Over 2.5 goals,0.61946,1.61430,1.61000,0.65045,36825,,,,pending,,,
 2026-10-29,value,2026-10-27T14:34:59+00:00,SA,Serie A,frosinone,lecce,Frosinone v Lecce,corners10.5_over,corners,Over 10.5 corners,0.49955,2.00179,,0.47101,24263,,,,pending,,,
+2026-10-30,safe,2026-10-28T15:09:30+00:00,BL2,2. Bundesliga,cottbus,bochum,FC Energie Cottbus v VfL Bochum,tt2.5_away_under,tt,Away team under 2.5 goals,0.76622,1.30510,,0.77357,35080,,,,pending,,,
+2026-10-30,main,2026-10-28T15:09:30+00:00,BJL,Pro League,waregem,brugge,SV Zulte-Waregem v Club Brugge,tt1.5_away_over,tt,Away team over 1.5 goals,0.62430,1.60180,,0.65360,65903,,,,pending,,,
+2026-10-30,value,2026-10-28T15:09:30+00:00,FL1,Ligue 1,le havre,paris saint germain,Le Havre v Paris Saint Germain,corners9.5_over,corners,Over 9.5 corners,0.50000,2.00000,,0.55001,46923,,,,pending,,,
