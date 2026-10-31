@@ -208,3 +208,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-01,safe,2026-10-30T15:06:17+00:00,GSL,Super League (Greece),panathinaikos,aek,Panathinaikos v AEK Athens,ou1.5_over,ou,Over 1.5 goals,0.76741,1.30308,,0.77190,26984,,,,pending,,,
 2026-11-01,main,2026-10-30T15:06:17+00:00,SB,Serie B,palermo,vicenza,Palermo v Vicenza,hcp_away+1.5,hcp,Away +1.5,0.62265,1.60604,,0.65506,7494,,,,pending,,,
 2026-11-01,value,2026-10-30T15:06:17+00:00,DED,Eredivisie,excelsior,twente,Excelsior v FC Twente Enschede,corners9.5_over,corners,Over 9.5 corners,0.49972,2.00112,,0.47237,24343,,,,pending,,,
+2026-11-02,safe,2026-10-31T14:35:09+00:00,PD,La Liga,la coruna,osasuna,Deportivo La Coruña v CA Osasuna,tt0.5_home_over,tt,Home team over 0.5 goals,0.76891,1.30054,,0.77336,35387,,,,pending,,,
+2026-11-02,main,2026-10-31T14:35:09+00:00,SD,Segunda División,mallorca,cadiz,Mallorca v Cádiz CF,hcp_away+1.5,hcp,Away +1.5,0.62478,1.60056,,0.65506,7494,,,,pending,,,
+2026-11-02,value,2026-10-31T14:35:09+00:00,SA,Serie A,atalanta,parma,Atalanta BC v Parma,corners9.5_over,corners,Over 9.5 corners,0.49972,2.00112,,0.47237,24343,,,,pending,,,
