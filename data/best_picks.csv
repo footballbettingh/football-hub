@@ -220,3 +220,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-05,safe,2026-11-03T16:18:18+00:00,ARG-LIGAPROF,Liga Profesional,gimnasia la plata,belgrano,Gimnasia La Plata v Belgrano de Cordoba,ou3.5_under,ou,Under 3.5 goals,0.75455,1.32530,,0.77303,26559,,,,pending,,,
 2026-11-05,main,2026-11-03T16:18:18+00:00,BRA-SERIEA,Série A,sao paulo,corinthians,Sao Paulo v Corinthians,tt1.5_home_under,tt,Home team under 1.5 goals,0.62479,1.60053,,0.65400,67446,,,,pending,,,
 2026-11-05,value,2026-11-03T16:18:18+00:00,BRA-SERIEA,Série A,palmeiras,remo,Palmeiras v Remo,tt0.5_away_under,tt,Away team under 0.5 goals,0.49910,2.00362,,0.47710,20960,,,,pending,,,
+2026-11-06,safe,2026-11-04T16:23:21+00:00,FL2,Ligue 2,montpellier,metz,Montpellier v Metz,tt2.5_home_under,tt,Home team under 2.5 goals,0.76635,1.30489,,0.77444,35397,,,,pending,,,
+2026-11-06,main,2026-11-04T16:23:21+00:00,SD,Segunda División,castellon,eibar,CD Castellón v SD Eibar,hcp_away+1.5,hcp,Away +1.5,0.62500,1.60000,,0.65524,7614,,,,pending,,,
+2026-11-06,value,2026-11-04T16:23:21+00:00,SB,Serie B,ascoli,palermo,Ascoli v Palermo,tt1.5_away_over,tt,Away team over 1.5 goals,0.49917,2.00331,,0.47710,20960,,,,pending,,,
