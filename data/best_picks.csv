@@ -232,3 +232,4 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-09,safe,2026-11-07T14:57:21+00:00,MEX-LIGAMX,Liga MX,leon,guadalajara chivas,León v Guadalajara,tt0.5_home_over,tt,Home team over 0.5 goals,0.75868,1.31808,,0.77330,34728,,,,pending,,,
 2026-11-09,main,2026-11-07T14:57:21+00:00,SD,Segunda División,sabadell,sociedad b,Sabadell FC v Real Sociedad B,corners10.5_under,corners,Under 10.5 corners,0.62472,1.60071,,0.64965,49953,,,,pending,,,
 2026-11-09,value,2026-11-07T14:57:21+00:00,MEX-LIGAMX,Liga MX,queretaro,puebla,Querétaro v Puebla,dc_x2,dc,Draw or away (X2),0.46626,2.14471,,0.48386,5607,,,,pending,,,
+2026-11-13,main,2026-11-08T15:17:26+00:00,SD,Segunda División,leganes,burgos,Leganés v Burgos CF,tt1.5_home_under,tt,Home team under 1.5 goals,0.58598,1.70655,,0.54957,46540,,,,pending,,,
