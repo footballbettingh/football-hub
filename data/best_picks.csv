@@ -239,3 +239,4 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-15,safe,2026-11-10T16:28:20+00:00,SD,Segunda División,granada,las palmas,Granada CF v Las Palmas,ou1.5_over,ou,Over 1.5 goals,0.76393,1.30902,,0.77340,27560,,,,pending,,,
 2026-11-15,main,2026-11-10T16:28:20+00:00,SD,Segunda División,eibar,cadiz,SD Eibar v Cádiz CF,corners8.5_over,corners,Over 8.5 corners,0.62272,1.60586,,0.65056,49405,,,,pending,,,
 2026-11-15,value,2026-11-10T16:28:20+00:00,SD,Segunda División,tenerife,ceuta,Tenerife v AD Ceuta FC,btts_no,btts,Not both teams to score,0.48980,2.04167,,0.47394,31595,,,,pending,,,
+2026-11-16,main,2026-11-14T15:09:47+00:00,SD,Segunda División,albacete,celta b,Albacete v Celta Fortuna,tt1.5_home_over,tt,Home team over 1.5 goals,0.60925,1.64137,,0.65434,66780,,,,pending,,,
