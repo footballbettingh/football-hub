@@ -239,10 +239,13 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-15,safe,2026-11-10T16:28:20+00:00,SD,Segunda División,granada,las palmas,Granada CF v Las Palmas,ou1.5_over,ou,Over 1.5 goals,0.76393,1.30902,,0.77340,27560,2026-11-15,1.00000,0.00000,lost,,2026-11-16T18:36:58+00:00,feed
 2026-11-15,main,2026-11-10T16:28:20+00:00,SD,Segunda División,eibar,cadiz,SD Eibar v Cádiz CF,corners8.5_over,corners,Over 8.5 corners,0.62272,1.60586,,0.65056,49405,2026-11-15,1.00000,1.00000,lost,,2026-11-16T18:36:58+00:00,feed
 2026-11-15,value,2026-11-10T16:28:20+00:00,SD,Segunda División,tenerife,ceuta,Tenerife v AD Ceuta FC,btts_no,btts,Not both teams to score,0.48980,2.04167,,0.47394,31595,2026-11-15,2.00000,0.00000,won,,2026-11-16T18:36:58+00:00,feed
-2026-11-16,main,2026-11-14T15:09:47+00:00,SD,Segunda División,albacete,celta b,Albacete v Celta Fortuna,tt1.5_home_over,tt,Home team over 1.5 goals,0.60925,1.64137,,0.65434,66780,,,,pending,,,
+2026-11-16,main,2026-11-14T15:09:47+00:00,SD,Segunda División,albacete,celta b,Albacete v Celta Fortuna,tt1.5_home_over,tt,Home team over 1.5 goals,0.60925,1.64137,,0.65434,66780,2026-11-16,1.00000,0.00000,lost,,2026-11-17T17:44:40+00:00,feed
 2026-11-18,safe,2026-11-15T15:43:02+00:00,BRA-SERIEA,Série A,flamengo rj,athletico pr,Flamengo v Atletico Paranaense,tt1.5_home_over,tt,Home team over 1.5 goals,0.76780,1.30243,,0.77389,34788,,,,pending,,,
 2026-11-18,main,2026-11-15T15:43:02+00:00,BRA-SERIEA,Série A,coritiba,santos,Coritiba v Santos,dnb_away,dnb,Away draw-no-bet,0.62215,1.60732,,0.65555,9502,,,,pending,,,
 2026-11-18,value,2026-11-15T15:43:02+00:00,BRA-SERIEA,Série A,cruzeiro,palmeiras,Cruzeiro v Palmeiras,tt1.5_away_over,tt,Away team over 1.5 goals,0.45623,2.19189,,0.47483,21294,,,,pending,,,
 2026-11-19,safe,2026-11-16T18:40:22+00:00,BRA-SERIEA,Série A,vitoria,bragantino,Vitoria v Bragantino-SP,ou1.5_over,ou,Over 1.5 goals,0.76746,1.30300,,0.77288,28175,,,,pending,,,
 2026-11-19,main,2026-11-16T18:40:22+00:00,BRA-SERIEA,Série A,gremio,bahia,Grêmio v Bahia,tt1.5_away_under,tt,Away team under 1.5 goals,0.60959,1.64045,,0.65414,67113,,,,pending,,,
 2026-11-19,value,2026-11-16T18:40:22+00:00,BRA-SERIEA,Série A,corinthians,botafogo rj,Corinthians v Botafogo,tt1.5_home_over,tt,Home team over 1.5 goals,0.49219,2.03172,,0.47561,21255,,,,pending,,,
+2026-11-20,safe,2026-11-17T17:45:20+00:00,BRA-SERIEA,Série A,sao paulo,fluminense,Sao Paulo v Fluminense,ou3.5_under,ou,Under 3.5 goals,0.76570,1.30599,,0.77296,26907,,,,pending,,,
+2026-11-20,main,2026-11-17T17:45:20+00:00,SD,Segunda División,andorra,leganes,Andorra CF v Leganés,corners8.5_over,corners,Over 8.5 corners,0.62357,1.60366,,0.65035,49220,,,,pending,,,
+2026-11-20,value,2026-11-17T17:45:20+00:00,PD,La Liga,athletic bilbao,espanyol,Athletic Bilbao v Espanyol,btts_no,btts,Not both teams to score,0.49734,2.01070,,0.47307,31856,,,,pending,,,
