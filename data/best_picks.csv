@@ -249,3 +249,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-20,safe,2026-11-17T17:45:20+00:00,BRA-SERIEA,Série A,sao paulo,fluminense,Sao Paulo v Fluminense,ou3.5_under,ou,Under 3.5 goals,0.76570,1.30599,,0.77296,26907,,,,pending,,,
 2026-11-20,main,2026-11-17T17:45:20+00:00,SD,Segunda División,andorra,leganes,Andorra CF v Leganés,corners8.5_over,corners,Over 8.5 corners,0.62357,1.60366,,0.65035,49220,,,,pending,,,
 2026-11-20,value,2026-11-17T17:45:20+00:00,PD,La Liga,athletic bilbao,espanyol,Athletic Bilbao v Espanyol,btts_no,btts,Not both teams to score,0.49734,2.01070,,0.47307,31856,,,,pending,,,
+2026-11-21,safe,2026-11-19T17:26:20+00:00,EL1,League One,bradford,doncaster,Bradford City v Doncaster Rovers,ou1.5_over,ou,Over 1.5 goals,0.76746,1.30300,,0.77288,28188,,,,pending,,,
+2026-11-21,main,2026-11-19T17:26:20+00:00,BL1,Bundesliga (Germany),borussia monchengladbach,dortmund,Borussia Monchengladbach v Borussia Dortmund,hcp_home+1.5,hcp,Home +1.5,0.62438,1.60158,,0.65318,7883,,,,pending,,,
+2026-11-21,value,2026-11-19T17:26:20+00:00,SA,Serie A,parma,roma,Parma v AS Roma,corners9.5_over,corners,Over 9.5 corners,0.49976,2.00097,,0.47143,24131,,,,pending,,,
