@@ -255,3 +255,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-22,safe,2026-11-20T17:01:16+00:00,GSL,Super League (Greece),panathinaikos,ofi crete,Panathinaikos v OFI Crete,tt1.5_home_over,tt,Home team over 1.5 goals,0.76920,1.30005,,0.77365,34857,,,,pending,,,
 2026-11-22,main,2026-11-20T17:01:16+00:00,BJL,Pro League,anderlecht,oud heverlee leuven,Anderlecht v Leuven,tt2.5_home_under,tt,Home team under 2.5 goals,0.62441,1.60151,,0.65434,67035,,,,pending,,,
 2026-11-22,value,2026-11-20T17:01:16+00:00,SD,Segunda División,cordoba,oviedo,Córdoba v Oviedo,dc_x2,dc,Draw or away (X2),0.49945,2.00220,,0.48369,5979,,,,pending,,,
+2026-11-23,safe,2026-11-21T16:12:40+00:00,GSL,Super League (Greece),asteras tripolis,aris,Asteras Tripolis v Aris Thessaloniki,ou3.5_under,ou,Under 3.5 goals,0.76553,1.30629,,0.77276,27191,,,,pending,,,
+2026-11-23,main,2026-11-21T16:12:40+00:00,ARG-LIGAPROF,Liga Profesional,gimnasia la plata,newells old boys,Gimnasia La Plata v Newells Old Boys,tt0.5_away_over,tt,Away team over 0.5 goals,0.62269,1.60594,,0.65434,67035,,,,pending,,,
+2026-11-23,value,2026-11-21T16:12:40+00:00,DNK-SUPERLIG,Superliga,brondby,midtjylland,Brondby IF v FC Midtjylland,tt1.5_away_over,tt,Away team over 1.5 goals,0.49795,2.00825,,0.47579,21272,,,,pending,,,
