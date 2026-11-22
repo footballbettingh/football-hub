@@ -258,3 +258,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-23,safe,2026-11-21T16:12:40+00:00,GSL,Super League (Greece),asteras tripolis,aris,Asteras Tripolis v Aris Thessaloniki,ou3.5_under,ou,Under 3.5 goals,0.76553,1.30629,,0.77276,27191,,,,pending,,,
 2026-11-23,main,2026-11-21T16:12:40+00:00,ARG-LIGAPROF,Liga Profesional,gimnasia la plata,newells old boys,Gimnasia La Plata v Newells Old Boys,tt0.5_away_over,tt,Away team over 0.5 goals,0.62269,1.60594,,0.65434,67035,,,,pending,,,
 2026-11-23,value,2026-11-21T16:12:40+00:00,DNK-SUPERLIG,Superliga,brondby,midtjylland,Brondby IF v FC Midtjylland,tt1.5_away_over,tt,Away team over 1.5 goals,0.49795,2.00825,,0.47579,21272,,,,pending,,,
+2026-11-24,safe,2026-11-22T16:20:19+00:00,SB,Serie B,juve stabia,catanzaro,Juve Stabia v US Catanzaro 1929,corners7.5_over,corners,Over 7.5 corners,0.76598,1.30551,,0.77155,18442,,,,pending,,,
+2026-11-24,main,2026-11-22T16:20:19+00:00,EL1,League One,blackpool,leicester,Blackpool v Leicester City,tt1.5_away_over,tt,Away team over 1.5 goals,0.62440,1.60154,,0.65434,67035,,,,pending,,,
+2026-11-24,value,2026-11-22T16:20:19+00:00,ELC,Championship,middlesbrough,swansea,Middlesbrough v Swansea City,corners10.5_under,corners,Under 10.5 corners,0.49890,2.00442,,0.47083,23839,,,,pending,,,
