@@ -267,3 +267,6 @@ day,band,recorded_at,competition,competition_name,home,away,match,key,group,sele
 2026-11-26,safe,2026-11-24T19:33:05+00:00,ARG-LIGAPROF,Liga Profesional,boca juniors,independiente rivadavia,Boca Juniors v Independiente Rivadavia,ou3.5_under,ou,Under 3.5 goals,0.76529,1.30669,,0.77293,28886,,,,pending,,,
 2026-11-26,main,2026-11-24T19:33:05+00:00,MEX-LIGAMX,Liga MX,toluca,atlas,Toluca v Atlas,btts_yes,btts,Both teams to score,0.60874,1.64273,,0.63791,5866,,,,pending,,,
 2026-11-26,value,2026-11-24T19:33:05+00:00,BRA-SERIEA,Série A,sao paulo,remo,Sao Paulo v Remo,btts_yes,btts,Both teams to score,0.48582,2.05836,,0.47491,31732,,,,pending,,,
+2026-11-27,safe,2026-11-25T18:41:30+00:00,PL,Premier League,nottingham forest,chelsea,Nottingham Forest v Chelsea,corners7.5_over,corners,Over 7.5 corners,0.76490,1.30736,,0.77105,18773,,,,pending,,,
+2026-11-27,main,2026-11-25T18:41:30+00:00,DNK-SUPERLIG,Superliga,sonderjyske,brondby,SonderjyskE v Brondby IF,ou2.5_over,ou,Over 2.5 goals,0.62099,1.61032,1.58000,0.65345,37466,,,,pending,,,
+2026-11-27,value,2026-11-25T18:41:30+00:00,BL1,Bundesliga (Germany),werder bremen,borussia monchengladbach,Werder Bremen v Borussia Monchengladbach,corners9.5_under,corners,Under 9.5 corners,0.49741,2.01042,,0.47369,23771,,,,pending,,,
